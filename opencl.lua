@@ -1,17 +1,19 @@
 local class = require 'ext.class'
+local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 
 local CL = class()
 
-local function classert(...)
-	local err = ...
-	if err ~= cl.CL_SUCCESS then
-		error('err '..err)
-	end
-	return ...
+local function ffi_new_table(T, src)
+	return ffi.new(T..'['..#src..']', src)
+end
+
+function CL:assert(...) 
+	return require 'opencl.assert'(...) 
 end
 
 function CL:init(args)
+	args = args or {}
 	self.platform = self:getPlatform(args.pickPlatform)
 	self.device = self:getDevice(
 		self.platform,
@@ -31,38 +33,50 @@ CGLContextObj CGLGetCurrentContext();
 			self.platform,
 			cl.CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
 			kCGLShareGroup,
+			0
 		}
 	elseif ffi.os == 'Windows' then
 		ffi.cdef[[
+typedef intptr_t HGLRC;
+typedef intptr_t HDC;
+HGLRC wglGetCurrentContext();
+HDC wglGetCurrentDC();
 		]]
+		local gl = require 'ffi.OpenGL'
 		properties = {
 			cl.CL_CONTEXT_PLATFORM,
-			ffi.C.cpPlatform,
+			ffi.cast('cl_context_properties', self.platform),
+--[[ enable to use CL/GL context sharing
 			cl.CL_GL_CONTEXT_KHR,
-			ffi.C.wglGetCurrentContext(),
+			ffi.cast('cl_context_properties', gl.wglGetCurrentContext()),
 			cl.CL_WGL_HDC_KHR,
-			ffi.C.wglGetCurrentDC(),
+			ffi.cast('cl_context_properties', gl.wglGetCurrentDC()),
+--]]			
+			0
 		}
 	else
 		error("don't know what properties to use for this OS")
 	end
-	properties = ffi.new('cl_command_queue_properties[?]', properties)
+	--properties = ffi.new('cl_context_properties[?]', properties)
+	properties = ffi_new_table('cl_context_properties', properties)
 
 	local devices = {self.device}
-	local deviceIDs = ffi.new('cl_device_id[?]', devices)
+	local deviceIDs = ffi_new_table('cl_device_id', devices)
 	local err = ffi.new('cl_uint[1]',0)
 	self.context = cl.clCreateContext(properties, #devices, deviceIDs, nil, nil, err)
-	assert(err == cl.CL_SUCCESS)
+	if err[0] ~= cl.CL_SUCCESS then
+		error('clCreateContext failed with error '..('%x'):format(err[0]))
+	end
 	
-	self.commands = cl.clCreateCommandQueue(self.context, self.device, properties, err)
-	assert(err == cl.CL_SUCCESS)
+	self.commands = cl.clCreateCommandQueue(self.context, self.device, cl.CL_QUEUE_PROFILING_ENABLE, err)
+	assert(err[0] == cl.CL_SUCCESS)
 end
 
 function CL:getPlatform(query)
 	local n = ffi.new('cl_uint[1]',0)
-	classert(cl.clGetPlatformIDs(0, nil, n))
+	self:assert(cl.clGetPlatformIDs(0, nil, n))
 	local ids = ffi.new('cl_platform_id[?]', n[0])
-	classert(cl.clGetPlatformIDs(n[0], ids, nil))
+	self:assert(cl.clGetPlatformIDs(n[0], ids, nil))
 	for i=0,n[0]-1 do
 		if query and query(ids[i]) then return ids[i] end
 	end
@@ -71,9 +85,9 @@ end
 
 function CL:getDevice(platform, deviceType, query)
 	local n = ffi.new('cl_uint[1]',0)
-	classert(cl.clGetDeviceIDs(platform, deviceType, 0, nil, n))
+	self:assert(cl.clGetDeviceIDs(platform, deviceType, 0, nil, n))
 	local ids = ffi.new('cl_device_id[?]', n[0])
-	classert(cl.clGetDeviceIDs(platform, deviceType, n[0], ids, nil))
+	self:assert(cl.clGetDeviceIDs(platform, deviceType, n[0], ids, nil))
 	for i=0,n[0]-1 do
 		if query and query(ids[i]) then return ids[i] end
 	end
