@@ -1,7 +1,6 @@
 #!/usr/bin/env luajit
 local cl = require 'ffi.OpenCL'
 local ffi = require 'ffi'
-local CLCommon = require 'cl'
 
 local classert = require 'cl.assert'
 local Platform = require 'cl.platform'
@@ -17,13 +16,6 @@ local platform = Platform.getAll()[1]
 local device = platform:getDevices{useCPU=false}[1]
 local context = Context{platform=platform, device=device}
 local commands = Commands{context=context, device=device}
-
-local clobj = CLCommon{
-	platform=platform,
-	device=device,
-	context=context,
-	commands=commands,
-}
 
 local n = 16
 local program = Program{
