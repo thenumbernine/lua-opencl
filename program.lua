@@ -1,6 +1,8 @@
 local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 local class = require 'ext.class'
+local table = require 'ext.table'
+local string = require 'ext.string'
 local classert = require 'cl.assert'
 
 local Program = class()
@@ -9,6 +11,7 @@ local Program = class()
 args:
 	context
 	code
+	devices (optional)
 --]]
 function Program:init(args)
 	assert(args)
@@ -20,7 +23,20 @@ function Program:init(args)
 	lengths[0] = #code
 	local err = ffi.new('cl_uint[1]',0)
 	self.obj = cl.clCreateProgramWithSource(context.obj, 1, strings, lengths, err)
-	assert(err[0] == cl.CL_SUCCESS)
+	classert(err[0])
+
+	if args.devices then
+		local success, message = self:build(args.devices)
+		if not success then
+			local lines = string.split(string.trim(code),'\n')
+			local max = tostring(#lines)
+			print(lines:map(function(l,i) 
+				local num = tostring(i)
+				return num..':'..(' '):rep(#max - #num)..l 
+			end):concat'\n')
+			error(message)
+		end
+	end
 end
 
 function Program:build(devices, options)
@@ -32,7 +48,11 @@ function Program:build(devices, options)
 	local success = err == cl.CL_SUCCESS
 	local message
 	if not success then 
-		message = "failed to build"
+		message = table{'failed to build'}
+		for _,device in ipairs(devices) do
+			message:insert(self:getLog(device))
+		end	
+		message = message:concat'\n'
 	end
 	return success, message 
 end
@@ -44,6 +64,25 @@ function Program:getBuildInfo(device, name)
 	local param = ffi.new('char[?]', size[0])
 	classert(cl.clGetProgramBuildInfo(self.obj, device.obj, name, size[0], param, nil))
 	return ffi.string(param, size[0])
+end
+
+function Program:getLog(device)
+	return self:getBuildInfo(device, cl.CL_PROGRAM_BUILD_LOG)
+end
+
+--[[
+usage:
+	program:kernel(name, arg1, ...)
+	program:kernel{name=name, args={...}}
+--]]
+function Program:kernel(args, ...)
+	if type(args) == 'string' then
+		args = {name=args}
+		if select('#', ...) then
+			args.args = {...}
+		end
+	end
+	return require 'cl.kernel'(table(args, {program=self}))
 end
 
 return Program

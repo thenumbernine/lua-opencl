@@ -70,4 +70,8 @@ HDC wglGetCurrentDC();
 	end
 end
 
+function Context:buffer(args)
+	return require 'cl.buffer'(table(args, {context=self}))
+end
+
 return Context

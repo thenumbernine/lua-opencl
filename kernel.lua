@@ -1,15 +1,30 @@
+local class = require 'ext.class'
+local table = require 'ext.table'
 local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
-local class = require 'ext.class'
 local classert = require 'cl.assert'
 local Buffer = require 'cl.buffer'
 
 local Kernel = class()
 
-function Kernel:init(program, name)
+--[[
+args:
+	program
+	name
+	args (optional)
+--]]
+function Kernel:init(args)
+	assert(args)
 	local err = ffi.new('cl_int[1]',0)
-	self.obj = cl.clCreateKernel(program.obj, name, err)
+	self.obj = cl.clCreateKernel(
+		assert(args.program).obj, 
+		assert(args.name), 
+		err)
 	classert(err[0])
+
+	if args.args then
+		self:setArgs(table.unpack(args.args))
+	end
 end
 
 function Kernel:setArg(index, value)
