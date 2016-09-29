@@ -1,14 +1,10 @@
 #!/usr/bin/env luajit
-local cl = require 'ffi.OpenCL'
 local ffi = require 'ffi'
-
-local classert = require 'cl.assert'
-local Platform = require 'cl.platform'
 
 local n = 16
 local real = 'float'
 
-local platform, device, ctx, cmds, program = Platform.quickstart{
+local platform, device, ctx, cmds, program = require 'cl'{
 	device={gpu=true},
 	program={code=
 '#define N '..n..'\n'..
