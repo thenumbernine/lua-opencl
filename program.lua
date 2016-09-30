@@ -4,8 +4,13 @@ local class = require 'ext.class'
 local table = require 'ext.table'
 local string = require 'ext.string'
 local classert = require 'cl.assert'
+local classertparam = require 'cl.assertparam'
+local Wrapper = require 'cl.wrapper'
 
-local Program = class()
+local Program = class(Wrapper(
+	'cl_program',
+	cl.clRetainProgram,
+	cl.clReleaseProgram))
 
 --[[
 args:
@@ -21,9 +26,8 @@ function Program:init(args)
 	strings[0] = ffi.cast('const char*',code)
 	local lengths = ffi.new('size_t[1]')
 	lengths[0] = #code
-	local err = ffi.new('cl_uint[1]',0)
-	self.obj = cl.clCreateProgramWithSource(context.obj, 1, strings, lengths, err)
-	classert(err[0])
+	self.id = classertparam('clCreateProgramWithSource', context.id, 1, strings, lengths)
+	Program.super.init(self, self.id)
 
 	if args.devices then
 		local success, message = self:build(args.devices)
@@ -42,9 +46,9 @@ end
 function Program:build(devices, options)
 	local deviceIDs = ffi.new('cl_device_id[?]', #devices)
 	for i=1,#devices do
-		deviceIDs[i-1] = devices[i].obj
+		deviceIDs[i-1] = devices[i].id
 	end
-	local err = cl.clBuildProgram(self.obj, #devices, deviceIDs, options, nil, nil)
+	local err = cl.clBuildProgram(self.id, #devices, deviceIDs, options, nil, nil)
 	local success = err == cl.CL_SUCCESS
 	local message
 	if not success then 
@@ -60,9 +64,9 @@ end
 function Program:getBuildInfo(device, name)
 	assert(name, "expected name")
 	local size = ffi.new('size_t[1]', 0)
-	classert(cl.clGetProgramBuildInfo(self.obj, device.obj, name, 0, nil, size))
+	classert(cl.clGetProgramBuildInfo(self.id, device.id, name, 0, nil, size))
 	local param = ffi.new('char[?]', size[0])
-	classert(cl.clGetProgramBuildInfo(self.obj, device.obj, name, size[0], param, nil))
+	classert(cl.clGetProgramBuildInfo(self.id, device.id, name, size[0], param, nil))
 	return ffi.string(param, size[0])
 end
 

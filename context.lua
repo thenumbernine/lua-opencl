@@ -2,13 +2,18 @@ local class = require 'ext.class'
 local table = require 'ext.table'
 local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
+local classertparam = require 'cl.assertparam'
+local Wrapper = require 'cl.wrapper'
 
--- here and opencl.lua
+-- here and commandqueue.lua
 local function ffi_new_table(T, src)
 	return ffi.new(T..'['..#src..']', src)
 end
 
-local Context = class()
+local Context = class(Wrapper(
+	'cl_context',
+	cl.clRetainContext,
+	cl.clReleaseContext))
 
 --[[
 args:
@@ -23,10 +28,10 @@ function Context:init(args)
 	
 	local properties = table{
 		cl.CL_CONTEXT_PLATFORM,
-		ffi.cast('cl_context_properties', platform.obj),
+		ffi.cast('cl_context_properties', platform.id),
 	}
-	if ffi.os == 'OSX' then
-		if args.useGLSharing then
+	if args.glSharing then
+		if ffi.os == 'OSX' then
 			ffi.cdef[[
 typedef void* CGLContextObj;
 CGLContextObj CGLGetCurrentContext();
@@ -37,9 +42,7 @@ CGLContextObj CGLGetCurrentContext();
 				cl.CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
 				kCGLShareGroup,
 			}
-		end
-	elseif ffi.os == 'Windows' then
-		if args.useGLSharing then
+		elseif ffi.os == 'Windows' then
 			ffi.cdef[[
 typedef intptr_t HGLRC;
 typedef intptr_t HDC;
@@ -53,21 +56,18 @@ HDC wglGetCurrentDC();
 				cl.CL_WGL_HDC_KHR,
 				ffi.cast('cl_context_properties', gl.wglGetCurrentDC()),
 			}
+		else
+			error("don't know how to setup GL context sharing for OS "..ffi.os)
 		end
-	elseif ffi.os == 'Linux' then
-	else
-		error("don't know what properties to use for this OS")
 	end
 	properties:insert(0)
 	properties = ffi_new_table('cl_context_properties', properties)
 
-	local devices = {device.obj}
+	local devices = {device.id}
 	local deviceIDs = ffi_new_table('cl_device_id', devices)
-	local err = ffi.new('cl_uint[1]',0)
-	self.obj = cl.clCreateContext(properties, #devices, deviceIDs, nil, nil, err)
-	if err[0] ~= cl.CL_SUCCESS then
-		error('clCreateContext failed with error '..('%x'):format(err[0]))
-	end
+	self.id = classertparam('clCreateContext', properties, #devices, deviceIDs, nil, nil)
+
+	Context.super.init(self, self.id)
 end
 
 function Context:buffer(args)

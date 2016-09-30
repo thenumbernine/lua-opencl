@@ -3,12 +3,11 @@ local table = require 'ext.table'
 local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 local classert = require 'cl.assert'
-local Device = require 'cl.device'
 
 local Platform = class()
 
-function Platform:init(obj)
-	self.obj = obj	
+function Platform:init(id)
+	self.id = id	
 end
 
 -- static method
@@ -44,6 +43,7 @@ args:
 	gpu
 --]]
 function Platform:getDevices(args)
+	local Device = require 'cl.device'
 	local deviceType = args and args.deviceType 
 	if args ~= nil and deviceType == nil then
 		if args.cpu ~= nil then 
@@ -54,9 +54,9 @@ function Platform:getDevices(args)
 		end
 	end
 	local n = ffi.new('cl_uint[1]',0)
-	classert(cl.clGetDeviceIDs(self.obj, deviceType, 0, nil, n))
+	classert(cl.clGetDeviceIDs(self.id, deviceType, 0, nil, n))
 	local ids = ffi.new('cl_device_id[?]', n[0])
-	classert(cl.clGetDeviceIDs(self.obj, deviceType, n[0], ids, nil))
+	classert(cl.clGetDeviceIDs(self.id, deviceType, n[0], ids, nil))
 	local devices = table()
 	for i=0,n[0]-1 do
 		devices:insert(Device(ids[i]))

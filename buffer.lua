@@ -2,9 +2,11 @@ local ffi = require 'ffi'
 local bit = require 'bit'
 local cl = require 'ffi.OpenCL'
 local class = require 'ext.class'
-local classert = require 'cl.assert'
+local classertparam = require 'cl.assertparam'
 
-local Buffer = class()
+local Memory = require 'cl.memory'
+
+local Buffer = class(Memory)
 
 --[[
 args:
@@ -32,13 +34,12 @@ function Buffer:init(args)
 	if args.hostptr then flags = bit.bor(flags, cl.CL_MEM_USE_HOST_PTR) end
 	if args.alloc then flags = bit.bor(flags, cl.CL_MEM_ALLOC_HOST_PTR) end
 	if args.copy then flags = bit.bor(flags, cl.CL_MEM_COPY_HOST_PTR) end
-	self.obj = cl.clCreateBuffer(
-		assert(args.context).obj, 
+	self.id = classertparam('clCreateBuffer',
+		assert(args.context).id, 
 		flags,
 		assert(args.size),
-		args.hostptr,
-		err)
-	classert(err[0])
+		args.hostptr)
+	Buffer.super.init(self, self.id)
 end
 
 return Buffer
