@@ -29,6 +29,13 @@ function Kernel:init(args)
 	end
 end
 
+--[[
+index = which arg index (0 based, like OpenCL)
+value = value
+	OpenCL Memory object: use the cl_mem member
+	table: use {size=size, ptr=ptr}
+	other non-table: use value and ffi.sizeof(value)
+--]]
 function Kernel:setArg(index, value)
 	local size, ptr
 	if type(value) == 'table' then
@@ -36,6 +43,9 @@ function Kernel:setArg(index, value)
 			assert(value.id)
 			ptr = ffi.new('cl_mem[1]', value.id)
 			size = ffi.sizeof'cl_mem'
+		elseif value.size then
+			ptr = value.ptr or ffi.cast('const void*', 0)
+			size = value.size
 		else
 			error("don't know how to handle value")
 		end

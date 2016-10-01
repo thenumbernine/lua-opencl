@@ -75,32 +75,54 @@ end
 --[[
 args:
 	kernel
+	dim (optional) if not provided then offset, globalSize, or localSize must be a table?
 	offset (optional)
 	globalSize
 	localSize
 --]]
-local globalOffset = ffi.new('size_t[3]')
+local size_t_ptr_type = ffi.typeof(ffi.new('size_t[1]')+1)
+local offset = ffi.new('size_t[3]')
 local globalSize = ffi.new('size_t[3]')
 local localSize = ffi.new('size_t[3]')
-local function fill(dst, src)
-	local n = #src
-	assert(n >= 1 and n <= 3)
-	for i=1,n do
-		dst[i-1] = src[i]
+
+local function fillParam(dim, src, dst)
+	if type(src) == 'number' then
+		if not dim then
+			dim = 1
+		else
+			assert(dim == 1)
+		end
+		dst[0] = src
+	elseif type(src) == 'table' then
+		if not dim then
+			dim = #src
+		else
+			assert(dim == #src)
+		end
+		for i=1,dim do
+			dst[i-1] = src[i]
+		end
+	elseif type(src) == 'cdata'
+	and ffi.typeof(src) == size_t_ptr_type
+	then
+		assert(dim)
+		for i=0,dim-1 do
+			dst[i] = src[i]
+		end
 	end
+	return dim
 end
+
 function CommandQueue:enqueueNDRangeKernel(args)
-	assert(args.globalSize)
-	assert(args.localSize, 'expected localSize')
-	assert(#args.globalSize == #args.localSize)
-	if args.globalOffset then fill(globalOffset, args.globalOffset) end
-	fill(globalSize, args.globalSize)
-	fill(localSize, args.localSize)
+	local dim = args.dim
+	dim = fillParam(dim, args.offset, offset)
+	dim = fillParam(dim, args.globalSize, globalSize)
+	dim = fillParam(dim, args.localSize, localSize)
 	classert(cl.clEnqueueNDRangeKernel(
 		self.id,
 		assert(args.kernel).id,
-		#args.globalSize,
-		globalOffset,
+		dim,
+		offset,
 		globalSize,
 		localSize,
 		0,
