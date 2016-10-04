@@ -35,7 +35,7 @@ function Context:init(args)
 			ffi.cdef[[
 typedef void* CGLContextObj;
 CGLContextObj CGLGetCurrentContext();
-			]]
+]]
 			local kCGLContext = ffi.C.CGLGetCurrentContext()
 			local kCGLShareGroup = ffi.C.CGLGetShareGroup(kCGLContext)
 			properties:append{
@@ -48,7 +48,7 @@ typedef intptr_t HGLRC;
 typedef intptr_t HDC;
 HGLRC wglGetCurrentContext();
 HDC wglGetCurrentDC();
-			]]
+]]
 			local gl = require 'ffi.OpenGL'
 			properties:append{
 				cl.CL_GL_CONTEXT_KHR,
@@ -57,7 +57,19 @@ HDC wglGetCurrentDC();
 				ffi.cast('cl_context_properties', gl.wglGetCurrentDC()),
 			}
 		else
-			error("don't know how to setup GL context sharing for OS "..ffi.os)
+			ffi.cdef[[
+typedef void Display;
+typedef intptr_t GLXContext;
+GLXContext glXGetCurrentContext();
+Display* glXGetCurrentDisplay();
+]]
+			local gl = require 'ffi.OpenGL'
+			properties:append{
+				cl.CL_GL_CONTEXT_KHR,
+				ffi.cast('cl_context_properties', gl.glXGetCurrentContext()),
+				cl.CL_GLX_DISPLAY_KHR,
+				ffi.cast('cl_context_properties', gl.glXGetCurrentDisplay()),
+			}
 		end
 	end
 	properties:insert(0)
@@ -65,6 +77,7 @@ HDC wglGetCurrentDC();
 
 	local devices = {device.id}
 	local deviceIDs = ffi_new_table('cl_device_id', devices)
+
 	self.id = classertparam('clCreateContext', properties, #devices, deviceIDs, nil, nil)
 
 	Context.super.init(self, self.id)
