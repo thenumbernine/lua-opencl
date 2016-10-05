@@ -4,16 +4,17 @@ local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 local classertparam = require 'cl.assertparam'
 local Wrapper = require 'cl.wrapper'
+local GetInfo = require 'cl.getinfo'
 
 -- here and commandqueue.lua
 local function ffi_new_table(T, src)
 	return ffi.new(T..'['..#src..']', src)
 end
 
-local Context = class(Wrapper(
+local Context = class(GetInfo(Wrapper(
 	'cl_context',
 	cl.clRetainContext,
-	cl.clReleaseContext))
+	cl.clReleaseContext)))
 
 --[[
 args:
@@ -31,6 +32,12 @@ function Context:init(args)
 		ffi.cast('cl_context_properties', platform.id),
 	}
 	if args.glSharing then
+		
+if not device:getExtensions():find'_gl_sharing' then
+	print"warning: couldn't find gl_sharing in device extensions:"
+	print(device:getExtensions())
+end
+		
 		if ffi.os == 'OSX' then
 			ffi.cdef[[
 typedef void* CGLContextObj;
@@ -86,5 +93,13 @@ end
 function Context:buffer(args)
 	return require 'cl.buffer'(table(args, {context=self}))
 end
+
+Context.infoGetter = cl.clGetContextInfo 
+
+Context.infos = {
+	{name='CL_CONTEXT_REFERENCE_COUNT', type='cl_uint'},
+	{name='CL_CONTEXT_DEVICES', type='cl_device_id[]'},
+	{name='CL_CONTEXT_PROPERTIES', type='cl_context_properties[]'},
+}
 
 return Context

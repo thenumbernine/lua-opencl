@@ -1,6 +1,7 @@
 local class = require 'ext.class'
 local table = require 'ext.table'
 local ffi = require 'ffi'
+local bit = require 'bit'
 local cl = require 'ffi.OpenCL'
 local classert = require 'cl.assert'
 local GetInfo = require 'cl.getinfo'
@@ -9,10 +10,11 @@ local Platform = class(GetInfo())
 
 function Platform:init(id)
 	self.id = id	
+	Platform.super.init(self)
 end
 
 -- static method
-function Platform.getAll(verbose)
+function Platform.getAll()
 	local n = ffi.new('cl_uint[1]',0)
 	classert(cl.clGetPlatformIDs(0, nil, n))
 	local ids = ffi.new('cl_platform_id[?]', n[0])
@@ -20,16 +22,6 @@ function Platform.getAll(verbose)
 	local platforms = table()
 	for i=0,n[0]-1 do
 		platforms:insert(Platform(ids[i]))
-
-		if verbose then
-			local plat = platforms:last()
-			print()
-			print('plat '..i)
-			for name,infotype in pairs(Platform.infos) do
-				print(name, plat:getInfo(name))
-			end
-		end
-
 	end
 	return platforms
 end
@@ -49,22 +41,25 @@ end
 
 --[[
 args:
+	one of the following:
 	deviceType
+	default
 	cpu
 	gpu
-	verbose
+	accelerator
+	all
 --]]
 function Platform:getDevices(args)
 	local Device = require 'cl.device'
-	local deviceType = args and args.deviceType 
-	if args ~= nil and deviceType == nil then
-		if args.cpu ~= nil then 
-			deviceType = args.cpu and cl.CL_DEVICE_TYPE_CPU or cl.CL_DEVICE_TYPE_GPU 
-		end
-		if args.gpu ~= nil then
-			deviceType = args.gpu and cl.CL_DEVICE_TYPE_GPU or cl.CL_DEVICE_TYPE_CPU
-		end
+	local deviceType = args and args.deviceType
+	if args then
+		if args.default then deviceType = bit.bor(deviceType or 0 , cl.CL_DEVICE_TYPE_DEFAULT) end
+		if args.cpu then deviceType = bit.bor(deviceType or 0 , cl.CL_DEVICE_TYPE_CPU) end
+		if args.gpu then deviceType = bit.bor(deviceType or 0 , cl.CL_DEVICE_TYPE_GPU) end
+		if args.accelerator then deviceType = bit.bor(deviceType or 0 , cl.CL_DEVICE_TYPE_ACCELERATOR) end
+		if args.all then deviceType = bit.bor(deviceType or 0 , cl.CL_DEVICE_TYPE_ALL) end
 	end
+	deviceType = deviceType or cl.CL_DEVICE_TYPE_ALL
 	local n = ffi.new('cl_uint[1]',0)
 	classert(cl.clGetDeviceIDs(self.id, deviceType, 0, nil, n))
 	local ids = ffi.new('cl_device_id[?]', n[0])
@@ -72,16 +67,6 @@ function Platform:getDevices(args)
 	local devices = table()
 	for i=0,n[0]-1 do
 		devices:insert(Device(ids[i]))
-
-		if args.verbose then
-			local dev = devices:last()
-			print()
-			print('dev '..i)
-			for name,infotype in pairs(Device.infos) do
-				print(name, require 'ext.tolua'(dev:getInfo(name)))
-			end
-		end
-
 	end
 	return devices
 
@@ -89,11 +74,11 @@ end
 
 Platform.infoGetter = cl.clGetPlatformInfo
 Platform.infos = {
-	CL_PLATFORM_PROFILE = 'string',
-	CL_PLATFORM_VERSION = 'string',
-	CL_PLATFORM_NAME = 'string',
-	CL_PLATFORM_VENDOR = 'string',
-	CL_PLATFORM_EXTENSIONS = 'string',
+	{name='CL_PLATFORM_PROFILE', type='string'},
+	{name='CL_PLATFORM_VERSION', type='string'},
+	{name='CL_PLATFORM_NAME', type='string'},
+	{name='CL_PLATFORM_VENDOR', type='string'},
+	{name='CL_PLATFORM_EXTENSIONS', type='string'},
 }
 function Platform:getProfile() return self:getInfo'CL_PLATFORM_PROFILE' end
 function Platform:getVersion() return self:getInfo'CL_PLATFORM_VERSION' end
