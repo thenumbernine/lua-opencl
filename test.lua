@@ -1,14 +1,33 @@
 #!/usr/bin/env luajit
 local ffi = require 'ffi'
+require 'ext'
 
-local n = 16
-local real = 'float'
 
-local platform, device, ctx, cmds, program = require 'cl'{
-	device={gpu=true},
-	program={code=
+local function get64bit(list)
+	local best = list:map(function(item)
+		local exts = item:getExtensions():lower():trim()
+		return {item=item, fp64=exts:match'cl_%w+_fp64'}
+	end):sort(function(a,b)
+		return (a.fp64 and 1 or 0) > (b.fp64 and 1 or 0)
+	end)[1]
+	return best.item, best.fp64
+end
+
+local platform = get64bit(require 'cl.platform'.getAll())
+local device, fp64 = get64bit(platform:getDevices{gpu=true})
+
+local n = 64
+local real = fp64 and 'double' or 'float'
+print('using real',real)
+
+local ctx = require 'cl.context'{platform=platform, device=device}
+local cmds = require 'cl.commandqueue'{context=ctx, device=device}
+
+local code =
 '#define N '..n..'\n'..
-'#define real '..real..'\n'..[[
+'#define real '..real..'\n'..
+(fp64 and '#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n' or '')..
+[[
 __kernel void test(
 	__global real* c,
 	const __global real* a,
@@ -16,11 +35,11 @@ __kernel void test(
 ) {
 	int i = get_global_id(0);
 	if (i >= N) return;
-	c[i] = a[i] + b[i];
+	c[i] = a[i] * b[i];
 }
 ]]
-}
-}
+
+local program = require 'cl.program'{context=ctx, devices={device}, code=code}
 
 -- gpu mem
 local aBuffer = ctx:buffer{rw=true, size=n*ffi.sizeof(real)}
@@ -41,9 +60,9 @@ cmds:enqueueWriteBuffer{buffer=bBuffer, block=true, size=n*ffi.sizeof(real), ptr
 
 local testKernel = program:kernel('test', cBuffer, aBuffer, bBuffer)
 
-cmds:enqueueNDRangeKernel{kernel=testKernel, globalSize={n}, localSize={16}}
+cmds:enqueueNDRangeKernel{kernel=testKernel, globalSize=n, localSize=16}
 
 cmds:enqueueReadBuffer{buffer=cBuffer, block=true, size=n*ffi.sizeof(real), ptr=cMem}
 for i=0,n-1 do
-	print(aMem[i]..' + '..bMem[i]..' = '..cMem[i])
+	io.write(aMem[i],'*',bMem[i],'=',cMem[i],'\t')
 end
