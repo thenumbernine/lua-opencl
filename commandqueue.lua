@@ -74,6 +74,54 @@ end
 
 --[[
 args:
+	buffer
+	pattern (optional)
+	patternSize (optional)
+	offset (optional)
+	size
+--]]
+function CommandQueue:enqueueFillBuffer(args)
+	local pattern = args.pattern
+	local patternSize = args.patternSize
+	if not pattern then
+		pattern = ffi.new('int[1]', 0)
+		patternSize = ffi.sizeof'int'
+	end
+	classert(cl.clEnqueueFillBuffer(
+		self.id,
+		assert(args.buffer).id,
+		pattern,
+		patternSize,
+		args.offset or 0,
+		assert(args.size),
+		0,
+		nil,
+		nil))
+end
+
+--[[
+args:
+	src
+	dst
+	srcOffset (optional)
+	dstOffset (optional)
+	size
+--]]
+function CommandQueue:enqueueCopyBuffer(args)
+	classert(cl.clEnqueueCopyBuffer(
+		self.id,
+		assert(args.src).id,
+		assert(args.dst).id,
+		args.srcOffset or 0,
+		args.dstOffset or 0,
+		assert(args.size),
+		0,
+		nil,
+		nil))
+end
+
+--[[
+args:
 	kernel
 	dim (optional) if not provided then offset, globalSize, or localSize must be a table?
 	offset (optional)
