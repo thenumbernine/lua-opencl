@@ -28,10 +28,10 @@ local code =
 '#define real '..real..'\n'..
 (fp64 and '#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n' or '')..
 [[
-__kernel void test(
-	__global real* c,
-	const __global real* a,
-	const __global real* b
+kernel void test(
+	global real* c,
+	const global real* a,
+	const global real* b
 ) {
 	int i = get_global_id(0);
 	if (i >= N) return;
@@ -66,3 +66,4 @@ cmds:enqueueReadBuffer{buffer=cBuffer, block=true, size=n*ffi.sizeof(real), ptr=
 for i=0,n-1 do
 	io.write(aMem[i],'*',bMem[i],'=',cMem[i],'\t')
 end
+print()
