@@ -9,7 +9,7 @@ function CLProgram:init(args)
 end
 
 function CLProgram:kernel(args)
-	local kernel = require 'clkernel'(table(args, {env=self.env, program=self}))
+	local kernel = require 'cl.obj.kernel'(table(args, {env=self.env, program=self}))
 	self.kernels:insert(kernel)
 	return kernel
 end

@@ -120,7 +120,7 @@ typedef union {
 end
 
 function CLEnv:makeBuffer(args)
-	return require 'clbuffer'(table(args, {env=self}))
+	return require 'cl.obj.buffer'(table(args, {env=self}))
 end
 
 function CLEnv:clalloc(size, name, ctype)
@@ -130,11 +130,11 @@ function CLEnv:clalloc(size, name, ctype)
 end
 
 function CLEnv:makeProgram(args)
-	return require 'clprogram'(table(args, {env=self}))
+	return require 'cl.obj.program'(table(args, {env=self}))
 end
 
 function CLEnv:kernel(args)
-	return require 'clkernel'(table(args, {env=self}))
+	return require 'cl.obj.kernel'(table(args, {env=self}))
 end
 
 function CLEnv:clcall(kernel, ...)
