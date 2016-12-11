@@ -57,42 +57,38 @@ function CLEnv:init(args)
 	-- https://stackoverflow.com/questions/15912668/ideal-global-local-work-group-sizes-opencl
 	-- product of all local sizes must be <= max workgroup size
 	local maxWorkGroupSize = tonumber(self.device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
-	print('maxWorkGroupSize',maxWorkGroupSize)
+--print('maxWorkGroupSize',maxWorkGroupSize)
 
 	-- for volumes
-	local localSize1d = math.min(maxWorkGroupSize, self.volume)
+	self.localSize1d = math.min(maxWorkGroupSize, self.volume)
 
 	-- for boundaries
 	local localSizeX = math.min(tonumber(self.size.x), 2^math.ceil(math.log(maxWorkGroupSize,2)/2))
 	local localSizeY = maxWorkGroupSize / localSizeX
-	local localSize2d = table{localSizeX, localSizeY}
+	self.localSize2d = table{localSizeX, localSizeY}
 
 	--	localSize3d = gridDim < 3 and vec3sz(16,16,16) or vec3sz(4,4,4)
 	-- TODO better than constraining by math.min(self.size),
 	-- look at which sizes have the most room, and double them accordingly, until all of maxWorkGroupSize is taken up
-	local localSize3d = vec3sz(1,1,1)
+	self.localSize3d = vec3sz(1,1,1)
 	local rest = maxWorkGroupSize
 	local localSizeX = math.min(tonumber(self.size.x), 2^math.ceil(math.log(rest,2)/self.gridDim))
-	localSize3d.x = localSizeX
+	self.localSize3d.x = localSizeX
 	if self.gridDim > 1 then
 		rest = rest / localSizeX
 		if self.gridDim == 2 then
-			localSize3d.y = math.min(tonumber(self.size.y), rest)
+			self.localSize3d.y = math.min(tonumber(self.size.y), rest)
 		elseif self.gridDim == 3 then
 			local localSizeY = math.min(tonumber(self.size.y), 2^math.ceil(math.log(math.sqrt(rest),2)))
-			localSize3d.y = localSizeY
-			localSize3d.z = math.min(tonumber(self.size.z), rest / localSizeY)
+			self.localSize3d.y = localSizeY
+			self.localSize3d.z = math.min(tonumber(self.size.z), rest / localSizeY)
 		end
 	end
 
-	print('localSize1d',localSize1d)
-	print('localSize2d',localSize2d:unpack())
-	print('localSize3d',localSize3d:unpack())
-	
-	self.localSize1d = localSize1d
-	self.localSize2d = localSize2d
-	self.localSize3d = localSize3d
-	self.localSize = ({localSize1d, localSize2d, localSize3d})[self.gridDim]
+--print('localSize1d',self.localSize1d)
+--print('localSize2d',self.localSize2d:unpack())
+--print('localSize3d',self.localSize3d:unpack())
+	self.localSize = ({self.localSize1d, self.localSize2d, self.localSize3d})[self.gridDim]
 	
 	-- initialize types
 	
@@ -162,7 +158,7 @@ end
 
 function CLEnv:clalloc(size, name, ctype)
 	self.totalGPUMem = self.totalGPUMem + size
-	print((name and (name..' ') or '')..'allocating '..size..' bytes of type '..ctype..' with size '..ffi.sizeof(ctype)..', total '..self.totalGPUMem)
+	--print((name and (name..' ') or '')..'allocating '..size..' bytes of type '..ctype..' with size '..ffi.sizeof(ctype)..', total '..self.totalGPUMem)
 	return self.ctx:buffer{rw=true, size=size} 
 end
 
