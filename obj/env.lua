@@ -30,6 +30,7 @@ local function get64bit(list)
 end
 
 function CLEnv:init(args)
+	self.verbose = args.verbose
 	self.platform = get64bit(require 'cl.platform'.getAll())
 	self.device, self.fp64 = get64bit(self.platform:getDevices{gpu=true})
 	
@@ -57,8 +58,10 @@ function CLEnv:init(args)
 	-- https://stackoverflow.com/questions/15912668/ideal-global-local-work-group-sizes-opencl
 	-- product of all local sizes must be <= max workgroup size
 	local maxWorkGroupSize = tonumber(self.device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
---print('maxWorkGroupSize',maxWorkGroupSize)
-
+	if self.verbose then
+		print('maxWorkGroupSize',maxWorkGroupSize)
+	end
+	
 	-- for volumes
 	self.localSize1d = math.min(maxWorkGroupSize, self.volume)
 
@@ -85,9 +88,11 @@ function CLEnv:init(args)
 		end
 	end
 
---print('localSize1d',self.localSize1d)
---print('localSize2d',self.localSize2d:unpack())
---print('localSize3d',self.localSize3d:unpack())
+	if self.verbose then
+		print('localSize1d',self.localSize1d)
+		print('localSize2d',self.localSize2d:unpack())
+		print('localSize3d',self.localSize3d:unpack())
+	end
 	self.localSize = ({self.localSize1d, self.localSize2d, self.localSize3d})[self.gridDim]
 	
 	-- initialize types
@@ -158,7 +163,9 @@ end
 
 function CLEnv:clalloc(size, name, ctype)
 	self.totalGPUMem = self.totalGPUMem + size
-	--print((name and (name..' ') or '')..'allocating '..size..' bytes of type '..ctype..' with size '..ffi.sizeof(ctype)..', total '..self.totalGPUMem)
+	if self.verbose then
+		print((name and (name..' ') or '')..'allocating '..size..' bytes of type '..ctype..' with size '..ffi.sizeof(ctype)..', total '..self.totalGPUMem)
+	end
 	return self.ctx:buffer{rw=true, size=size} 
 end
 
