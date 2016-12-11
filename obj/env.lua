@@ -21,7 +21,7 @@ local CLEnv = class()
 
 local function get64bit(list)
 	local best = list:map(function(item)
-		local exts = item:getExtensions():lower():trim()
+		local exts = string.trim(item:getExtensions():lower())
 		return {item=item, fp64=exts:match'cl_%w+_fp64'}
 	end):sort(function(a,b)
 		return (a.fp64 and 1 or 0) > (b.fp64 and 1 or 0)
@@ -44,11 +44,15 @@ function CLEnv:init(args)
 		glSharing = self.useGLSharing,
 	}
 	self.cmds = require 'cl.commandqueue'{context=self.ctx, device=self.device}
-	
-	self.size = vec3sz(table.unpack(assert(args.size)))
+
+	local size = args.size or self.size
+	if type(size) == 'number' then size = {size} end
+	size = table(size)
+	for i=#size+1,3 do size[i] = 1 end
+	self.size = vec3sz(size:unpack())
 	self.volume = tonumber(self.size:volume())
 
-	self.gridDim = assert(args.gridDim)
+	self.gridDim = args.gridDim or #size
 
 	-- https://stackoverflow.com/questions/15912668/ideal-global-local-work-group-sizes-opencl
 	-- product of all local sizes must be <= max workgroup size
@@ -114,12 +118,45 @@ typedef union {
 	real = self.real,
 }))
 	
+	self.typeCode = template([[
+<? if real == 'double' then ?>
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+<? end ?>
+
+typedef <?=real?> real;
+typedef <?=real?>2 real2;
+typedef <?=real?>4 real4;
+]], self)
+
+	ffi.cdef(self.typeCode)
+
+	-- only for the sake of using self as the template obj
+	self.clnumber = require 'cl.obj.number'
+	
+	self.code = template([[
+<?=typeCode?>
+
+constant const int gridDim = <?=gridDim?>;
+
+constant const int4 size = (int4)(<?=clnumber(size.x)?>, <?=clnumber(size.y)?>, <?=clnumber(size.z)?>, 0);
+constant const int4 stepsize = (int4)(1, <?=size.x?>, <?=size.x * size.y?>, <?=size.x * size.y * size.z?>);
+
+#define globalInt4()	(int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0)
+
+#define indexForInt4(i) (i.x + size.x * (i.y + size.y * i.z))
+
+#define INIT_KERNEL() \
+	int4 i = globalInt4(); \
+	if (i.x >= size.x || i.y >= size.y || i.z >= size.z) return; \
+	int index = indexForInt4(i);
+]], self)
+
 	-- buffer allocation
 	
 	self.totalGPUMem = 0
 end
 
-function CLEnv:makeBuffer(args)
+function CLEnv:buffer(args)
 	return require 'cl.obj.buffer'(table(args, {env=self}))
 end
 
@@ -129,7 +166,7 @@ function CLEnv:clalloc(size, name, ctype)
 	return self.ctx:buffer{rw=true, size=size} 
 end
 
-function CLEnv:makeProgram(args)
+function CLEnv:program(args)
 	return require 'cl.obj.program'(table(args, {env=self}))
 end
 

@@ -1,4 +1,5 @@
 local class = require 'ext.class'
+local table = require 'ext.table'
 
 local CLProgram = class()
 
@@ -16,7 +17,8 @@ end
 
 function CLProgram:compile()
 	local code = table{
-		self.code or ''
+		self.env.code or '',
+		self.code or '',
 	}:append(table.map(self.kernels, function(kernel)
 		return kernel.code
 	end)):concat'\n'

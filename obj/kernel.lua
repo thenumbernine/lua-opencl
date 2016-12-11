@@ -1,4 +1,5 @@
 local class = require 'ext.class'
+local table = require 'ext.table'
 local template = require 'template'
 
 local CLKernel = class()
@@ -68,7 +69,7 @@ function CLKernel:compile()
 	if self.program then
 		error("this kernel already has a program -- use program:compile")
 	end
-	self.env:makeProgram{kernels={self}}:compile()	
+	self.env:program{kernels={self}}:compile()	
 end
 
 function CLKernel:__call(...)
