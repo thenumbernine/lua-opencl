@@ -1,12 +1,15 @@
 lua port of 
-(a) the cl.hpp file
-(b) my CLCommon code
+1. the cl.hpp file
+2. my CLCommon code
 
 I'm going to create wrapper classes (just like I do with my 'gl' project)
 But should I put them in the 'cl' directly, and the cl.hpp equivalent functions elsewhere?
 or should I put them elsewhere and leave cl.hpp here?  This for now.  I'll put the wrapper classes in the obj folder.
 
-uses luajit ffi and my lua-ext project.
+uses 
+* luajit
+* my lua-ext project
+* my lua-ffi-bindings repo
 
 The obj/wrapper classes make use of my lua-template project.
 
