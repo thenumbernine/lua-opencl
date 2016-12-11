@@ -8,29 +8,32 @@ function CLBuffer:init(args)
 	self.name = assert(args.name) -- or 'buffer_'..tostring(self):sub(10)
 	self.type = args.type
 	self.buf = self.env:clalloc(self.env.volume * ffi.sizeof(self.type), name, self.type)
+	
+	-- TODO use hostptr of cl.buffer, which is hidden behind env:clalloc
+	if args.data then self:fromCPU(args.data) end
 end
 
-function CLBuffer:fromCPU(mem)
-	if type(mem) == 'table' then	-- convert to ffi memory
-		local cpuMem = ffi.new(self.type..'[?]', self.env.volume)
-		local m = math.min(#mem, self.env.volume)
+function CLBuffer:fromCPU(ptr)
+	if type(ptr) == 'table' then	-- convert to ffi memory
+		local cptr = ffi.new(self.type..'[?]', self.env.volume)
+		local m = math.min(#ptr, self.env.volume)
 		for i=1,m do
-			cpuMem[i-1] = ffi.cast(self.type, mem[i])
+			cptr[i-1] = ffi.cast(self.type, ptr[i])
 		end
 		--[[
 		for i=m,self.env.volume-1 do
-			cpuMem[i] = ffi.cast(self.type, 0)	-- ?
+			cptr[i] = ffi.cast(self.type, 0)	-- ?
 		end
 		--]]
-		mem = cpuMem
+		ptr = cptr
 	end
-	self.env.cmds:enqueueWriteBuffer{buffer=self.buf, block=true, size=ffi.sizeof(self.type) * self.env.volume, ptr=mem}
+	self.env.cmds:enqueueWriteBuffer{buffer=self.buf, block=true, size=ffi.sizeof(self.type) * self.env.volume, ptr=ptr}
 end
 
 function CLBuffer:toCPU()
-	local cpuMem = ffi.new(self.type..'[?]', self.env.volume)
-	self.env.cmds:enqueueReadBuffer{buffer=self.buf, block=true, size=ffi.sizeof(self.type) * self.env.volume, ptr=cpuMem}
-	return cpuMem
+	local ptr = ffi.new(self.type..'[?]', self.env.volume)
+	self.env.cmds:enqueueReadBuffer{buffer=self.buf, block=true, size=ffi.sizeof(self.type) * self.env.volume, ptr=ptr}
+	return ptr
 end
 
 return CLBuffer
