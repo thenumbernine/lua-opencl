@@ -184,4 +184,8 @@ function CLEnv:clcall(kernel, ...)
 	self.cmds:enqueueNDRangeKernel{kernel=kernel, dim=self.gridDim, globalSize=self.size:ptr(), localSize=self.localSize:ptr()}
 end
 
+function CLEnv:reduce(args)
+	return require 'cl.obj.reduce'(table(args, {env=self}))
+end
+
 return CLEnv
