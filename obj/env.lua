@@ -53,7 +53,7 @@ function CLEnv:init(args)
 	self.size = vec3sz(size:unpack())
 	self.volume = tonumber(self.size:volume())
 
-	self.gridDim = args.gridDim or #size
+	self.dim = args.dim or #size
 
 	-- https://stackoverflow.com/questions/15912668/ideal-global-local-work-group-sizes-opencl
 	-- product of all local sizes must be <= max workgroup size
@@ -70,18 +70,18 @@ function CLEnv:init(args)
 	local localSizeY = maxWorkGroupSize / localSizeX
 	self.localSize2d = table{localSizeX, localSizeY}
 
-	--	localSize3d = gridDim < 3 and vec3sz(16,16,16) or vec3sz(4,4,4)
+	--	localSize3d = dim < 3 and vec3sz(16,16,16) or vec3sz(4,4,4)
 	-- TODO better than constraining by math.min(self.size),
 	-- look at which sizes have the most room, and double them accordingly, until all of maxWorkGroupSize is taken up
 	self.localSize3d = vec3sz(1,1,1)
 	local rest = maxWorkGroupSize
-	local localSizeX = math.min(tonumber(self.size.x), 2^math.ceil(math.log(rest,2)/self.gridDim))
+	local localSizeX = math.min(tonumber(self.size.x), 2^math.ceil(math.log(rest,2)/self.dim))
 	self.localSize3d.x = localSizeX
-	if self.gridDim > 1 then
+	if self.dim > 1 then
 		rest = rest / localSizeX
-		if self.gridDim == 2 then
+		if self.dim == 2 then
 			self.localSize3d.y = math.min(tonumber(self.size.y), rest)
-		elseif self.gridDim == 3 then
+		elseif self.dim == 3 then
 			local localSizeY = math.min(tonumber(self.size.y), 2^math.ceil(math.log(math.sqrt(rest),2)))
 			self.localSize3d.y = localSizeY
 			self.localSize3d.z = math.min(tonumber(self.size.z), rest / localSizeY)
@@ -93,7 +93,7 @@ function CLEnv:init(args)
 		print('localSize2d',self.localSize2d:unpack())
 		print('localSize3d',self.localSize3d:unpack())
 	end
-	self.localSize = ({self.localSize1d, self.localSize2d, self.localSize3d})[self.gridDim]
+	self.localSize = ({self.localSize1d, self.localSize2d, self.localSize3d})[self.dim]
 	
 	-- initialize types
 	
@@ -137,7 +137,7 @@ typedef <?=real?>4 real4;
 	self.code = template([[
 <?=typeCode?>
 
-constant const int gridDim = <?=gridDim?>;
+constant const int dim = <?=dim?>;
 
 constant const int4 size = (int4)(<?=clnumber(size.x)?>, <?=clnumber(size.y)?>, <?=clnumber(size.z)?>, 0);
 constant const int4 stepsize = (int4)(1, <?=size.x?>, <?=size.x * size.y?>, <?=size.x * size.y * size.z?>);
@@ -158,7 +158,7 @@ constant const int4 stepsize = (int4)(1, <?=size.x?>, <?=size.x * size.y?>, <?=s
 end
 
 function CLEnv:buffer(args)
-	return require 'cl.obj.buffer'(table(args, {env=self}))
+	return require 'cl.obj.buffer'(table(args or {}, {env=self}))
 end
 
 function CLEnv:clalloc(size, name, ctype)
@@ -170,7 +170,7 @@ function CLEnv:clalloc(size, name, ctype)
 end
 
 function CLEnv:program(args)
-	return require 'cl.obj.program'(table(args, {env=self}))
+	return require 'cl.obj.program'(table(args or {}, {env=self}))
 end
 
 function CLEnv:kernel(args)
@@ -181,7 +181,7 @@ function CLEnv:clcall(kernel, ...)
 	if select('#', ...) then
 		kernel:setArgs(...)
 	end
-	self.cmds:enqueueNDRangeKernel{kernel=kernel, dim=self.gridDim, globalSize=self.size:ptr(), localSize=self.localSize:ptr()}
+	self.cmds:enqueueNDRangeKernel{kernel=kernel, dim=self.dim, globalSize=self.size:ptr(), localSize=self.localSize:ptr()}
 end
 
 function CLEnv:reduce(args)

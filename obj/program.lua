@@ -1,5 +1,6 @@
 local class = require 'ext.class'
 local table = require 'ext.table'
+local CLBuffer = require 'cl.buffer'
 
 local CLProgram = class()
 
@@ -27,7 +28,14 @@ function CLProgram:compile()
 	
 	for _,kernel in ipairs(self.kernels) do
 		kernel.program = self
-		kernel.kernel = self.program:kernel(kernel.name, kernel.argBuffers:unpack())
+		-- if any argBuffers are booleans (from arg.buf=true, for non-cl.obj.buffer parameters
+		-- then don't bind them
+		kernel.kernel = self.program:kernel(kernel.name)	--, kernel.argBuffers:unpack())
+		for i,arg in ipairs(kernel.argBuffers) do
+			if CLBuffer.is(arg) then
+				kernel.kernel:setArg(i-1, arg)
+			end
+		end
 	end
 end
 

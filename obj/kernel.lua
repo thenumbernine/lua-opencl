@@ -9,8 +9,8 @@ env = CLEnv
 name = kernel name.
 	optional if body is provided (and kernel code body generation is used)
 	required if this object is linking from a kernel elsewhere in code (header or program.code)
-argsOut = CLBuffer output arguments.  these go first
-argsIn = CLBuffer input arguments.  these go next
+argsOut = cl.obj.buffer output arguments.  these go first
+argsIn = cl.obj.buffer input arguments.  these go next
 program = CLProgram.  optional.  if one is not provided, one is generated upon :compile()
 header = prefix code.  optional.
 body = kernel body generated code.  optional.  if body is nil then no kernel body code will be generated.
@@ -32,10 +32,21 @@ function CLKernel:init(args)
 	self.argsOut = args.argsOut
 	self.argsIn = args.argsIn
 	self.program = args.program
+	--[[
+	if argsIn and argsOut are cl.obj.buffer's then all works well
+	if you don't want to pass a cl.obj.buffer then you can still define a buffer by setting {name=..., buf=true},
+		by setting buf=true instead of buf= a cl.obj.buffer object
+		this fixes the code gen
+		but still doesn't fix the argBuffers
+	so instead of fixing the argBuffers I'm going to detect :isa
+	I'm going to change the binding (which happens in cl.obj.program) 
+	--]]
 	self.argBuffers = table()
 		:append(self.argsOut)
 		:append(self.argsIn)
-		:map(function(arg) return arg.buf end)
+		:map(function(arg) 
+			return arg.buf
+		end)
 	self.code = table{
 		args.header or '',
 		args.body and template([[
@@ -43,17 +54,23 @@ kernel void <?=self.name?>(
 <?
 local sep = ''
 for _,arg in ipairs(self.argsOut or {}) do 
-?>	<?=sep?>global <?=arg.type?>* <?=arg.name?>
-<?
-sep = ', '
+	if arg.buf then
+		?>	<?=sep?>global <?=arg.type or 'real'?>* <?=arg.name?>
+<?	else
+		?>	<?=sep?><?=arg.type or 'real'?> <?=arg.name?>
+<?	end
+	sep = ', '
 end
 for _,arg in ipairs(self.argsIn or {}) do
-?>	<?=sep?>global const <?=arg.type?>* <?=arg.name?>
-<?
-sep = ', '
+	if arg.buf then
+		?>	<?=sep?>global const <?=arg.type or 'real'?>* <?=arg.name?>
+<?	else
+		?>	<?=sep?><?=arg.type or 'real'?> <?=arg.name?>
+<?	end
+	sep = ', '
 end
 ?>) {
-INIT_KERNEL();
+	INIT_KERNEL();
 <?=args.body?>
 }
 ]], {self=self, args=args}) or ''
