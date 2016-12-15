@@ -31,7 +31,6 @@ function CLKernel:init(args)
 	self.name = args.name or 'kernel_'..tostring(self):sub(10)
 	self.argsOut = args.argsOut
 	self.argsIn = args.argsIn
-	self.program = args.program
 	--[[
 	if argsIn and argsOut are cl.obj.buffer's then all works well
 	if you don't want to pass a cl.obj.buffer then you can still define a buffer by setting {name=..., buf=true},
@@ -47,6 +46,10 @@ function CLKernel:init(args)
 		:map(function(arg) 
 			return arg.buf
 		end)
+	
+	self.program = args.program
+	self.domain = args.domain or self.env.domain
+	
 	self.code = table{
 		args.header or '',
 		args.body and template([[
@@ -70,7 +73,8 @@ for _,arg in ipairs(self.argsIn or {}) do
 	sep = ', '
 end
 ?>) {
-	INIT_KERNEL();
+<? -- don't forget that kernel domains may not match the env domain -- which is the default domain
+?>	initKernelForSize(<?=self.domain.size.x?>,<?=self.domain.size.y?>,<?=self.domain.size.z?>);
 <?=args.body?>
 }
 ]], {self=self, args=args}) or ''
@@ -95,7 +99,15 @@ function CLKernel:__call(...)
 		self:compile()
 	end
 
-	self.env:clcall(self.kernel, ...)
+	if select('#', ...) then
+		self.kernel:setArgs(...)
+	end
+	self.env.cmds:enqueueNDRangeKernel{
+		kernel = self.kernel,
+		dim = self.domain.dim,
+		globalSize = self.domain.globalSize:ptr(),
+		localSize = self.domain.localSize:ptr(),
+	}
 end
 
 return CLKernel

@@ -51,8 +51,8 @@ local aMem = ffi.new(real..'[?]', n)
 local bMem = ffi.new(real..'[?]', n)
 local cMem = ffi.new(real..'[?]', n)
 for i=0,n-1 do 
-	aMem[i] = i 
-	bMem[i] = i
+	aMem[i] = i+1
+	bMem[i] = i+1
 end
 
 cmds:enqueueWriteBuffer{buffer=aBuffer, block=true, size=n*ffi.sizeof(real), ptr=aMem}

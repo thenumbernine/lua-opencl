@@ -13,7 +13,6 @@ and ffi typedefs to match the OpenCL types
 local class = require 'ext.class'
 local table = require 'ext.table'
 local string = require 'ext.string'
-local vec3sz = require 'ffi.vec.vec3sz'
 local ffi = require 'ffi'
 local template = require 'template'
 
@@ -29,6 +28,12 @@ local function get64bit(list)
 	return best.item, best.fp64
 end
 
+--[[
+args (all are passed along to CLDomain):
+	size
+	dim
+	verbose
+--]]
 function CLEnv:init(args)
 	self.verbose = args.verbose
 	self.platform = get64bit(require 'cl.platform'.getAll())
@@ -46,55 +51,13 @@ function CLEnv:init(args)
 	}
 	self.cmds = require 'cl.commandqueue'{context=self.ctx, device=self.device}
 
-	local size = args.size or self.size
-	if type(size) == 'number' then size = {size} end
-	size = table(size)
-	for i=#size+1,3 do size[i] = 1 end
-	self.size = vec3sz(size:unpack())
-	self.volume = tonumber(self.size:volume())
+	self.domain = require 'cl.obj.domain'{
+		env = self,
+		size = args.size,
+		dim = args.dim,
+		verbose = args.verbose,
+	}
 
-	self.dim = args.dim or #size
-
-	-- https://stackoverflow.com/questions/15912668/ideal-global-local-work-group-sizes-opencl
-	-- product of all local sizes must be <= max workgroup size
-	local maxWorkGroupSize = tonumber(self.device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
-	if self.verbose then
-		print('maxWorkGroupSize',maxWorkGroupSize)
-	end
-	
-	-- for volumes
-	self.localSize1d = math.min(maxWorkGroupSize, self.volume)
-
-	-- for boundaries
-	local localSizeX = math.min(tonumber(self.size.x), 2^math.ceil(math.log(maxWorkGroupSize,2)/2))
-	local localSizeY = maxWorkGroupSize / localSizeX
-	self.localSize2d = table{localSizeX, localSizeY}
-
-	--	localSize3d = dim < 3 and vec3sz(16,16,16) or vec3sz(4,4,4)
-	-- TODO better than constraining by math.min(self.size),
-	-- look at which sizes have the most room, and double them accordingly, until all of maxWorkGroupSize is taken up
-	self.localSize3d = vec3sz(1,1,1)
-	local rest = maxWorkGroupSize
-	local localSizeX = math.min(tonumber(self.size.x), 2^math.ceil(math.log(rest,2)/self.dim))
-	self.localSize3d.x = localSizeX
-	if self.dim > 1 then
-		rest = rest / localSizeX
-		if self.dim == 2 then
-			self.localSize3d.y = math.min(tonumber(self.size.y), rest)
-		elseif self.dim == 3 then
-			local localSizeY = math.min(tonumber(self.size.y), 2^math.ceil(math.log(math.sqrt(rest),2)))
-			self.localSize3d.y = localSizeY
-			self.localSize3d.z = math.min(tonumber(self.size.z), rest / localSizeY)
-		end
-	end
-
-	if self.verbose then
-		print('localSize1d',self.localSize1d)
-		print('localSize2d',self.localSize2d:unpack())
-		print('localSize3d',self.localSize3d:unpack())
-	end
-	self.localSize = ({self.localSize1d, self.localSize2d, self.localSize3d})[self.dim]
-	
 	-- initialize types
 	
 	self.real = self.fp64 and 'double' or 'float'
@@ -137,19 +100,20 @@ typedef <?=real?>4 real4;
 	self.code = template([[
 <?=typeCode?>
 
-constant const int dim = <?=dim?>;
-
-constant const int4 size = (int4)(<?=clnumber(size.x)?>, <?=clnumber(size.y)?>, <?=clnumber(size.z)?>, 0);
-constant const int4 stepsize = (int4)(1, <?=size.x?>, <?=size.x * size.y?>, <?=size.x * size.y * size.z?>);
-
 #define globalInt4()	(int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0)
 
-#define indexForInt4(i) (i.x + size.x * (i.y + size.y * i.z))
-
-#define INIT_KERNEL() \
+#define indexForInt4ForSize(i, sx, sy, sz) (i.x + sx * (i.y + sy * i.z))
+#define initKernelForSize(sx, sy, sz) \
 	int4 i = globalInt4(); \
-	if (i.x >= size.x || i.y >= size.y || i.z >= size.z) return; \
-	int index = indexForInt4(i);
+	if (i.x >= sx || i.y >= sy || i.z >= sz) return; \
+	int index = indexForInt4ForSize(i, sx, sy, sz);
+
+constant const int dim = <?=domain.dim?>;
+constant const int4 size = (int4)(<?=clnumber(domain.size.x)?>, <?=clnumber(domain.size.y)?>, <?=clnumber(domain.size.z)?>, 0);
+constant const int4 stepsize = (int4)(1, <?=domain.size.x?>, <?=domain.size.x * domain.size.y?>, <?=domain.size.x * domain.size.y * domain.size.z?>);
+
+#define indexForInt4(i)	indexForInt4ForSize(i, size.x, size.y, size.z)
+#define INIT_KERNEL()	initKernelForSize(size.x, size.y, size.z)
 ]], self)
 
 	-- buffer allocation
@@ -177,12 +141,20 @@ function CLEnv:kernel(args)
 	return require 'cl.obj.kernel'(table(args, {env=self}))
 end
 
+--[[
 function CLEnv:clcall(kernel, ...)
 	if select('#', ...) then
 		kernel:setArgs(...)
 	end
-	self.cmds:enqueueNDRangeKernel{kernel=kernel, dim=self.dim, globalSize=self.size:ptr(), localSize=self.localSize:ptr()}
+	self.cmds:enqueueNDRangeKernel{kernel=kernel, dim=self.domain.dim, globalSize=self.domain.globalSize:ptr(), localSize=self.domain.localSize:ptr()}
 end
+--]]
+
+--[[ but env.domain is already used ...
+function CLEnv:domain(args)
+	return require 'cl.obj.domain'(table(args, {env=self}))
+end
+--]]
 
 function CLEnv:reduce(args)
 	return require 'cl.obj.reduce'(table(args, {env=self}))

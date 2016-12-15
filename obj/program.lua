@@ -23,7 +23,7 @@ function CLProgram:compile()
 	}:append(table.map(self.kernels, function(kernel)
 		return kernel.code
 	end)):concat'\n'
-		
+
 	self.program = require 'cl.program'{context=self.env.ctx, devices={self.env.device}, code=code}
 	
 	for _,kernel in ipairs(self.kernels) do

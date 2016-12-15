@@ -9,9 +9,8 @@ or should I put them elsewhere and leave cl.hpp here?  This for now.  I'll put t
 uses 
 * luajit
 * my lua-ext project
+* my lua-template project
 * my lua-ffi-bindings repo
-
-The obj/wrapper classes make use of my lua-template project.
 
 Here's an example of the code:
 
@@ -20,8 +19,8 @@ Here's an example of the code:
 local range = require 'ext.range'
 
 local env = require 'cl.obj.env'{size=64} 
-local a = env:buffer{name='a', type='real', data=range(env.volume)}
-local b = env:buffer{name='b', type='real', data=range(env.volume)}
+local a = env:buffer{name='a', type='real', data=range(env.domain.volume)}
+local b = env:buffer{name='b', type='real', data=range(env.domain.volume)}
 local c = env:buffer{name='c', type='real'}
 env:kernel{
 	argsOut = {c},
@@ -32,7 +31,7 @@ env:kernel{
 local aMem = a:toCPU()
 local bMem = b:toCPU()
 local cMem = c:toCPU()
-for i=0,env.volume-1 do
+for i=0,env.domain.volume-1 do
 	print(aMem[i]..' * '..bMem[i]..' = '..cMem[i])
 end
 

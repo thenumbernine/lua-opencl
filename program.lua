@@ -32,12 +32,7 @@ function Program:init(args)
 	if args.devices then
 		local success, message = self:build(args.devices)
 		if not success then
-			local lines = string.split(string.trim(code),'\n')
-			local max = tostring(#lines)
-			print(lines:map(function(l,i) 
-				local num = tostring(i)
-				return num..':'..(' '):rep(#max - #num)..l 
-			end):concat'\n')
+			print(require 'template.showcode'(code))
 			error(message)
 		end
 	end

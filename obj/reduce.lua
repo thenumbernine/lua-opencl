@@ -50,16 +50,16 @@ args:
 		name (optional) default 'reduce'
 		ctype (optional) default env.real or 'float'
 		initValue (optional) default 0
-		op (optional) default min(x,y)
+		op (optional) default min(x,y).  provides a function(x,y) that returns a string of the code to be run. 
 	
 	for making the kernel:
 		ctx = env.ctx or provided
 		device = env.device or provided
 
 	for providing the data:
-		buffer = (optional) cl buffer of ctype[bufferSize]
-		bufferSize = size (in ctype's). env.volume or provided.
-		swapBuffer (optional) = cl buffer of ctype[bufferSize / localSize]
+		buffer = (optional) cl buffer of ctype[size]
+		size = size (in ctype's). env.volume or provided.
+		swapBuffer (optional) = cl buffer of ctype[size / localSize]
 		allocate = (optional) env.clalloc or provided. cl allocation function accepts size, in bytes
 		result = (optional) C buffer of ctype to contain the result
 
@@ -71,8 +71,9 @@ args:
 		ctype = env.real
 		ctx
 		device
-		bufferSize =  env.volume
+		size =  env.domain.volume
 		allocate = env:clalloc
+		cmds
 
 --]]
 function Reduce:init(args)
@@ -80,7 +81,7 @@ function Reduce:init(args)
 	local ctx = assert(args.ctx or (env and env.ctx))
 	local device = assert(args.device or (env and env.device))
 	self.cmds = assert(args.cmds or (env and env.cmds))
-	local ctype = args.type or (env and env.real) or 'float'	
+	self.ctype = args.type or (env and env.real) or 'float'	
 	local name = args.name or 'reduce'
 	local header = args.header or ''
 	if env then header = header .. '\n' .. env.code end
@@ -88,7 +89,7 @@ function Reduce:init(args)
 	local code = template(reduceCode, {
 		header = header,
 		name = name,
-		ctype = ctype,
+		ctype = self.ctype,
 		initValue = args.initValue or '0.',
 		op = args.op or function(x,y) return 'min('..x..', '..y..')' end,
 	})
@@ -100,33 +101,33 @@ function Reduce:init(args)
 	}
 	
 	self.maxWorkGroupSize = tonumber(device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
-	self.bufferSize = assert(args.bufferSize or (env and env.volume))
-	local localSize = math.min(self.maxWorkGroupSize, self.bufferSize)
+	self.size = assert(args.size or (env and env.domain.volume))
+	local localSize = math.min(self.maxWorkGroupSize, self.size)
 
 	local allocate = args.allocate 
 		or (env and function(size)
-			return env:clalloc(size, 'reduce', ctype)
+			return env:clalloc(size, 'reduce', self.ctype)
 		end)
 		or function(size)
 			return ctx:buffer{rw=true, size=size}
 		end
 
-	self.ctypeSize = args.typeSize or ffi.sizeof(ctype)
-	self.buffer = args.buffer or allocate(self.bufferSize * self.ctypeSize)
-	self.swapBuffer = args.swapBuffer or allocate(math.ceil(self.bufferSize / localSize) * self.ctypeSize)
+	self.ctypeSize = args.typeSize or ffi.sizeof(self.ctype)
+	self.buffer = args.buffer or allocate(self.size * self.ctypeSize)
+	self.swapBuffer = args.swapBuffer or allocate(math.ceil(self.size / localSize) * self.ctypeSize)
 	
 	self.kernel = self.program:kernel(
 		name,
 		self.buffer,
 		{ptr=nil, size=localSize * self.ctypeSize},
-		ffi.new('int[1]', self.bufferSize),
+		ffi.new('int[1]', self.size),
 		self.swapBuffer)
 
-	self.result = args.result or ffi.new(ctype..'[1]')
+	self.result = args.result or ffi.new(self.ctype..'[1]')
 end
 
 function Reduce:__call()
-	local reduceSize = self.bufferSize
+	local reduceSize = self.size
 	local dst = self.swapBuffer
 	local src = self.buffer
 
@@ -134,11 +135,13 @@ function Reduce:__call()
 	local reduceLocalSize1D = math.min(reduceSize, self.maxWorkGroupSize)
 	
 	while reduceSize > 1 do
+		
 		local nextSize = math.floor(reduceSize / reduceLocalSize1D)
 		if 0 ~= bit.band(reduceSize, reduceLocalSize1D - 1) then 
 			nextSize = nextSize + 1 
 		end
 		local reduceGlobalSize = math.max(reduceSize, reduceLocalSize1D)
+
 		self.kernel:setArg(0, src)
 		self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
 		self.kernel:setArg(3, dst)
