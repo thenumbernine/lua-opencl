@@ -32,8 +32,8 @@ function CLBuffer:fromCPU(ptr)
 	self.env.cmds:enqueueWriteBuffer{buffer=self.buf, block=true, size=ffi.sizeof(self.type) * self.size, ptr=ptr}
 end
 
-function CLBuffer:toCPU()
-	local ptr = ffi.new(self.type..'[?]', self.size)
+function CLBuffer:toCPU(ptr)
+	ptr = ptr or ffi.new(self.type..'[?]', self.size)
 	self.env.cmds:enqueueReadBuffer{buffer=self.buf, block=true, size=ffi.sizeof(self.type) * self.size, ptr=ptr}
 	return ptr
 end
