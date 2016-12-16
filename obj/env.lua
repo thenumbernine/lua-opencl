@@ -81,22 +81,18 @@ typedef union {
 ]], {
 	real = self.real,
 }))
+
+	-- typeCode goes to ffi.cdef and to the CL code header
+	-- I'm only assigning it to self so I can use self as the template env table below
+	self.typeCode = self:getTypeCode()
 	
-	self.typeCode = template([[
-<? if real == 'double' then ?>
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-<? end ?>
-
-typedef <?=real?> real;
-typedef <?=real?>2 real2;
-typedef <?=real?>4 real4;
-]], self)
-
+	-- have luajit cdef the types so I can see the sizeof (I hope OpenCL agrees with padding)
 	ffi.cdef(self.typeCode)
 
 	-- only for the sake of using self as the template obj
 	self.clnumber = require 'cl.obj.number'
-	
+
+	-- the env CL code header goes on top of all compiled programs
 	self.code = template([[
 <?=typeCode?>
 
@@ -121,6 +117,18 @@ constant const int4 stepsize = (int4)(1, <?=domain.size.x?>, <?=domain.size.x * 
 	self.totalGPUMem = 0
 end
 
+function CLEnv:getTypeCode()
+	return template([[
+<? if real == 'double' then ?>
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+<? end ?>
+
+typedef <?=real?> real;
+typedef <?=real?>2 real2;
+typedef <?=real?>4 real4;
+]], self)
+end
+
 function CLEnv:buffer(args)
 	return require 'cl.obj.buffer'(table(args or {}, {env=self}))
 end
@@ -128,7 +136,7 @@ end
 function CLEnv:clalloc(size, name, ctype)
 	self.totalGPUMem = self.totalGPUMem + size
 	if self.verbose then
-		print((name and (name..' ') or '')..'allocating '..size..' bytes of type '..ctype..' with size '..ffi.sizeof(ctype)..', total '..self.totalGPUMem)
+		print((name and (name..' ') or '')..'allocating '..tostring(size)..' bytes of type '..ctype..' with size '..ffi.sizeof(ctype)..', total '..self.totalGPUMem)
 	end
 	return self.ctx:buffer{rw=true, size=size} 
 end
