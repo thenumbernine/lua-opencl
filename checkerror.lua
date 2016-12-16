@@ -53,6 +53,7 @@ local errors = {
 }
 
 return function(err, msg)
+	assert(err, "expected err")
 	if err == cl.CL_SUCCESS then return end
 	local name
 	for _,v in ipairs(errors) do

@@ -55,7 +55,7 @@ function Kernel:setArg(index, value)
 	end
 	local err = cl.clSetKernelArg(self.id, index, size, ptr)
 	if err ~= cl.CL_SUCCESS then
-		error('clSetKernelArg('..tostring(self.id)..', '..index..', '..size..', '..tostring(ptr)..') failed with error '..err)
+		require 'cl.checkerror'(err, 'clSetKernelArg('..tostring(self.id)..', '..index..', '..size..', '..tostring(ptr)..') failed')
 	end
 end
 
