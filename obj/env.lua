@@ -16,6 +16,29 @@ local string = require 'ext.string'
 local ffi = require 'ffi'
 local template = require 'template'
 
+
+-- boilerplate so OpenCL types will work with ffi types
+for _,real in ipairs{'float', 'double'} do
+	ffi.cdef(template([[
+typedef union {
+	<?=real?> s[2];
+	struct { <?=real?> s0, s1; };
+	struct { <?=real?> x, y; };
+} <?=real?>2;
+
+//for real4 I'm using x,y,z,w to match OpenCL
+//...though for my own use I am storing t,x,y,z
+typedef union {
+	<?=real?> s[4];
+	struct { <?=real?> s0, s1, s2, s3; };
+	struct { <?=real?> x, y, z, w; };	
+} <?=real?>4;
+
+]], {
+	real = real,
+}))
+end
+
 local CLEnv = class()
 
 local function get64bit(list)
@@ -62,35 +85,11 @@ function CLEnv:init(args)
 	
 	self.real = self.fp64 and 'double' or 'float'
 
-	-- boilerplate so OpenCL types will work with ffi types
-	ffi.cdef(template([[
-typedef union {
-	<?=real?> s[2];
-	struct { <?=real?> s0, s1; };
-	struct { <?=real?> x, y; };
-} <?=real?>2;
-
-//for real4 I'm using x,y,z,w to match OpenCL
-//...though for my own use I am storing t,x,y,z
-typedef union {
-	<?=real?> s[4];
-	struct { <?=real?> s0, s1, s2, s3; };
-	struct { <?=real?> x, y, z, w; };	
-} <?=real?>4;
-
-]], {
-	real = self.real,
-}))
-
 	-- typeCode goes to ffi.cdef and to the CL code header
-	-- I'm only assigning it to self so I can use self as the template env table below
-	self.typeCode = self:getTypeCode()
+	local typeCode = self:getTypeCode()
 	
 	-- have luajit cdef the types so I can see the sizeof (I hope OpenCL agrees with padding)
-	ffi.cdef(self.typeCode)
-
-	-- only for the sake of using self as the template obj
-	self.clnumber = require 'cl.obj.number'
+	ffi.cdef(typeCode)
 
 	-- the env CL code header goes on top of all compiled programs
 	self.code = template([[
@@ -104,13 +103,24 @@ typedef union {
 	if (i.x >= sx || i.y >= sy || i.z >= sz) return; \
 	int index = indexForInt4ForSize(i, sx, sy, sz);
 
-constant const int dim = <?=domain.dim?>;
-constant const int4 size = (int4)(<?=clnumber(domain.size.x)?>, <?=clnumber(domain.size.y)?>, <?=clnumber(domain.size.z)?>, 0);
-constant const int4 stepsize = (int4)(1, <?=domain.size.x?>, <?=domain.size.x * domain.size.y?>, <?=domain.size.x * domain.size.y * domain.size.z?>);
+constant const int dim = <?=dim?>;
+constant const int4 size = (int4)(<?=
+	clnumber(size.x)?>, <?=
+	clnumber(size.y)?>, <?=
+	clnumber(size.z)?>, 0);
+constant const int4 stepsize = (int4)(1, <?=
+	size.x?>, <?=
+	size.x * size.y?>, <?=
+	size.x * size.y * size.z?>);
 
 #define indexForInt4(i)	indexForInt4ForSize(i, size.x, size.y, size.z)
-#define INIT_KERNEL()	initKernelForSize(size.x, size.y, size.z)
-]], self)
+#define initKernel()	initKernelForSize(size.x, size.y, size.z)
+]], {
+	typeCode = typeCode,
+	dim = self.domain.dim,
+	size = self.domain.size,
+	clnumber = require 'cl.obj.number',
+})
 
 	-- buffer allocation
 	
@@ -126,7 +136,9 @@ function CLEnv:getTypeCode()
 typedef <?=real?> real;
 typedef <?=real?>2 real2;
 typedef <?=real?>4 real4;
-]], self)
+]], {
+	real = self.real,
+})
 end
 
 function CLEnv:buffer(args)
