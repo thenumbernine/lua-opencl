@@ -41,26 +41,48 @@ end
 
 local CLEnv = class()
 
-local function get64bit(list)
-	local best = list:map(function(item)
+local function get64bit(list, precision)
+	local all = list:map(function(item)
 		local exts = string.trim(item:getExtensions():lower())
 		return {item=item, fp64=exts:match'cl_%w+_fp64'}
-	end):sort(function(a,b)
-		return (a.fp64 and 1 or 0) > (b.fp64 and 1 or 0)
-	end)[1]
+	end)
+
+	-- choose double if we must
+	if precision == 'double' then
+		all = all:filter(function(a) return a.fp64 end)
+		assert(#all > 0, "couldn't find anything with 64 bit precision")
+	-- otherwise prioritize it
+	-- TODO what if the user wants gl sharing too?
+	-- should I prioritize a search for that extension as well?
+	else
+		all:sort(function(a,b)
+			return (a.fp64 and 1 or 0) > (b.fp64 and 1 or 0)
+		end)
+	end
+
+	local best = all[1]
 	return best.item, best.fp64
 end
 
 --[[
-args (all are passed along to CLDomain):
+args for CLEnv:
+	precision = any | float | double 
+		= precision type to support.  default 'any'.
+			honestly 'any' and 'float' are the same, because any device is going to have floating precision.
+			both of these also prefer devices with double precision.
+			but only 'double' will error out if it can't find double precision.
+
+args passed along to CLDomain:
 	size
 	dim
 	verbose
+	
 --]]
 function CLEnv:init(args)
 	self.verbose = args.verbose
-	self.platform = get64bit(require 'cl.platform'.getAll())
-	self.device, self.fp64 = get64bit(self.platform:getDevices{gpu=true})
+	local precision = args.precision or 'any'
+	self.platform = get64bit(require 'cl.platform'.getAll(), precision)
+	self.device, self.fp64 = get64bit(self.platform:getDevices{gpu=true}, precision)
 	
 	local exts = string.split(string.trim(self.device:getExtensions()):lower(),'%s+')
 	self.useGLSharing = exts:find(nil, function(ext) 
@@ -141,8 +163,8 @@ typedef <?=real?>4 real4;
 })
 end
 
-function CLEnv:buffer(args)
-	return require 'cl.obj.buffer'(table(args or {}, {env=self}))
+function CLEnv:buffer(...)
+	return self.domain:buffer(...)
 end
 
 function CLEnv:clalloc(size, name, ctype)

@@ -68,4 +68,11 @@ function CLDomain:init(args)
 	self.globalSize = vec3sz(self.size:unpack())
 end
 
+function CLDomain:buffer(args)
+	return require 'cl.obj.buffer'(table(args or {}, {
+		env = self.env,
+		size = self.volume,
+	}))
+end
+
 return CLDomain
