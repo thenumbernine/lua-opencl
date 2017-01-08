@@ -38,4 +38,26 @@ function CLBuffer:toCPU(ptr)
 	return ptr
 end
 
+function CLBuffer:fill(pattern, patternSize)
+	if pattern and not patternSize then
+		pattern = ffi.new(self.type..'[1]', pattern)
+		patternSize = ffi.sizeof(pattern)
+	end
+	self.env.cmds:enqueueFillBuffer{
+		buffer = self.buf,
+		pattern = pattern,
+		patternSize = patternSize,
+		size = ffi.sizeof(self.type) * self.size,
+	}
+end
+
+-- TODO support for arguments.  varying size, offset, etc.
+function CLBuffer:copyFrom(src)
+	self.env.cmds:enqueueCopyBuffer{
+		src = src.buf,
+		dst = self.buf,
+		size = ffi.sizeof(self.type) * self.size,
+	}
+end
+
 return CLBuffer

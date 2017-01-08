@@ -11,6 +11,7 @@ function CLProgram:init(args)
 end
 
 function CLProgram:kernel(args)
+	if type(args) == 'string' then args = {name = args} end
 	local kernel = require 'cl.obj.kernel'(table(args, {env=self.env, program=self}))
 	self.kernels:insert(kernel)
 	return kernel

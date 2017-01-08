@@ -179,13 +179,13 @@ function CLEnv:program(args)
 	return require 'cl.obj.program'(table(args or {}, {env=self}))
 end
 
-function CLEnv:kernel(args)
-	return require 'cl.obj.kernel'(table(args, {env=self}))
+function CLEnv:kernel(...)
+	return self.domain:kernel(...)
 end
 
 --[[
 function CLEnv:clcall(kernel, ...)
-	if select('#', ...) then
+	if select('#', ...) > 0 then
 		kernel:setArgs(...)
 	end
 	self.cmds:enqueueNDRangeKernel{kernel=kernel, dim=self.domain.dim, globalSize=self.domain.globalSize:ptr(), localSize=self.domain.localSize:ptr()}

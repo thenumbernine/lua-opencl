@@ -99,7 +99,7 @@ function CLKernel:__call(...)
 		self:compile()
 	end
 
-	if select('#', ...) then
+	if select('#', ...) > 0 then
 		self.kernel:setArgs(...)
 	end
 	self.env.cmds:enqueueNDRangeKernel{

@@ -75,4 +75,11 @@ function CLDomain:buffer(args)
 	}))
 end
 
+function CLDomain:kernel(args)
+	return require 'cl.obj.kernel'(table(args, {
+		env = self.env,
+		domain = self,		
+	}))
+end
+
 return CLDomain
