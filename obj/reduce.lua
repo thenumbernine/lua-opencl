@@ -74,7 +74,6 @@ args:
 		size =  env.domain.volume
 		allocate = env:clalloc
 		cmds
-
 --]]
 function Reduce:init(args)
 	local env = args.env
@@ -126,7 +125,10 @@ function Reduce:init(args)
 	self.result = args.result or ffi.new(self.ctype..'[1]')
 end
 
-function Reduce:__call()
+function Reduce:__call(buf)
+	if buf then
+		self.kernel:setArg(1, buf)
+	end
 	local reduceSize = self.size
 	local dst = self.swapBuffer
 	local src = self.buffer

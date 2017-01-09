@@ -102,6 +102,7 @@ function CLKernel:__call(...)
 	if select('#', ...) > 0 then
 		self.kernel:setArgs(...)
 	end
+	
 	self.env.cmds:enqueueNDRangeKernel{
 		kernel = self.kernel,
 		dim = self.domain.dim,
