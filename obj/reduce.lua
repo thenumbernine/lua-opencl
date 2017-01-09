@@ -125,10 +125,13 @@ function Reduce:init(args)
 	self.result = args.result or ffi.new(self.ctype..'[1]')
 end
 
-function Reduce:__call(buf)
+function Reduce:__call()
+	local push
 	if buf then
-		self.kernel:setArg(1, buf)
+		push = self.buffer
+		self.buffer = buf
 	end
+	
 	local reduceSize = self.size
 	local dst = self.swapBuffer
 	local src = self.buffer
@@ -154,6 +157,11 @@ function Reduce:__call(buf)
 		reduceSize = nextSize
 	end
 	self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.result}
+	
+	if push then
+		self.buffer = push
+	end
+	
 	return self.result[0]
 end
 
