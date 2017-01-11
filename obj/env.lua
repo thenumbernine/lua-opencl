@@ -167,7 +167,7 @@ typedef <?=real?>4 real4;
 end
 
 function CLEnv:buffer(args)
-	return (args.domain or self.domain):buffer(args)
+	return (args and args.domain or self.domain):buffer(args)
 end
 
 function CLEnv:clalloc(size, name, ctype)
