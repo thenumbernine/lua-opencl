@@ -70,8 +70,8 @@ end
 
 function CLDomain:buffer(args)
 	return require 'cl.obj.buffer'(table(args or {}, {
-		env = self.env,
-		size = self.volume,
+		env = args.env or self.env,
+		size = args.size or self.volume,
 	}))
 end
 
