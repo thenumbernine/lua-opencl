@@ -106,6 +106,9 @@ function CLEnv:init(args)
 	-- initialize types
 	
 	self.real = self.fp64 and 'double' or 'float'
+	if self.verbose then
+		print('using '..self.real..' as real')
+	end
 
 	-- typeCode goes to ffi.cdef and to the CL code header
 	local typeCode = self:getTypeCode()

@@ -8,7 +8,7 @@ function CLBuffer:init(args)
 	self.name = args.name or 'buffer_'..tostring(self):sub(10)
 	self.type = args.type or args.env.real
 	self.size = args.size or args.env.domain.volume
-	self.buf = self.env:clalloc(self.size * ffi.sizeof(self.type), name, self.type)
+	self.buf = self.env:clalloc(self.size * ffi.sizeof(self.type), self.name, self.type)
 	
 	-- TODO use hostptr of cl.buffer, which is hidden behind env:clalloc
 	if args.data then self:fromCPU(args.data) end
