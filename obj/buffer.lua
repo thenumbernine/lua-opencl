@@ -6,7 +6,7 @@ local CLBuffer = class()
 function CLBuffer:init(args)
 	self.env = assert(args.env)
 	self.name = args.name or 'buffer_'..tostring(self):sub(10)
-	self.type = args.type or self.real
+	self.type = args.type or args.env.real
 	self.size = args.size or args.env.domain.volume
 	self.buf = self.env:clalloc(self.size * ffi.sizeof(self.type), self.name, self.type)
 	
