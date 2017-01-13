@@ -98,22 +98,26 @@ function Reduce:init(args)
 		devices = {device},
 		code = code,
 	}
-	
+--print('sumReduce code',code)
+
 	self.maxWorkGroupSize = tonumber(device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
 	self.size = assert(args.size or (env and env.domain.volume))
 	local localSize = math.min(self.maxWorkGroupSize, self.size)
 
 	local allocate = args.allocate 
-		or (env and function(size)
-			return env:clalloc(size, 'reduce', self.ctype)
+		or (env and function(size, name)
+--print('allocating '..size..' bytes of '..self.ctype..' for '..name)
+			return env:clalloc(size, name, self.ctype)
 		end)
-		or function(size)
+		or function(size, name)
 			return ctx:buffer{rw=true, size=size}
 		end
 
 	self.ctypeSize = args.typeSize or ffi.sizeof(self.ctype)
-	self.buffer = args.buffer or allocate(self.size * self.ctypeSize)
-	self.swapBuffer = args.swapBuffer or allocate(math.ceil(self.size / localSize) * self.ctypeSize)
+	self.buffer = args.buffer 
+		or allocate(self.size * self.ctypeSize, 'reduce.buffer')
+	self.swapBuffer = args.swapBuffer 
+		or allocate(math.ceil(self.size / localSize) * self.ctypeSize, 'reduce.swapBuffer')
 	
 	self.kernel = self.program:kernel(
 		name,
@@ -140,23 +144,37 @@ function Reduce:__call()
 	local reduceLocalSize1D = math.min(reduceSize, self.maxWorkGroupSize)
 	
 	while reduceSize > 1 do
-		
+--print('reduceSize', reduceSize)
+--print("self.result[0]",self.result[0])
 		local nextSize = math.floor(reduceSize / reduceLocalSize1D)
 		if 0 ~= bit.band(reduceSize, reduceLocalSize1D - 1) then 
 			nextSize = nextSize + 1 
 		end
-		local reduceGlobalSize = math.max(reduceSize, reduceLocalSize1D)
+		
+		-- TODO don't use math.max(reduceSize, reduceLocalSize1D)
+		--  unless you want to bounds-test the kernel
+		-- and don't just use reduceSize 
+		--  because the localSize=math.min(reduceGlobalSize, reduceLocalSize1D)
+		--  so if reduceSize is some odd value then localSize will be and odd value too 
+		-- and to boot, don't forget to take this into account with the swap buffer allocation
+		local reduceGlobalSize = reduceSize	--math.max(reduceSize, reduceLocalSize1D)
+--print('reduceGlobalSize',reduceGlobalSize)
+		local localSize = math.min(reduceGlobalSize, reduceLocalSize1D)
+--print('localSize',localSize)
 
 		self.kernel:setArg(0, src)
 		self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
 		self.kernel:setArg(3, dst)
-
-		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=reduceGlobalSize, localSize=math.min(reduceGlobalSize, reduceLocalSize1D)}
+--print('calling...')
+		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=reduceGlobalSize, localSize=localSize}
 		--self.cmds:finish()
 		dst, src = src, dst
 		reduceSize = nextSize
 	end
+--print("self.result[0]",self.result[0])
+--print('self.ctypeSize', self.ctypeSize)	
 	self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.result}
+--print("self.result[0]",self.result[0])
 	
 	if push then
 		self.buffer = push

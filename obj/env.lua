@@ -120,14 +120,7 @@ function CLEnv:init(args)
 	self.code = template([[
 <?=typeCode?>
 
-#define globalInt4()	(int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0)
-
-#define indexForInt4ForSize(i, sx, sy, sz) (i.x + sx * (i.y + sy * i.z))
-#define initKernelForSize(sx, sy, sz) \
-	int4 i = globalInt4(); \
-	if (i.x >= sx || i.y >= sy || i.z >= sz) return; \
-	int index = indexForInt4ForSize(i, sx, sy, sz);
-
+//this code really belongs with domain
 constant const int dim = <?=dim?>;
 constant const int4 size = (int4)(<?=
 	clnumber(size.x)?>, <?=
@@ -138,6 +131,12 @@ constant const int4 stepsize = (int4)(1, <?=
 	size.x * size.y?>, <?=
 	size.x * size.y * size.z?>);
 
+#define globalInt4()	(int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0)
+#define indexForInt4ForSize(i, sx, sy, sz) (i.x + sx * (i.y + sy * i.z))
+#define initKernelForSize(sx, sy, sz) \
+	int4 i = globalInt4(); \
+	if (i.x >= sx || i.y >= sy || i.z >= sz) return; \
+	int index = indexForInt4ForSize(i, sx, sy, sz);
 #define indexForInt4(i)	indexForInt4ForSize(i, size.x, size.y, size.z)
 #define initKernel()	initKernelForSize(size.x, size.y, size.z)
 ]], {
