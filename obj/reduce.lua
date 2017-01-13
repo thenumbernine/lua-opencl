@@ -133,7 +133,7 @@ function Reduce:init(args)
 		ffi.new('int[1]', self.size),
 		self.swapBuffer)
 
-	self.result = args.result or ffi.new(self.ctype..'[?]', self.swapBufferSize)
+	self.result = args.result or ffi.new(self.ctype..'[1]')
 end
 
 function Reduce:__call()
@@ -158,7 +158,7 @@ function Reduce:__call()
 	
 		reduceSize = nextSize
 	end
-	self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize * self.swapBufferSize, ptr=self.result}
+	self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.result}
 	
 	if push then
 		self.buffer = push
