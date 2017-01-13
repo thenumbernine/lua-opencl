@@ -147,8 +147,8 @@ function Reduce:__call()
 	local src = self.buffer
 	local dst = self.swapBuffer
 	while reduceSize > 1 do
-		
-		local reduceGlobalSize = math.ceil(reduceSize/self.maxWorkGroupSize)*self.maxWorkGroupSize
+		local nextSize = math.ceil(reduceSize/self.maxWorkGroupSize)
+		local reduceGlobalSize = nextSize * self.maxWorkGroupSize
 
 		self.kernel:setArg(0, src)
 		self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
@@ -156,7 +156,7 @@ function Reduce:__call()
 		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=reduceGlobalSize, localSize=self.maxWorkGroupSize}
 		src, dst = dst, src
 	
-		reduceSize = math.ceil(reduceSize / self.maxWorkGroupSize)
+		reduceSize = nextSize
 	end
 	self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize * self.swapBufferSize, ptr=self.result}
 	

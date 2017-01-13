@@ -6,15 +6,15 @@ and see what's up
 --]]
 local range = require 'ext.range'
 
--- TODO get rid of default size
+-- TODO get rid of default domains in env, and required size arguments
 -- TODO also rename env.domain to env.defaultDomain
 --  	make env:domain a function for creating domains
--- 		and move the env.domain.size code into domain.code or something
+-- 		and move the env.domain.size code into domain.code or something?
 -- TODO also rename buffer.buf to buffer.buffer ... or buffer.obj
 -- 		and then rename kernel.kernel to kernel.obj
 local env = require 'cl.obj.env'{size=1}
 
-for size=1,256 do 
+for size=1,257 do 
 	local domain = require 'cl.obj.domain'{env=env, size=size}
 	local buf = domain:buffer{
 		size=2*size,
