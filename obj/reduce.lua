@@ -12,13 +12,19 @@ local reduceCode = [[
 kernel void <?=name?>(
 	const global <?=ctype?>* buffer,
 	local <?=ctype?>* scratch,
-	const int length,
+	const int length,	//size we're reducing from
 	global <?=ctype?>* result)
 {
+	//for the first iteration
+	
+	//threads 0...localSize-1 start 
 	int global_index = get_global_id(0);
+	
+	//with accumulator values set to initial values 
 	<?=ctype?> accumulator = <?=initValue?>;
 	
-	// Loop sequentially over chunks of input vector
+	//loop sequentially over chunks of the input vector
+	//so for N elements of size localSize we perform N/localSize iterations
 	while (global_index < length) {
 		<?=ctype?> element = buffer[global_index];
 		accumulator = <?=op('accumulator', 'element')?>;
@@ -26,6 +32,7 @@ kernel void <?=name?>(
 	}
 
 	// Perform parallel reduction
+	//as many times as log2(localSize)
 	int local_index = get_local_id(0);
 	scratch[local_index] = accumulator;
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -37,6 +44,8 @@ kernel void <?=name?>(
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
+	
+	//result[get_group_id(0)] is going to hold the reduction from localSize*localIndex through length?
 	if (local_index == 0) {
 		result[get_group_id(0)] = scratch[0];
 	}
@@ -98,15 +107,12 @@ function Reduce:init(args)
 		devices = {device},
 		code = code,
 	}
---print('sumReduce code',code)
 
 	self.maxWorkGroupSize = tonumber(device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
 	self.size = assert(args.size or (env and env.domain.volume))
-	local localSize = math.min(self.maxWorkGroupSize, self.size)
 
 	local allocate = args.allocate 
 		or (env and function(size, name)
---print('allocating '..size..' bytes of '..self.ctype..' for '..name)
 			return env:clalloc(size, name, self.ctype)
 		end)
 		or function(size, name)
@@ -116,17 +122,18 @@ function Reduce:init(args)
 	self.ctypeSize = args.typeSize or ffi.sizeof(self.ctype)
 	self.buffer = args.buffer 
 		or allocate(self.size * self.ctypeSize, 'reduce.buffer')
+	self.swapBufferSize = math.ceil(self.size / self.maxWorkGroupSize)
 	self.swapBuffer = args.swapBuffer 
-		or allocate(math.ceil(self.size / localSize) * self.ctypeSize, 'reduce.swapBuffer')
+		or allocate(self.swapBufferSize * self.ctypeSize, 'reduce.swapBuffer')
 	
 	self.kernel = self.program:kernel(
 		name,
 		self.buffer,
-		{ptr=nil, size=localSize * self.ctypeSize},
+		{ptr=nil, size=self.maxWorkGroupSize * self.ctypeSize},
 		ffi.new('int[1]', self.size),
 		self.swapBuffer)
 
-	self.result = args.result or ffi.new(self.ctype..'[1]')
+	self.result = args.result or ffi.new(self.ctype..'[?]', self.swapBufferSize)
 end
 
 function Reduce:__call()
@@ -135,46 +142,23 @@ function Reduce:__call()
 		push = self.buffer
 		self.buffer = buf
 	end
-	
-	local reduceSize = self.size
-	local dst = self.swapBuffer
-	local src = self.buffer
 
-	-- TODO should be the min of the rounded-up/down? power-of-2 of reduceSize
-	local reduceLocalSize1D = math.min(reduceSize, self.maxWorkGroupSize)
-	
+	local reduceSize = self.size
+	local src = self.buffer
+	local dst = self.swapBuffer
 	while reduceSize > 1 do
---print('reduceSize', reduceSize)
---print("self.result[0]",self.result[0])
-		local nextSize = math.floor(reduceSize / reduceLocalSize1D)
-		if 0 ~= bit.band(reduceSize, reduceLocalSize1D - 1) then 
-			nextSize = nextSize + 1 
-		end
 		
-		-- TODO don't use math.max(reduceSize, reduceLocalSize1D)
-		--  unless you want to bounds-test the kernel
-		-- and don't just use reduceSize 
-		--  because the localSize=math.min(reduceGlobalSize, reduceLocalSize1D)
-		--  so if reduceSize is some odd value then localSize will be and odd value too 
-		-- and to boot, don't forget to take this into account with the swap buffer allocation
-		local reduceGlobalSize = reduceSize	--math.max(reduceSize, reduceLocalSize1D)
---print('reduceGlobalSize',reduceGlobalSize)
-		local localSize = math.min(reduceGlobalSize, reduceLocalSize1D)
---print('localSize',localSize)
+		local reduceGlobalSize = math.ceil(reduceSize/self.maxWorkGroupSize)*self.maxWorkGroupSize
 
 		self.kernel:setArg(0, src)
 		self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
 		self.kernel:setArg(3, dst)
---print('calling...')
-		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=reduceGlobalSize, localSize=localSize}
-		--self.cmds:finish()
-		dst, src = src, dst
-		reduceSize = nextSize
+		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=reduceGlobalSize, localSize=self.maxWorkGroupSize}
+		src, dst = dst, src
+	
+		reduceSize = math.ceil(reduceSize / self.maxWorkGroupSize)
 	end
---print("self.result[0]",self.result[0])
---print('self.ctypeSize', self.ctypeSize)	
-	self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.result}
---print("self.result[0]",self.result[0])
+	self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize * self.swapBufferSize, ptr=self.result}
 	
 	if push then
 		self.buffer = push

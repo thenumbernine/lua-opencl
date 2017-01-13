@@ -4,6 +4,7 @@ reduce is having some trouble
 so i'm gonna test all possible sizes
 and see what's up
 --]]
+local range = require 'ext.range'
 
 -- TODO get rid of default size
 -- TODO also rename env.domain to env.defaultDomain
@@ -13,7 +14,7 @@ and see what's up
 -- 		and then rename kernel.kernel to kernel.obj
 local env = require 'cl.obj.env'{size=1}
 
-for size=1024,1024 do
+for size=1,256 do 
 	local domain = require 'cl.obj.domain'{env=env, size=size}
 	local buf = domain:buffer{
 		size=2*size,
@@ -22,11 +23,15 @@ for size=1024,1024 do
 		-- and a reduce any more than size will show n+ how much more than size
 		data=range(size,1,-1):append(
 			range(size):map(function(i) return i+size end)),
-	}	
+	}
+	local cpu = buf:toCPU()
 	local reduce = env:reduce{
 		size=size,
 		buffer=buf.buf,
+		initValue = 'HUGE_VALF',
 		op=function(x,y) return 'min('..x..', '..y..')' end,
 	}
-	print('size',size,'reduce',reduce())
+	local reduceResult = reduce()
+	print('size ',size,' reduce ',reduceResult,'\n')
+assert(reduceResult == 1, "expected 1 but found "..reduceResult)
 end
