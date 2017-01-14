@@ -18,6 +18,8 @@ local template = require 'template'
 
 
 -- boilerplate so OpenCL types will work with ffi types
+-- TODO for support for multiple environments ... 
+--  you could check for previous type declaration with pcall(ffi.sizeof,'real')
 for _,real in ipairs{'float', 'double'} do
 	ffi.cdef(template([[
 typedef union {
@@ -96,8 +98,7 @@ function CLEnv:init(args)
 	}
 	self.cmds = require 'cl.commandqueue'{context=self.ctx, device=self.device}
 
-	self.domain = require 'cl.obj.domain'{
-		env = self,
+	self.base = self:domain{
 		size = args.size,
 		dim = args.dim,
 		verbose = args.verbose,
@@ -120,7 +121,17 @@ function CLEnv:init(args)
 	self.code = template([[
 <?=typeCode?>
 
-//this code really belongs with domain
+//macro for the index
+#define globalInt4()	(int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0)
+
+//macros for arbitrary sizes
+#define indexForInt4ForSize(i, sx, sy, sz) (i.x + sx * (i.y + sy * i.z))
+#define initKernelForSize(sx, sy, sz) \
+	int4 i = globalInt4(); \
+	if (i.x >= sx || i.y >= sy || i.z >= sz) return; \
+	int index = indexForInt4ForSize(i, sx, sy, sz);
+
+//static variables for the base domain
 constant const int dim = <?=dim?>;
 constant const int4 size = (int4)(<?=
 	clnumber(size.x)?>, <?=
@@ -131,18 +142,13 @@ constant const int4 stepsize = (int4)(1, <?=
 	size.x * size.y?>, <?=
 	size.x * size.y * size.z?>);
 
-#define globalInt4()	(int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0)
-#define indexForInt4ForSize(i, sx, sy, sz) (i.x + sx * (i.y + sy * i.z))
-#define initKernelForSize(sx, sy, sz) \
-	int4 i = globalInt4(); \
-	if (i.x >= sx || i.y >= sy || i.z >= sz) return; \
-	int index = indexForInt4ForSize(i, sx, sy, sz);
+//macros for the base domain
 #define indexForInt4(i)	indexForInt4ForSize(i, size.x, size.y, size.z)
 #define initKernel()	initKernelForSize(size.x, size.y, size.z)
 ]], {
 	typeCode = typeCode,
-	dim = self.domain.dim,
-	size = self.domain.size,
+	dim = self.base.dim,
+	size = self.base.size,
 	clnumber = require 'cl.obj.number',
 })
 
@@ -166,7 +172,7 @@ typedef <?=real?>4 real4;
 end
 
 function CLEnv:buffer(args)
-	return (args and args.domain or self.domain):buffer(args)
+	return (args and args.domain or self.base):buffer(args)
 end
 
 function CLEnv:clalloc(size, name, ctype)
@@ -182,7 +188,7 @@ function CLEnv:program(args)
 end
 
 function CLEnv:kernel(...)
-	return self.domain:kernel(...)
+	return self.base:kernel(...)
 end
 
 --[[
@@ -190,18 +196,16 @@ function CLEnv:clcall(kernel, ...)
 	if select('#', ...) > 0 then
 		kernel:setArgs(...)
 	end
-	self.cmds:enqueueNDRangeKernel{kernel=kernel, dim=self.domain.dim, globalSize=self.domain.globalSize:ptr(), localSize=self.domain.localSize:ptr()}
+	self.cmds:enqueueNDRangeKernel{kernel=kernel, dim=self.base.dim, globalSize=self.base.globalSize:ptr(), localSize=self.base.localSize:ptr()}
 end
 --]]
 
---[[ but env.domain is already used ...
 function CLEnv:domain(args)
-	return require 'cl.obj.domain'(table(args, {env=self}))
+	return require 'cl.obj.domain'(table(args or {}, {env=self}))
 end
---]]
 
 function CLEnv:reduce(args)
-	return require 'cl.obj.reduce'(table(args, {env=self}))
+	return require 'cl.obj.reduce'(table(args or {}, {env=self}))
 end
 
 return CLEnv

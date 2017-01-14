@@ -33,8 +33,8 @@ function CLKernel:init(args)
 	self.argsIn = args.argsIn
 	--[[
 	if argsIn and argsOut are cl.obj.buffer's then all works well
-	if you don't want to pass a cl.obj.buffer then you can still define a buffer by setting {name=..., buf=true},
-		by setting buf=true instead of buf= a cl.obj.buffer object
+	if you don't want to pass a cl.obj.buffer then you can still define a buffer by setting {name=..., obj=true},
+		by setting obj=true instead of obj= a cl.obj.buffer object
 		this fixes the code gen
 		but still doesn't fix the argBuffers
 	so instead of fixing the argBuffers I'm going to detect :isa
@@ -44,11 +44,11 @@ function CLKernel:init(args)
 		:append(self.argsOut)
 		:append(self.argsIn)
 		:map(function(arg) 
-			return arg.buf
+			return arg.obj
 		end)
 	
 	self.program = args.program
-	self.domain = args.domain or self.env.domain
+	self.domain = args.domain or self.env.base
 	
 	self.code = table{
 		args.header or '',
@@ -57,7 +57,7 @@ kernel void <?=self.name?>(
 <?
 local sep = ''
 for _,arg in ipairs(self.argsOut or {}) do 
-	if arg.buf then
+	if arg.obj then
 		?>	<?=sep?>global <?=arg.type or 'real'?>* <?=arg.name?>
 <?	else
 		?>	<?=sep?><?=arg.type or 'real'?> <?=arg.name?>
@@ -65,7 +65,7 @@ for _,arg in ipairs(self.argsOut or {}) do
 	sep = ', '
 end
 for _,arg in ipairs(self.argsIn or {}) do
-	if arg.buf then
+	if arg.obj then
 		?>	<?=sep?>global const <?=arg.type or 'real'?>* <?=arg.name?>
 <?	else
 		?>	<?=sep?><?=arg.type or 'real'?> <?=arg.name?>
@@ -84,7 +84,7 @@ end
 -- used for stand-alone compiling
 -- if you want to compile this kernel with other kernels, use CLEnv:compileKernels
 function CLKernel:compile()
-	if self.kernel then
+	if self.obj then
 		error("already compiled")
 	end
 	if self.program then
@@ -95,16 +95,16 @@ end
 
 function CLKernel:__call(...)
 	-- if we get a call request when we have no kernel/program, make sure to get one 
-	if not self.kernel then
+	if not self.obj then
 		self:compile()
 	end
 
 	if select('#', ...) > 0 then
-		self.kernel:setArgs(...)
+		self.obj:setArgs(...)
 	end
 	
 	self.env.cmds:enqueueNDRangeKernel{
-		kernel = self.kernel,
+		kernel = self.obj,
 		dim = self.domain.dim,
 		globalSize = self.domain.globalSize:ptr(),
 		localSize = self.domain.localSize:ptr(),

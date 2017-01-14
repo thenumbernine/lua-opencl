@@ -25,16 +25,16 @@ function CLProgram:compile()
 		return kernel.code
 	end)):concat'\n'
 
-	self.program = require 'cl.program'{context=self.env.ctx, devices={self.env.device}, code=code}
+	self.obj = require 'cl.program'{context=self.env.ctx, devices={self.env.device}, code=code}
 	
 	for _,kernel in ipairs(self.kernels) do
 		kernel.program = self
-		-- if any argBuffers are booleans (from arg.buf=true, for non-cl.obj.buffer parameters
+		-- if any argBuffers are booleans (from arg.obj=true, for non-cl.obj.buffer parameters
 		-- then don't bind them
-		kernel.kernel = self.program:kernel(kernel.name)	--, kernel.argBuffers:unpack())
+		kernel.obj = self.obj:kernel(kernel.name)	--, kernel.argBuffers:unpack())
 		for i,arg in ipairs(kernel.argBuffers) do
 			if CLBuffer.is(arg) then
-				kernel.kernel:setArg(i-1, arg)
+				kernel.obj:setArg(i-1, arg)
 			end
 		end
 	end

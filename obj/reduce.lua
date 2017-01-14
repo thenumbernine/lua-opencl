@@ -90,7 +90,7 @@ args:
 		ctype = env.real
 		ctx
 		device
-		size =  env.domain.volume
+		size =  env.base.volume
 		allocate = env:clalloc
 		cmds
 --]]
@@ -119,7 +119,7 @@ function Reduce:init(args)
 	}
 
 	self.maxWorkGroupSize = tonumber(device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
-	self.size = assert(args.size or (env and env.domain.volume))
+	self.size = assert(args.size or (env and env.base.volume))
 	
 	local allocate = args.allocate 
 		or (env and function(size, name)
@@ -146,16 +146,11 @@ function Reduce:init(args)
 	self.result = args.result or ffi.new(self.ctype..'[1]')
 end
 
-function Reduce:__call()
-	local push
-	if buf then
-		push = self.buffer
-		self.buffer = buf
-	end
+function Reduce:__call(buffer)
+	local src = buffer or self.buffer
+	local dst = self.swapBuffer
 
 	local reduceSize = self.size
-	local src = self.buffer
-	local dst = self.swapBuffer
 	while reduceSize > 1 do
 		local nextSize = math.ceil(reduceSize/self.maxWorkGroupSize)
 		local globalSize, localSize
@@ -172,15 +167,17 @@ function Reduce:__call()
 		self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
 		self.kernel:setArg(3, dst)
 		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=globalSize, localSize=localSize}
-		src, dst = dst, src
+		
+		-- only use buffer for reading the first iteration, so it doesn't destroy the buffer for multiple iterations
+		if src == buffer then src = self.buffer end
 	
+		-- swap buffers
+		src, dst = dst, src
+
 		reduceSize = nextSize
 	end
 	self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.result}
 	
-	if push then
-		self.buffer = push
-	end
 	return self.result[0]
 end
 
