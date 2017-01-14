@@ -121,11 +121,6 @@ function Reduce:init(args)
 	self.maxWorkGroupSize = tonumber(device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
 	self.size = assert(args.size or (env and env.domain.volume))
 	
-	-- local size can't be bigger than max workgroup size
-	--  and can't be smaller than size
-	-- and should be power of two?
-	self.localSize = math.min(rup2(self.size), self.maxWorkGroupSize)
-
 	local allocate = args.allocate 
 		or (env and function(size, name)
 			return env:clalloc(size, name, self.ctype)
@@ -137,14 +132,14 @@ function Reduce:init(args)
 	self.ctypeSize = args.typeSize or ffi.sizeof(self.ctype)
 	self.buffer = args.buffer 
 		or allocate(self.size * self.ctypeSize, 'reduce.buffer')
-	self.swapBufferSize = math.ceil(self.size / self.localSize)
+	self.swapBufferSize = math.ceil(self.size / self.maxWorkGroupSize)
 	self.swapBuffer = args.swapBuffer 
 		or allocate(self.swapBufferSize * self.ctypeSize, 'reduce.swapBuffer')
 	
 	self.kernel = self.program:kernel(
 		name,
 		self.buffer,
-		{ptr=nil, size=self.localSize * self.ctypeSize},
+		{ptr=nil, size=self.maxWorkGroupSize * self.ctypeSize},
 		ffi.new('int[1]', self.size),
 		self.swapBuffer)
 
@@ -162,13 +157,21 @@ function Reduce:__call()
 	local src = self.buffer
 	local dst = self.swapBuffer
 	while reduceSize > 1 do
-		local nextSize = math.ceil(reduceSize/self.localSize)
-		local reduceGlobalSize = nextSize * self.localSize
-
+		local nextSize = math.ceil(reduceSize/self.maxWorkGroupSize)
+		local globalSize, localSize
+		-- if it's the last iteration then make the local size as small as possible
+		if nextSize == 1 then
+			localSize = rup2(reduceSize)
+			globalSize = localSize
+		else
+			globalSize = nextSize * self.maxWorkGroupSize
+			localSize = self.maxWorkGroupSize
+		end
+		
 		self.kernel:setArg(0, src)
 		self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
 		self.kernel:setArg(3, dst)
-		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=reduceGlobalSize, localSize=self.localSize}
+		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=globalSize, localSize=localSize}
 		src, dst = dst, src
 	
 		reduceSize = nextSize
@@ -178,7 +181,6 @@ function Reduce:__call()
 	if push then
 		self.buffer = push
 	end
-	
 	return self.result[0]
 end
 

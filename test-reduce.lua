@@ -1,19 +1,7 @@
 #!/usr/bin/env luajit
---[[
-reduce is having some trouble
-so i'm gonna test all possible sizes
-and see what's up
---]]
 local range = require 'ext.range'
 
--- TODO get rid of default domains in env, and required size arguments
--- TODO also rename env.domain to env.defaultDomain
---  	make env:domain a function for creating domains
--- 		and move the env.domain.size code into domain.code or something?
--- TODO also rename buffer.buf to buffer.buffer ... or buffer.obj
--- 		and then rename kernel.kernel to kernel.obj
 local env = require 'cl.obj.env'{size=1}
-
 -- TODO make a range from 1 to max workgroup size, step by power of two, and include plus or minus a few 
 -- then include factors of max workgroup size plus or minus a few
 for size=1,257 do 
