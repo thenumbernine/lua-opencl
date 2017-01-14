@@ -17,14 +17,14 @@ kernel void <?=name?>(
 {
 	//for the first iteration
 	
-	//threads 0...localSize-1 start 
+	//threads 0...get_local_size(0)-1 start 
 	int global_index = get_global_id(0);
 	
 	//with accumulator values set to initial values 
 	<?=ctype?> accumulator = <?=initValue?>;
 	
 	//loop sequentially over chunks of the input vector
-	//so for N elements of size localSize we perform N/localSize iterations
+	//so for N elements of size get_local_size(0) we perform N/get_local_size(0) iterations
 	while (global_index < length) {
 		<?=ctype?> element = buffer[global_index];
 		accumulator = <?=op('accumulator', 'element')?>;
@@ -32,7 +32,7 @@ kernel void <?=name?>(
 	}
 
 	// Perform parallel reduction
-	//as many times as log2(localSize)
+	//as many times as log2(get_local_size(0))
 	int local_index = get_local_id(0);
 	scratch[local_index] = accumulator;
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -45,12 +45,22 @@ kernel void <?=name?>(
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 	
-	//result[get_group_id(0)] is going to hold the reduction from localSize*localIndex through length?
+	//result[get_group_id(0)] is going to hold the reduction from get_local_size(0)*localIndex through length?
 	if (local_index == 0) {
 		result[get_group_id(0)] = scratch[0];
 	}
 }
 ]]
+
+local function rup2(x)
+	local y = 1
+	x = x - 1
+	while x > 0 do
+		x = bit.rshift(x, 1)
+		y = bit.lshift(y, 1)
+	end
+	return y
+end
 
 --[[
 args:
@@ -68,7 +78,7 @@ args:
 	for providing the data:
 		buffer = (optional) cl buffer of ctype[size]
 		size = size (in ctype's). env.volume or provided.
-		swapBuffer (optional) = cl buffer of ctype[size / localSize]
+		swapBuffer (optional) = cl buffer of ctype[size / get_local_size(0)]
 		allocate = (optional) env.clalloc or provided. cl allocation function accepts size, in bytes
 		result = (optional) C buffer of ctype to contain the result
 
@@ -110,6 +120,11 @@ function Reduce:init(args)
 
 	self.maxWorkGroupSize = tonumber(device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
 	self.size = assert(args.size or (env and env.domain.volume))
+	
+	-- local size can't be bigger than max workgroup size
+	--  and can't be smaller than size
+	-- and should be power of two?
+	self.localSize = math.min(rup2(self.size), self.maxWorkGroupSize)
 
 	local allocate = args.allocate 
 		or (env and function(size, name)
@@ -122,14 +137,14 @@ function Reduce:init(args)
 	self.ctypeSize = args.typeSize or ffi.sizeof(self.ctype)
 	self.buffer = args.buffer 
 		or allocate(self.size * self.ctypeSize, 'reduce.buffer')
-	self.swapBufferSize = math.ceil(self.size / self.maxWorkGroupSize)
+	self.swapBufferSize = math.ceil(self.size / self.localSize)
 	self.swapBuffer = args.swapBuffer 
 		or allocate(self.swapBufferSize * self.ctypeSize, 'reduce.swapBuffer')
 	
 	self.kernel = self.program:kernel(
 		name,
 		self.buffer,
-		{ptr=nil, size=self.maxWorkGroupSize * self.ctypeSize},
+		{ptr=nil, size=self.localSize * self.ctypeSize},
 		ffi.new('int[1]', self.size),
 		self.swapBuffer)
 
@@ -147,13 +162,13 @@ function Reduce:__call()
 	local src = self.buffer
 	local dst = self.swapBuffer
 	while reduceSize > 1 do
-		local nextSize = math.ceil(reduceSize/self.maxWorkGroupSize)
-		local reduceGlobalSize = nextSize * self.maxWorkGroupSize
+		local nextSize = math.ceil(reduceSize/self.localSize)
+		local reduceGlobalSize = nextSize * self.localSize
 
 		self.kernel:setArg(0, src)
 		self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
 		self.kernel:setArg(3, dst)
-		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=reduceGlobalSize, localSize=self.maxWorkGroupSize}
+		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=reduceGlobalSize, localSize=self.localSize}
 		src, dst = dst, src
 	
 		reduceSize = nextSize

@@ -14,6 +14,8 @@ local range = require 'ext.range'
 -- 		and then rename kernel.kernel to kernel.obj
 local env = require 'cl.obj.env'{size=1}
 
+-- TODO make a range from 1 to max workgroup size, step by power of two, and include plus or minus a few 
+-- then include factors of max workgroup size plus or minus a few
 for size=1,257 do 
 	local domain = require 'cl.obj.domain'{env=env, size=size}
 	local buf = domain:buffer{
@@ -32,6 +34,6 @@ for size=1,257 do
 		op=function(x,y) return 'min('..x..', '..y..')' end,
 	}
 	local reduceResult = reduce()
-	print('size ',size,' reduce ',reduceResult,'\n')
-assert(reduceResult == 1, "expected 1 but found "..reduceResult)
+	print('size',size,'reduce',reduceResult)
+	assert(reduceResult == 1, "expected 1 but found "..reduceResult)
 end
