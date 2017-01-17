@@ -3,7 +3,7 @@ local range = require 'ext.range'
 local table = require 'ext.table'
 
 -- TODO env.size optional?  for no env.base?  but env:kernel needs env.base ...
-local env = require 'cl.obj.env'{size=1}
+local env = require 'cl.obj.env'()
 
 local maxWorkGroupSize = tonumber(env.device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
 local values = table()

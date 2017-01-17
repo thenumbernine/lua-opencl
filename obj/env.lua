@@ -81,8 +81,8 @@ args passed along to CLDomain:
 	
 --]]
 function CLEnv:init(args)
-	self.verbose = args.verbose
-	local precision = args.precision or 'any'
+	self.verbose = args and args.verbose
+	local precision = args and args.precision or 'any'
 	self.platform = get64bit(require 'cl.platform'.getAll(), precision)
 	self.device, self.fp64 = get64bit(self.platform:getDevices{gpu=true}, precision)
 	
@@ -97,12 +97,15 @@ function CLEnv:init(args)
 		glSharing = self.useGLSharing,
 	}
 	self.cmds = require 'cl.commandqueue'{context=self.ctx, device=self.device}
-
-	self.base = self:domain{
-		size = args.size,
-		dim = args.dim,
-		verbose = args.verbose,
-	}
+	
+	-- if no size/dim is provided then don't make a base
+	if args then
+		self.base = self:domain{
+			size = args.size,
+			dim = args.dim,
+			verbose = args.verbose,
+		}
+	end
 
 	-- initialize types
 	
@@ -118,9 +121,9 @@ function CLEnv:init(args)
 	ffi.cdef(typeCode)
 
 	-- the env CL code header goes on top of all compiled programs
-	self.code = template([[
-<?=typeCode?>
-
+	self.code = table{
+		typeCode,
+		[[
 //macro for the index
 #define globalInt4()	(int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0)
 
@@ -130,6 +133,8 @@ function CLEnv:init(args)
 	int4 i = globalInt4(); \
 	if (i.x >= sx || i.y >= sy || i.z >= sz) return; \
 	int index = indexForInt4ForSize(i, sx, sy, sz);
+]],
+	not self.base and '' or template([[
 
 //static variables for the base domain
 constant const int dim = <?=dim?>;
@@ -146,11 +151,10 @@ constant const int4 stepsize = (int4)(1, <?=
 #define indexForInt4(i)	indexForInt4ForSize(i, size.x, size.y, size.z)
 #define initKernel()	initKernelForSize(size.x, size.y, size.z)
 ]], {
-	typeCode = typeCode,
 	dim = self.base.dim,
 	size = self.base.size,
 	clnumber = require 'cl.obj.number',
-})
+})}:concat'\n'
 
 	-- buffer allocation
 	
