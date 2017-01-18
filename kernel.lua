@@ -39,6 +39,9 @@ value = value
 function Kernel:setArg(index, value)
 	local size, ptr
 	if type(value) == 'table' then
+		if require 'cl.obj.buffer'.is(value) then
+			value = value.obj	-- get the cl.memory
+		end
 		if require 'cl.memory'.is(value) then
 			assert(value.id)
 			ptr = ffi.new('cl_mem[1]', value.id)

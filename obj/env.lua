@@ -195,15 +195,6 @@ function CLEnv:kernel(...)
 	return self.base:kernel(...)
 end
 
---[[
-function CLEnv:clcall(kernel, ...)
-	if select('#', ...) > 0 then
-		kernel:setArgs(...)
-	end
-	self.cmds:enqueueNDRangeKernel{kernel=kernel, dim=self.base.dim, globalSize=self.base.globalSize:ptr(), localSize=self.base.localSize:ptr()}
-end
---]]
-
 function CLEnv:domain(args)
 	return require 'cl.obj.domain'(table(args or {}, {env=self}))
 end

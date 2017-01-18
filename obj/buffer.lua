@@ -12,6 +12,8 @@ function CLBuffer:init(args)
 	
 	-- TODO use hostptr of cl.buffer, which is hidden behind env:clalloc
 	if args.data then self:fromCPU(args.data) end
+	
+	-- TODO optionally keep track of data as self.data with self.keep flag
 end
 
 function CLBuffer:fromCPU(ptr)

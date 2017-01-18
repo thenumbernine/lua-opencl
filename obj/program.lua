@@ -20,6 +20,10 @@ end
 function CLProgram:compile()
 	local code = table{
 		self.env.code or '',
+		
+		-- size globals come from domain code
+		-- but is only included by env code
+		
 		self.code or '',
 	}:append(table.map(self.kernels, function(kernel)
 		return kernel.code
