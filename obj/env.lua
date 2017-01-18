@@ -192,6 +192,7 @@ function CLEnv:program(args)
 end
 
 function CLEnv:kernel(...)
+	assert(self.base, "CLEnv:kernel only works if the CLEnv is initialized with a size / has a base domain")
 	return self.base:kernel(...)
 end
 
