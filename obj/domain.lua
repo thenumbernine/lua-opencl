@@ -64,8 +64,17 @@ function CLDomain:init(args)
 	end
 	self.localSize = ({self.localSize1d, self.localSize2d, self.localSize3d})[self.dim]
 
-	-- TODO round up to next localSize factor
-	self.globalSize = vec3sz(self.size:unpack())
+	-- round up to next localSize factor
+	self.globalSize = vec3sz()
+	for i=0,2 do
+		self.globalSize:ptr()[i] = (self.size:ptr()[i] / self.localSize:ptr()[i]) * self.localSize:ptr()[i]
+		if self.size:ptr()[i] % self.localSize:ptr()[i] ~= 0 then
+			self.globalSize:ptr()[i] = self.globalSize:ptr()[i] + self.localSize:ptr()[i]
+		end
+	end
+	if self.verbose then
+		print('globalSize',self.globalSize)
+	end
 end
 
 function CLDomain:buffer(args)
