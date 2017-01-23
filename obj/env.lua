@@ -114,6 +114,7 @@ function CLEnv:init(args)
 	-- initialize types
 	
 	self.real = self.fp64 and 'double' or 'float'
+	if precision == 'float' then self.real = 'float' end
 	if self.verbose then
 		print('using '..self.real..' as real')
 	end
@@ -188,7 +189,7 @@ function CLEnv:clalloc(size, name, ctype)
 	if self.verbose then
 		print((name and (name..' ') or '')..'allocating '..tostring(size)..' bytes of type '..ctype..' with size '..ffi.sizeof(ctype)..', total '..self.totalGPUMem)
 	end
-	return self.ctx:buffer{rw=true, size=size} 
+	return self.ctx:buffer{rw=true, size=size}
 end
 
 function CLEnv:program(args)
