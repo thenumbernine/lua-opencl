@@ -8,6 +8,8 @@ local GetInfo = require 'cl.getinfo'
 
 local Platform = class(GetInfo())
 
+-- platform has no retain/release, so no need to wrap it
+-- hence the manual assignment of id here:
 function Platform:init(id)
 	self.id = id	
 	Platform.super.init(self)

@@ -10,7 +10,7 @@ local class = require 'ext.class'
 local ffi = require 'ffi'
 
 local function Wrapper(ctype, retain, release)
-
+	
 	local gcCType = 'autorelease_'..ctype
 
 	ffi.cdef([[
@@ -21,8 +21,11 @@ typedef struct ]]..gcCType..' '..gcCType..[[;
 ]])
 	local gcType = ffi.metatype(gcCType, {
 		__gc = function(gc)
-			-- TODO clear gc.ptr[0] upon final release?
-			release(gc.ptr[0])
+			-- clear gc.ptr[0] upon final release
+			if gc.ptr[0] ~= nil then
+				release(gc.ptr[0])
+				gc.ptr[0] = nil
+			end
 		end,
 	})
 
@@ -41,7 +44,15 @@ typedef struct ]]..gcCType..' '..gcCType..[[;
 	end
 
 	function template:release()
-		return release(self.id)
+		-- single release() statement matches the cl.hpp code, which itself relied on retain/release calls to refcount
+		--return release(self.id)
+		-- but lua does its own refcounting, so retain just needs to be called once upon creation and release once upon delete
+		if self.gc.ptr[0] ~= nil then
+			local result = release(self.gc.ptr[0])
+			self.gc.ptr[0] = nil
+			self.id = nil
+			return result
+		end
 	end
 
 	return template

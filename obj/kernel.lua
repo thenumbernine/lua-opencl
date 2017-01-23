@@ -47,9 +47,12 @@ function CLKernel:init(args)
 			return arg.obj
 		end)
 	
-	self.program = args.program
 	self.domain = args.domain or self.env.base
+	self.event = args.event
+	self.wait = args.wait
 	
+	self.program = args.program
+
 	self.code = table{
 		args.header or '',
 		args.body and template([[
@@ -108,6 +111,9 @@ function CLKernel:__call(...)
 		dim = self.domain.dim,
 		globalSize = self.domain.globalSize:ptr(),
 		localSize = self.domain.localSize:ptr(),
+		-- these have to be specified beforehand
+		wait = self.wait,
+		event = self.event,
 	}
 end
 

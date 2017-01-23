@@ -8,11 +8,6 @@ local Device = class(GetInfo(Wrapper(
 	cl.clRetainDevice,
 	cl.clReleaseDevice)))
 
-function Device:init(id)
-	self.id = id
-	Device.super.init(self, self.id)
-end
-
 Device.infoGetter = cl.clGetDeviceInfo
 
 Device.infos = {

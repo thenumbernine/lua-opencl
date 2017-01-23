@@ -162,11 +162,30 @@ local function fillParam(dim, src, dst)
 	return dim
 end
 
+--[[
+args:
+	dim
+	offset
+	globalSize
+	localSize
+	kernel	=> cl.kernel object
+	wait => table of cl.event
+	event => cl.event
+--]]
 function CommandQueue:enqueueNDRangeKernel(args)
 	local dim = args.dim
 	dim = fillParam(dim, args.offset, offset)
 	dim = fillParam(dim, args.globalSize, globalSize)
 	dim = fillParam(dim, args.localSize, localSize)
+	local numWait = args.wait and #args.wait or 0
+	local wait
+	if numWait > 0 then
+		wait = ffi.new('cl_event[?]', numWait)
+		for i=1,numWait do
+			wait[i-1] = args.wait[i].id
+		end
+	end
+	
 	classert(cl.clEnqueueNDRangeKernel(
 		self.id,
 		assert(args.kernel).id,
@@ -174,9 +193,14 @@ function CommandQueue:enqueueNDRangeKernel(args)
 		offset,
 		globalSize,
 		localSize,
-		0,
-		nil,
-		nil))
+		numWait,
+		wait,
+		args.event and args.event.gc.ptr or nil))
+	
+	-- hmm should I even use 'id' if gc.ptr[0] will be holding the same information?
+	if args.event then
+		args.event.id = args.event.gc.ptr[0]
+	end
 end
 
 --[[

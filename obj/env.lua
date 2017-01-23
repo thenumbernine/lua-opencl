@@ -78,7 +78,7 @@ args passed along to CLDomain:
 	size
 	dim
 	verbose
-	
+	queue = (optional) command-queue arguments 
 --]]
 function CLEnv:init(args)
 	self.verbose = args and args.verbose
@@ -96,7 +96,11 @@ function CLEnv:init(args)
 		device = self.device,
 		glSharing = self.useGLSharing,
 	}
-	self.cmds = require 'cl.commandqueue'{context=self.ctx, device=self.device}
+	self.cmds = require 'cl.commandqueue'{	
+		context = self.ctx,
+		device = self.device,
+		properties = args.queue and args.queue.properties,
+	}
 	
 	-- if no size/dim is provided then don't make a base
 	if args then
