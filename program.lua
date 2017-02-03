@@ -50,7 +50,7 @@ function Program:build(devices, options)
 		message = table{'failed to build'}
 		for _,device in ipairs(devices) do
 			message:insert(self:getLog(device))
-		end	
+		end
 		message = message:concat'\n'
 	end
 	return success, message 

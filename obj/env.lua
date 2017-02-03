@@ -84,7 +84,8 @@ function CLEnv:init(args)
 	self.verbose = args and args.verbose
 	local precision = args and args.precision or 'any'
 	self.platform = get64bit(require 'cl.platform'.getAll(), precision)
-	self.device, self.fp64 = get64bit(self.platform:getDevices{gpu=true}, precision)
+	local fp64
+	self.device, fp64 = get64bit(self.platform:getDevices{gpu=true}, precision)
 	
 	local exts = string.split(string.trim(self.device:getExtensions()):lower(),'%s+')
 	self.useGLSharing = exts:find(nil, function(ext) 
@@ -113,7 +114,7 @@ function CLEnv:init(args)
 
 	-- initialize types
 	
-	self.real = self.fp64 and 'double' or 'float'
+	self.real = fp64 and 'double' or 'float'
 	if precision == 'float' then self.real = 'float' end
 	if self.verbose then
 		print('using '..self.real..' as real')
