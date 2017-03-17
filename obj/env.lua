@@ -100,7 +100,7 @@ function CLEnv:init(args)
 	self.cmds = require 'cl.commandqueue'{	
 		context = self.ctx,
 		device = self.device,
-		properties = args.queue and args.queue.properties,
+		properties = args and args.queue and args.queue.properties,
 	}
 	
 	-- if no size/dim is provided then don't make a base
