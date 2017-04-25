@@ -104,6 +104,7 @@ function CLEnv:init(args)
 	}
 	
 	-- if no size/dim is provided then don't make a base
+	-- however, this will make constructing buffers and kernels difficult (TODO don't route these calls through domain?)
 	if args then
 		self.base = self:domain{
 			size = args.size,

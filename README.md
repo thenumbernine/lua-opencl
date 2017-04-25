@@ -6,11 +6,12 @@ I'm going to create wrapper classes (just like I do with my 'gl' project)
 But should I put them in the 'cl' directly, and the cl.hpp equivalent functions elsewhere?
 or should I put them elsewhere and leave cl.hpp here?  This for now.  I'll put the wrapper classes in the obj folder.
 
-uses 
+Dependencies:
 * luajit
 * my lua-ext project
 * my lua-template project
 * my lua-ffi-bindings repo
+* I am half tempted to change the require 'ffi.OpenGL' to require 'gl' and make it depend on my lua-gl project as well, but not until I do use this in a GLES environment.
 
 Here's an example of the code:
 
