@@ -29,12 +29,16 @@ typedef union {
 } <?=real?>2;
 
 //for real4 I'm using x,y,z,w to match OpenCL
-//...though for my own use I am storing t,x,y,z
 typedef union {
 	<?=real?> s[4];
 	struct { <?=real?> s0, s1, s2, s3; };
 	struct { <?=real?> x, y, z, w; };	
 } <?=real?>4;
+
+typedef union {
+	<?=real?> s[8];
+	struct { <?=real?> s0, s1, s2, s3, s4, s5, s6, s7; };
+} <?=real?>8;
 
 ]], {
 	real = real,
@@ -104,8 +108,9 @@ function CLEnv:init(args)
 	}
 	
 	-- if no size/dim is provided then don't make a base
-	-- however, this will make constructing buffers and kernels difficult (TODO don't route these calls through domain?)
-	if args then
+	-- however, this will make constructing buffers and kernels difficult 
+	-- (does that mean I shouldn't route those calls through domain -- though they are very domain-specific)
+	if args and (args.size or args.dim) then
 		self.base = self:domain{
 			size = args.size,
 			dim = args.dim,
@@ -141,8 +146,9 @@ function CLEnv:init(args)
 	if (i.x >= sx || i.y >= sy || i.z >= sz) return; \
 	int index = indexForInt4ForSize(i, sx, sy, sz);
 ]],
-	not self.base and '' or template([[
 
+	-- all this gets omitted if no base size is used in the env
+	not self.base and '' or template([[
 //static variables for the base domain
 constant const int dim = <?=dim?>;
 constant const int4 size = (int4)(<?=
@@ -177,6 +183,7 @@ function CLEnv:getTypeCode()
 typedef <?=real?> real;
 typedef <?=real?>2 real2;
 typedef <?=real?>4 real4;
+typedef <?=real?>8 real8;
 ]], {
 	real = self.real,
 })
