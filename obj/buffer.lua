@@ -3,6 +3,10 @@ local ffi = require 'ffi'
 
 local CLBuffer = class()
 
+--[[
+'size' is misleading -- it is the # of elements.  
+maybe I should call it 'length' instead?
+--]]
 function CLBuffer:init(args)
 	self.env = assert(args.env)
 	self.name = args.name or 'buffer_'..tostring(self):sub(10)
@@ -41,8 +45,11 @@ function CLBuffer:toCPU(ptr)
 end
 
 function CLBuffer:fill(pattern, patternSize)
-	if pattern and not patternSize then
+	if not pattern then pattern = 0 end
+	if type(pattern) ~= 'ctype' then
 		pattern = ffi.new(self.type..'[1]', pattern)
+	end
+	if not patternSize then
 		patternSize = ffi.sizeof(pattern)
 	end
 	self.env.cmds:enqueueFillBuffer{

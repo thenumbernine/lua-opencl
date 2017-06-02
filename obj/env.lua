@@ -196,7 +196,7 @@ end
 function CLEnv:clalloc(size, name, ctype)
 	self.totalGPUMem = self.totalGPUMem + size
 	if self.verbose then
-		print((name and (name..' ') or '')..'allocating '..tostring(size)..' bytes of type '..ctype..' with size '..ffi.sizeof(ctype)..', total '..self.totalGPUMem)
+		print((name and (name..' ') or '')..'allocating '..tostring(size)..' elements of type '..ctype..' size '..ffi.sizeof(ctype)..', total '..self.totalGPUMem..' bytes')
 	end
 	return self.ctx:buffer{rw=true, size=size}
 end
