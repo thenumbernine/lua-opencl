@@ -94,6 +94,10 @@ function Context:buffer(args)
 	return require 'cl.buffer'(table(args, {context=self}))
 end
 
+function Context:program(args)
+	return require 'cl.program'(table(args, {context=self}))
+end
+
 Context.infoGetter = cl.clGetContextInfo 
 
 Context.infos = {
