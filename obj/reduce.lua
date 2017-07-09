@@ -146,11 +146,20 @@ function Reduce:init(args)
 	self.result = args.result or ffi.new(self.ctype..'[1]')
 end
 
-function Reduce:__call(buffer)
+function Reduce:__call(buffer, reduceSize)
+	-- allow source override
+	-- this won't destroy the source, instead it'll switch over to the internal buffer after the first iteration
 	local src = buffer or self.buffer
 	local dst = self.swapBuffer
 
-	local reduceSize = self.size
+	-- allow overriding the size
+	-- this only works if the new size is <= the allocated size
+	if not reduceSize then
+		reduceSize = self.size
+	else
+		assert(reduceSize <= self.size)
+	end
+
 	while reduceSize > 1 do
 		local nextSize = math.ceil(reduceSize/self.maxWorkGroupSize)
 		local globalSize, localSize
