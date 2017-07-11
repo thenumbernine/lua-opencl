@@ -16,6 +16,8 @@ end
 local platform = get64bit(require 'cl.platform'.getAll())
 local device, fp64 = get64bit(platform:getDevices{gpu=true})
 
+print('device', device:getName())
+
 local n = 64
 local real = fp64 and 'double' or 'float'
 print('using real',real)
