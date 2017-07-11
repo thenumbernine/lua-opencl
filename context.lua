@@ -42,12 +42,14 @@ end
 			ffi.cdef[[
 typedef void* CGLContextObj;
 CGLContextObj CGLGetCurrentContext();
+typedef void* CGLShareGroupObj;
+CGLShareGroupObj CGLGetShareGroup(CGLContextObj ctx);
 ]]
 			local kCGLContext = ffi.C.CGLGetCurrentContext()
 			local kCGLShareGroup = ffi.C.CGLGetShareGroup(kCGLContext)
 			properties:append{
 				cl.CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
-				kCGLShareGroup,
+				ffi.cast('cl_context_properties', kCGLShareGroup),
 			}
 		elseif ffi.os == 'Windows' then
 			ffi.cdef[[
