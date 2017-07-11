@@ -47,10 +47,14 @@ CGLShareGroupObj CGLGetShareGroup(CGLContextObj ctx);
 ]]
 			local kCGLContext = ffi.C.CGLGetCurrentContext()
 			local kCGLShareGroup = ffi.C.CGLGetShareGroup(kCGLContext)
-			properties:append{
-				cl.CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
-				ffi.cast('cl_context_properties', kCGLShareGroup),
-			}
+			if kCGLShareGroup == nil then
+				print'GL sharing extension found, but CGLGetShareGroup() is null -- cannot enable GL sharing'
+			else
+				properties:append{
+					cl.CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
+					ffi.cast('cl_context_properties', kCGLShareGroup),
+				}
+			end
 		elseif ffi.os == 'Windows' then
 			ffi.cdef[[
 typedef intptr_t HGLRC;
