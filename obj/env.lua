@@ -83,6 +83,7 @@ args passed along to CLDomain:
 	dim
 	verbose
 	queue = (optional) command-queue arguments 
+	useGLSharing = (optional) set to false to disable GL sharing
 --]]
 function CLEnv:init(args)
 	self.verbose = args and args.verbose
@@ -92,9 +93,13 @@ function CLEnv:init(args)
 	self.device, fp64 = get64bit(self.platform:getDevices{gpu=true}, precision)
 	
 	local exts = string.split(string.trim(self.device:getExtensions()):lower(),'%s+')
-	self.useGLSharing = exts:find(nil, function(ext) 
-		return ext:match'cl_%w+_gl_sharing' 
-	end)
+	
+	-- don't use GL sharing if we're told not to
+	if not args or args.useGLSharing ~= false then
+		self.useGLSharing = exts:find(nil, function(ext) 
+			return ext:match'cl_%w+_gl_sharing' 
+		end)
+	end
 
 	self.ctx = require 'cl.context'{
 		platform = self.platform, 

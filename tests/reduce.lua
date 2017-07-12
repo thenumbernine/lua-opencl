@@ -19,16 +19,22 @@ do
 		end
 		i = i * 2
 	end
+	
 	-- then include factors of max workgroup size plus or minus a few
-	local maxFactor = 4
-	while i < maxWorkGroupSize*maxFactor do
-		for ofs=i-nbhd,i+nbhd do
-			values[ofs] = true
+	for po4=1,3 do
+		local maxFactor = 4^po4
+		while i < maxWorkGroupSize*maxFactor do
+			for ofs=i-nbhd,i+nbhd do
+				values[ofs] = true
+			end
+			i = i + maxWorkGroupSize
 		end
-		i = i + maxWorkGroupSize
-	end
+	end	
+	
 	values = values:keys():sort()
 end
+
+print('testing reduce on ranges: '..values:concat', ')
 
 for _,size in ipairs(values) do
 	local buf = env:domain{size=size}:buffer{
@@ -36,8 +42,8 @@ for _,size in ipairs(values) do
 		-- data goes n, n-1, ..., 1, n+1, n+2, ..., 2*n
 		-- this way a reduce any less than size will show how much less than size
 		-- and a reduce any more than size will show n+ how much more than size
-		data=range(size,1,-1):append(
-			range(size):map(function(i) return i+size end)),
+		data=range(size,1,-1)
+			:append(range(size):map(function(i) return i+size end)),
 	}
 	local cpu = buf:toCPU()
 	local reduce = env:reduce{
