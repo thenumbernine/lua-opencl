@@ -96,7 +96,7 @@ function CLEnv:init(args)
 	
 	-- don't use GL sharing if we're told not to
 	if not args or args.useGLSharing ~= false then
-		self.useGLSharing = exts:find(nil, function(ext) 
+		self.useGLSharing = not not exts:find(nil, function(ext) 
 			return ext:match'cl_%w+_gl_sharing' 
 		end)
 	end
