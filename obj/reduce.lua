@@ -117,8 +117,11 @@ function Reduce:init(args)
 		devices = {device},
 		code = code,
 	}
+	
+	self.kernel = self.program:kernel(name)
 
-	self.maxWorkGroupSize = tonumber(device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
+	self.maxWorkGroupSize = tonumber(self.kernel:getWorkGroupInfo(device, 'CL_KERNEL_WORK_GROUP_SIZE'))
+	
 	self.size = assert(args.size or (env and env.base.volume))
 	
 	local allocate = args.allocate 
@@ -136,12 +139,10 @@ function Reduce:init(args)
 	self.swapBuffer = args.swapBuffer 
 		or allocate(self.swapBufferSize * self.ctypeSize, 'reduce.swapBuffer')
 	
-	self.kernel = self.program:kernel(
-		name,
-		self.buffer,
-		{ptr=nil, size=self.maxWorkGroupSize * self.ctypeSize},
-		ffi.new('int[1]', self.size),
-		self.swapBuffer)
+	self.kernel:setArg(0, self.buffer)
+	self.kernel:setArg(1, {ptr=nil, size=self.maxWorkGroupSize * self.ctypeSize})
+	self.kernel:setArg(2, ffi.new('int[1]', self.size))
+	self.kernel:setArg(3, self.swapBuffer)
 
 	self.result = args.result or ffi.new(self.ctype..'[1]')
 end

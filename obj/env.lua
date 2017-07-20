@@ -87,10 +87,17 @@ args passed along to CLDomain:
 function CLEnv:init(args)
 	self.verbose = args and args.verbose
 	local precision = args and args.precision or 'any'
-	self.platform = get64bit(require 'cl.platform'.getAll(), precision)
-	local fp64
-	self.device, fp64 = get64bit(self.platform:getDevices{gpu=true}, precision)
 	
+	local platforms = require 'cl.platform'.getAll()
+	self.platform = (args.getPlatform or get64bit)(platforms, precision)
+	
+	local fp64
+	self.device, fp64 = args.getDevice 
+		and args.getDevice(self.platform:getDevices())
+		or get64bit(self.platform:getDevices{[args.cpu and 'cpu' or 'gpu']=true}, precision)
+
+	local _, fp64 = get64bit(table{self.device}, precision)
+
 	local exts = string.split(string.trim(self.device:getExtensions()):lower(),'%s+')
 	self.useGLSharing = exts:find(nil, function(ext) 
 		return ext:match'cl_%w+_gl_sharing' 

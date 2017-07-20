@@ -68,4 +68,13 @@ function Kernel:setArgs(...)
 	end
 end
 
+-- infoGetter would need one extra argument ...
+function Kernel:getWorkGroupInfo(device, name)
+	local infoType = 'size_t'
+	local nameValue = assert(cl[name])
+	local result = ffi.new(infoType..'[1]')
+	classert(cl.clGetKernelWorkGroupInfo(self.id, device.id, nameValue, ffi.sizeof(infoType), result, nil))
+	return result[0]
+end
+
 return Kernel
