@@ -23,10 +23,10 @@ args
 	properties
 --]]
 function CommandQueue:init(args)
-	assert(args)
+	assert(args, "expected args")
 	self.id = classertparam('clCreateCommandQueue',
-		assert(args.context).id,
-		assert(args.device).id,
+		assert(args.context, "expected context").id,
+		assert(args.device, "expected device").id,
 		args.properties or 0)
 	CommandQueue.super.init(self, self.id)
 end
@@ -42,11 +42,11 @@ args:
 function CommandQueue:enqueueReadBuffer(args)
 	classert(cl.clEnqueueReadBuffer(
 		self.id,
-		assert(args.buffer).id,
+		assert(args.buffer, "expected buffer").id,
 		args.block,
 		args.offset or 0,
-		assert(args.size),
-		assert(args.ptr),
+		assert(args.size, "expected size"),
+		assert(args.ptr, "expected ptr"),
 		0,
 		nil,
 		nil))
@@ -63,11 +63,11 @@ args:
 function CommandQueue:enqueueWriteBuffer(args)
 	classert(cl.clEnqueueWriteBuffer(
 		self.id,
-		assert(args.buffer).id,
+		assert(args.buffer, "expected buffer").id,
 		args.block,
 		args.offset or 0,
-		assert(args.size),
-		assert(args.ptr),
+		assert(args.size, "expected size"),
+		assert(args.ptr, "expected ptr"),
 		0,
 		nil,
 		nil))
@@ -90,11 +90,11 @@ function CommandQueue:enqueueFillBuffer(args)
 	end
 	classert(cl.clEnqueueFillBuffer(
 		self.id,
-		assert(args.buffer).id,
+		assert(args.buffer, "expected buffer").id,
 		pattern,
 		patternSize,
 		args.offset or 0,
-		assert(args.size),
+		assert(args.size, "expected size"),
 		0,
 		nil,
 		nil))
@@ -111,11 +111,11 @@ args:
 function CommandQueue:enqueueCopyBuffer(args)
 	classert(cl.clEnqueueCopyBuffer(
 		self.id,
-		assert(args.src).id,
-		assert(args.dst).id,
+		assert(args.src, "expected src").id,
+		assert(args.dst, "expected dst").id,
 		args.srcOffset or 0,
 		args.dstOffset or 0,
-		assert(args.size),
+		assert(args.size, "expected size"),
 		0,
 		nil,
 		nil))
@@ -188,7 +188,7 @@ function CommandQueue:enqueueNDRangeKernel(args)
 	
 	classert(cl.clEnqueueNDRangeKernel(
 		self.id,
-		assert(args.kernel).id,
+		assert(args.kernel, "expected kernel").id,
 		dim,
 		offset,
 		globalSize,
@@ -208,7 +208,7 @@ args:
 	objs
 --]]
 function CommandQueue:enqueueAcquireGLObjects(args)
-	local objs = assert(args.objs)
+	local objs = assert(args.objs, "expected objs")
 	classert(cl.clEnqueueAcquireGLObjects(
 		self.id,
 		#objs,
@@ -223,7 +223,7 @@ args:
 	objs
 --]]
 function CommandQueue:enqueueReleaseGLObjects(args)
-	local objs = assert(args.objs)
+	local objs = assert(args.objs, "expected objs")
 	classert(cl.clEnqueueReleaseGLObjects(
 		self.id,
 		#objs,
