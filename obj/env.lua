@@ -86,6 +86,7 @@ args passed along to CLDomain:
 	useGLSharing = (optional) set to false to disable GL sharing
 --]]
 function CLEnv:init(args)
+	args = args or {}
 	self.verbose = args and args.verbose
 	local precision = args and args.precision or 'any'
 	
