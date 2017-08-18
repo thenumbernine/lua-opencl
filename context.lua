@@ -63,12 +63,18 @@ HGLRC wglGetCurrentContext();
 HDC wglGetCurrentDC();
 ]]
 			local gl = require 'ffi.OpenGL'
-			properties:append{
-				cl.CL_GL_CONTEXT_KHR,
-				ffi.cast('cl_context_properties', gl.wglGetCurrentContext()),
-				cl.CL_WGL_HDC_KHR,
-				ffi.cast('cl_context_properties', gl.wglGetCurrentDC()),
-			}
+			local ctx = gl.wglGetCurrentContext()
+			local dc = gl.wglGetCurrentDC()
+			if ctx == 0 or dc == 0 then
+				io.stderr:write("No GL context or DC found.  GL sharing will not be enabled.\n")
+			else
+				properties:append{
+					cl.CL_GL_CONTEXT_KHR,
+					ffi.cast('cl_context_properties', ctx),
+					cl.CL_WGL_HDC_KHR,
+					ffi.cast('cl_context_properties', dc),
+				}
+			end
 		else
 			ffi.cdef[[
 typedef void Display;
