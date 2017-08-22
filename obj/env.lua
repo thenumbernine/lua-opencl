@@ -165,13 +165,13 @@ function CLEnv:init(args)
 //static variables for the base domain
 constant const int dim = <?=dim?>;
 constant const int4 size = (int4)(<?=
-	clnumber(size.x)?>, <?=
-	clnumber(size.y)?>, <?=
-	clnumber(size.z)?>, 0);
+	tonumber(size.x)?>, <?=
+	tonumber(size.y)?>, <?=
+	tonumber(size.z)?>, 0);
 constant const int4 stepsize = (int4)(1, <?=
-	size.x?>, <?=
-	size.x * size.y?>, <?=
-	size.x * size.y * size.z?>);
+	tonumber(size.x)?>, <?=
+	tonumber(size.x * size.y)?>, <?=
+	tonumber(size.x * size.y * size.z)?>);
 
 //macros for the base domain
 #define indexForInt4(i)	indexForInt4ForSize(i, size.x, size.y, size.z)

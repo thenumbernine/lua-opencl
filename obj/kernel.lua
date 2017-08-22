@@ -77,7 +77,10 @@ for _,arg in ipairs(self.argsIn or {}) do
 end
 ?>) {
 <? -- don't forget that kernel domains may not match the env domain -- which is the default domain
-?>	initKernelForSize(<?=self.domain.size.x?>,<?=self.domain.size.y?>,<?=self.domain.size.z?>);
+?>	initKernelForSize(<?=
+	tonumber(self.domain.size.x)?>,<?=
+	tonumber(self.domain.size.y)?>,<?=
+	tonumber(self.domain.size.z)?>);
 <?=args.body?>
 }
 ]], {self=self, args=args}) or ''
