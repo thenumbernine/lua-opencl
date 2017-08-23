@@ -50,6 +50,7 @@ local errors = {
 	'CL_INVALID_MIP_LEVEL',
 	'CL_INVALID_GLOBAL_WORK_SIZE',
 	'CL_INVALID_PROPERTY',
+	'CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR',
 }
 
 return function(err, msg)
