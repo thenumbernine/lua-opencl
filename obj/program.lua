@@ -52,7 +52,7 @@ function CLProgram:compile()
 	self.obj = require 'cl.program'{context=self.env.ctx, devices={self.env.device}, code=code}
 	
 	for _,kernel in ipairs(self.kernels) do
-		self:setupKernel()
+		self:setupKernel(kernel)
 	end
 end
 
