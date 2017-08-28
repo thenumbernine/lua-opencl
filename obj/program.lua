@@ -4,10 +4,23 @@ local CLBuffer = require 'cl.buffer'
 
 local CLProgram = class()
 
+-- kernel class to allocate upon Program:kernel
+CLProgram.Kernel = require 'cl.obj.kernel'
+
+--[[
+args:
+	env = required, cl.obj.env
+	code = optional header code to all kernels, used for compiling
+	kernels = optional list of all kernels attached
+		kernels with code is incorporated into the compile
+		upon compile, all kernels objects are assigned and args are bound
+	domain = optional, domain passed to kernels, default results in kernels getting env.base
+--]]
 function CLProgram:init(args)
 	self.env = assert(args.env)
 	self.code = args.code
 	self.kernels = table(args.kernels)
+	self.domain = args.domain
 end
 
 function CLProgram:setupKernel(kernel)
@@ -21,12 +34,32 @@ function CLProgram:setupKernel(kernel)
 		end
 	end
 	-- while we're here, store the max work group size	
-	kernel.maxWorkGroupSize = tonumber(kernel.obj:getWorkGroupInfo(self.env.device, 'CL_KERNEL_WORK_GROUP_SIZE'))
+	kernel:setSizeProps()
 end
 
-function CLProgram:kernel(args)
-	if type(args) == 'string' then args = {name = args} end
-	local kernel = require 'cl.obj.kernel'(table(args, {env=self.env, program=self}))
+--[[
+args are forwarded to cl.obj.kernel's ctor
+if args is a string then {name=args} is forwarded 
+--]]
+function CLProgram:kernel(args, ...)
+	if type(args) == 'string' then
+		args = {
+			name = args,
+			domain = self.domain,
+		}
+		local n = select('#', ...)
+		if n > 0 then
+			args.setArgs = table()
+			for i=1,n do
+				local obj = select(i, ...)
+				if obj.obj then obj = obj.obj end
+				args.setArgs:insert(obj)
+			end
+		end
+	else
+		args.domain = args.domain or self.domain
+	end
+	local kernel = self.Kernel(table(args, {env=self.env, program=self}))
 	self.kernels:insert(kernel)
 
 	-- already compiled? set up the kernel

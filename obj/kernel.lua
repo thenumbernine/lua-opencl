@@ -39,13 +39,20 @@ function CLKernel:init(args)
 		but still doesn't fix the argBuffers
 	so instead of fixing the argBuffers I'm going to detect :isa
 	I'm going to change the binding (which happens in cl.obj.program) 
+	
+	Ugh I don't like having two separate paradigms.
+	since argBuffers is used for setArgs upon kernel setup,
+	add any extra cl.obj.buffer's via args.setArgObjs
+	and add any extra cl.buffer's via args.setArgs
 	--]]
 	self.argBuffers = table()
 		:append(self.argsOut)
 		:append(self.argsIn)
+		:append(args.setArgObjs or {})
 		:map(function(arg) 
 			return arg.obj
 		end)
+		:append(args.setArgs or {})
 	
 	self.domain = args.domain or self.env.base
 	self.event = args.event
@@ -112,12 +119,67 @@ function CLKernel:__call(...)
 	self.env.cmds:enqueueNDRangeKernel{
 		kernel = self.obj,
 		dim = self.domain.dim,
-		globalSize = self.domain.globalSize:ptr(),
-		localSize = self.domain.localSize:ptr(),
+		globalSize = (self.globalSize or self.domain.globalSize):ptr(),
+		localSize = (self.localSize or self.domain.localSize):ptr(),
 		-- these have to be specified beforehand
 		wait = self.wait,
 		event = self.event,
 	}
+end
+
+-- also used in hydro-cl ... don't know where i would put it to share it though
+local function roundup(a, b)
+	local mod = a % b
+	if mod ~= 0 then
+		a = a - mod + b
+	end
+	return a
+end
+
+local vec3sz = require 'ffi.vec.vec3sz'
+function CLKernel:setSizeProps()
+	if not self.domain then
+-- if no env.domain, kernel.domain, or program.domain is provided
+-- then this has no domain,
+-- and that means no enqueueNDRange localSize/globalSize info can be calculated for it
+io.stderr:write('!!!! kernel has no domain -- skipping setSizeProps !!!!\n')
+	end
+	
+	self.maxWorkGroupSize = tonumber(self.obj:getWorkGroupInfo(self.env.device, 'CL_KERNEL_WORK_GROUP_SIZE'))
+
+	self.localSize1d = math.min(self.maxWorkGroupSize, tonumber(self.domain.size:volume()))
+
+	if self.domain.dim == 3 then
+		local localSizeX = math.min(tonumber(self.domain.size.x), 2^math.ceil(math.log(self.maxWorkGroupSize,2)/2))
+		local localSizeY = self.maxWorkGroupSize / localSizeX
+		self.localSize2d = {localSizeX, localSizeY}
+	end
+
+--	self.localSize = self.domain.dim < 3 and vec3sz(16,16,16) or vec3sz(4,4,4)
+	-- TODO better than constraining by math.min(self.domain.size),
+	-- look at which domain sizes have the most room, and double them accordingly, until all of maxWorkGroupSize is taken up
+	self.localSize = vec3sz(1,1,1)
+	local rest = self.maxWorkGroupSize
+	local localSizeX = math.min(tonumber(self.domain.size.x), 2^math.ceil(math.log(rest,2)/self.domain.dim))
+	self.localSize.x = localSizeX
+	if self.domain.dim > 1 then
+		rest = rest / localSizeX
+		if self.domain.dim == 2 then
+			self.localSize.y = math.min(tonumber(self.domain.size.y), rest)
+		elseif self.domain.dim == 3 then
+			local localSizeY = math.min(tonumber(self.domain.size.y), 2^math.ceil(math.log(math.sqrt(rest),2)))
+			self.localSize.y = localSizeY
+			self.localSize.z = math.min(tonumber(self.domain.size.z), rest / localSizeY)
+		end
+	end
+
+	-- this is grid size, but rounded up to the next self.localSize
+	self.globalSize = vec3sz(
+		roundup(self.domain.size.x, self.localSize.x),
+		roundup(self.domain.size.y, self.localSize.y),
+		roundup(self.domain.size.z, self.localSize.z))
+	
+	self.volume = tonumber(self.domain.size:volume())
 end
 
 return CLKernel
