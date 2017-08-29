@@ -1,6 +1,6 @@
 local class = require 'ext.class'
 local table = require 'ext.table'
-local CLBuffer = require 'cl.buffer'
+local CLMemory = require 'cl.memory'
 
 local CLProgram = class()
 
@@ -29,7 +29,7 @@ function CLProgram:setupKernel(kernel)
 	-- then don't bind them
 	kernel.obj = self.obj:kernel(kernel.name)	--, kernel.argBuffers:unpack())
 	for i,arg in ipairs(kernel.argBuffers) do
-		if CLBuffer.is(arg) then
+		if CLMemory.is(arg) then
 			kernel.obj:setArg(i-1, arg)
 		end
 	end
