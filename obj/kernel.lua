@@ -5,15 +5,20 @@ local template = require 'template'
 local CLKernel = class()
 
 --[[
-env = CLEnv
-name = kernel name.
-	optional if body is provided (and kernel code body generation is used)
-	required if this object is linking from a kernel elsewhere in code (header or program.code)
-argsOut = cl.obj.buffer output arguments.  these go first
-argsIn = cl.obj.buffer input arguments.  these go next
-program = CLProgram.  optional.  if one is not provided, one is generated upon :compile()
-header = prefix code.  optional.
-body = kernel body generated code.  optional.  if body is nil then no kernel body code will be generated.
+args:
+	env = CLEnv
+	name = kernel name.
+		optional if body is provided (and kernel code body generation is used)
+		required if this object is linking from a kernel elsewhere in code (header or program.code)
+	argsOut = cl.obj.buffer output arguments.  these go first
+	argsIn = cl.obj.buffer input arguments.  these go next
+		these next two are useful for creating kernels from already-provided code:
+	setArgObjs = list of extra cl.obj.buffers to bind, but not to generate param code for.  these go next.
+	setArgs = list of extra cl.buffers to bind, just like setArgObjs
+	program = CLProgram.  optional.  if one is not provided, one is generated upon :compile()
+	header = prefix code.  optional.
+	body = kernel body generated code.  optional.  if body is nil then no kernel body code will be generated.
+	domain = used in conjunction with setSizeProps to calculate localSizes and globalSize based on kernel's maxWorkGroupSize
 
 use cases:
 	k = env:kernel{body=...} creates a kernel

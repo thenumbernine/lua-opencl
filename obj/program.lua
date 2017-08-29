@@ -39,7 +39,9 @@ end
 
 --[[
 args are forwarded to cl.obj.kernel's ctor
-if args is a string then {name=args} is forwarded 
+if args is a string then 
+	{name=args} is forwarded 
+	with setArgs a table of ..., and setArgs.n the # of ... (to preserve nils)
 --]]
 function CLProgram:kernel(args, ...)
 	if type(args) == 'string' then
@@ -49,11 +51,11 @@ function CLProgram:kernel(args, ...)
 		}
 		local n = select('#', ...)
 		if n > 0 then
-			args.setArgs = table()
+			args.setArgs = {n=n}
 			for i=1,n do
 				local obj = select(i, ...)
 				if obj.obj then obj = obj.obj end
-				args.setArgs:insert(obj)
+				args.setArgs[i] = obj
 			end
 		end
 	else

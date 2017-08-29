@@ -32,13 +32,16 @@ end
 --[[
 index = which arg index (0 based, like OpenCL)
 value = value
+	nil: skips assignment
 	OpenCL Memory object: use the cl_mem member
 	table: use {size=size, ptr=ptr}
 	other non-table: use value and ffi.sizeof(value)
 --]]
 function Kernel:setArg(index, value)
 	local size, ptr
-	if type(value) == 'table' then
+	if value == nil then
+		return
+	elseif type(value) == 'table' then
 		if require 'cl.obj.buffer'.is(value) then
 			value = value.obj	-- get the cl.memory
 		end
