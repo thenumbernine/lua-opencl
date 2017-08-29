@@ -4,7 +4,10 @@ local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 local classert = require 'cl.assert'
 local classertparam = require 'cl.assertparam'
+local clCheckError = require 'cl.checkerror'
 local Wrapper = require 'cl.wrapper'
+local CLMemory = require 'cl.memory'
+local CLBufferObj = require 'cl.obj.buffer'
 
 local Kernel = class(Wrapper(
 	'cl_kernel',
@@ -42,10 +45,10 @@ function Kernel:setArg(index, value)
 	if value == nil then
 		return
 	elseif type(value) == 'table' then
-		if require 'cl.obj.buffer'.is(value) then
+		if CLBufferObj.is(value) then
 			value = value.obj	-- get the cl.memory
 		end
-		if require 'cl.memory'.is(value) then
+		if CLMemory.is(value) then
 			assert(value.id)
 			ptr = ffi.new('cl_mem[1]', value.id)
 			size = ffi.sizeof'cl_mem'
@@ -61,7 +64,7 @@ function Kernel:setArg(index, value)
 	end
 	local err = cl.clSetKernelArg(self.id, index, size, ptr)
 	if err ~= cl.CL_SUCCESS then
-		require 'cl.checkerror'(err, 'clSetKernelArg('..tostring(self.id)..', '..index..', '..size..', '..tostring(ptr)..') failed')
+		clCheckError(err, 'clSetKernelArg('..tostring(self.id)..', '..index..', '..size..', '..tostring(ptr)..') failed')
 	end
 end
 
