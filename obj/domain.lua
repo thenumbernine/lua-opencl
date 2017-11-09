@@ -19,10 +19,11 @@ function CLDomain:init(args)
 	local size = args.size
 	if type(size) == 'number' then size = {size} end
 	size = table(size)
-	for i=#size+1,3 do size[i] = 1 end
-	self.size = vec3sz(size:unpack())
-	self.volume = tonumber(self.size:volume())
 	self.dim = args.dim or #size
+	assert(self.dim >= 1 and self.dim <= 3, "got a bad dim: "..tostring(self.dim))
+	for i=#size+1,3 do size[i] = 1 end
+	self.size = vec3sz(size:unpack(1,3))
+	self.volume = tonumber(self.size:volume())
 
 	-- https://stackoverflow.com/questions/15912668/ideal-global-local-work-group-sizes-opencl
 	-- product of all local sizes must be <= max workgroup size
