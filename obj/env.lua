@@ -49,17 +49,14 @@ end
 local CLEnv = class()
 
 local function get64bit(list, precision)
-	print('searching for '..precision)
 	local all = list:map(function(item)
 		local exts = string.trim(item:getExtensions():lower())
-		print(item:getName(), exts:match'cl_%w+_fp64', exts:match'cl_%w+_fp16', exts)
 		return {
 			item=item, 
 			fp64=exts:match'cl_%w+_fp64',
 			fp16=exts:match'cl_%w+_fp16',
 		}
 	end)
-	print('... done')
 
 	-- choose double if we must
 	if precision == 'double' then
