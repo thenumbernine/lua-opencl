@@ -142,7 +142,7 @@ function CLEnv:init(args)
 
 	-- initialize types
 	
-	self.real = precision == 'double' and fp64 and 'double' 
+	self.real = (precision ~= 'float' and precision ~= 'half') and fp64 and 'double' 
 		or (precision == 'half' and fp16 and 'half' 
 			or 'float')
 	if precision == 'float' then self.real = 'float' end
