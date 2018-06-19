@@ -16,11 +16,12 @@ local string = require 'ext.string'
 local ffi = require 'ffi'
 local template = require 'template'
 
+ffi.cdef'typedef short half;'
 
 -- boilerplate so OpenCL types will work with ffi types
 -- TODO for support for multiple environments ... 
 --  you could check for previous type declaration with pcall(ffi.sizeof,'real')
-for _,real in ipairs{'float', 'double'} do
+for _,real in ipairs{'half', 'float', 'double'} do
 	ffi.cdef(template([[
 typedef union {
 	<?=real?> s[2];
@@ -48,10 +49,17 @@ end
 local CLEnv = class()
 
 local function get64bit(list, precision)
+	print('searching for '..precision)
 	local all = list:map(function(item)
 		local exts = string.trim(item:getExtensions():lower())
-		return {item=item, fp64=exts:match'cl_%w+_fp64'}
+		print(item:getName(), exts:match'cl_%w+_fp64', exts:match'cl_%w+_fp16', exts)
+		return {
+			item=item, 
+			fp64=exts:match'cl_%w+_fp64',
+			fp16=exts:match'cl_%w+_fp16',
+		}
 	end)
+	print('... done')
 
 	-- choose double if we must
 	if precision == 'double' then
@@ -60,6 +68,9 @@ local function get64bit(list, precision)
 	-- otherwise prioritize it
 	-- TODO what if the user wants gl sharing too?
 	-- should I prioritize a search for that extension as well?
+	elseif precision == 'half' then
+		all = all:filter(function(a) return a.fp16 end)
+		assert(#all > 0, "couldn't find anything with 16 bit precision")
 	else
 		all:sort(function(a,b)
 			return (a.fp64 and 1 or 0) > (b.fp64 and 1 or 0)
@@ -67,12 +78,12 @@ local function get64bit(list, precision)
 	end
 
 	local best = all[1]
-	return best.item, best.fp64
+	return best.item, best.fp64, best.fp16
 end
 
 --[[
 args for CLEnv:
-	precision = any | float | double 
+	precision = any | half | float | double 
 		= precision type to support.  default 'any'.
 			honestly 'any' and 'float' are the same, because any device is going to have floating precision.
 			both of these also prefer devices with double precision.
@@ -91,14 +102,15 @@ function CLEnv:init(args)
 	local precision = args and args.precision or 'any'
 	
 	local platforms = require 'cl.platform'.getAll()
-	self.platform = (args.getPlatform or get64bit)(platforms, precision)
+	-- khr_fp16 isn't set on the platform, but it is on the device
+	self.platform = (args.getPlatform or get64bit)(platforms, precision == 'half' and 'float' or precision)
 	
 	local fp64
 	self.device, fp64 = args.getDevice 
 		and args.getDevice(self.platform:getDevices())
 		or get64bit(self.platform:getDevices{[args.cpu and 'cpu' or 'gpu']=true}, precision)
 
-	local _, fp64 = get64bit(table{self.device}, precision)
+	local _, fp64, fp16 = get64bit(table{self.device}, precision)
 
 	local exts = string.split(string.trim(self.device:getExtensions()):lower(),'%s+')
 	
@@ -133,7 +145,9 @@ function CLEnv:init(args)
 
 	-- initialize types
 	
-	self.real = fp64 and 'double' or 'float'
+	self.real = precision == 'double' and fp64 and 'double' 
+		or (precision == 'half' and fp16 and 'half' 
+			or 'float')
 	if precision == 'float' then self.real = 'float' end
 	if self.verbose then
 		print('using '..self.real..' as real')
@@ -191,6 +205,8 @@ function CLEnv:getTypeCode()
 	return template([[
 <? if real == 'double' then ?>
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+<? elseif real == 'half' then ?>
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
 <? end ?>
 
 typedef <?=real?> real;
