@@ -54,7 +54,7 @@ function CLProgram:kernel(args, ...)
 			args.setArgs = {n=n}
 			for i=1,n do
 				local obj = select(i, ...)
-				if obj.obj then obj = obj.obj end
+				if type(obj) == 'table' and obj.obj then obj = obj.obj end
 				args.setArgs[i] = obj
 			end
 		end
