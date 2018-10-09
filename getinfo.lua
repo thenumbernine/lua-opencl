@@ -1,6 +1,7 @@
 local class = require 'ext.class'
 local range = require 'ext.range'
 local tolua = require 'ext.tolua'
+local string = require 'ext.string'
 local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 local classert = require 'cl.assert'
@@ -47,9 +48,22 @@ local function GetInfoBehavior(parent)
 		end
 	end
 	
+	function template:getInfoStrList(name)
+		return string.split(string.trim(self:getInfo(name)), '%s+'):sort()
+	end
+
 	function template:printInfo()
 		for _,info in ipairs(self.infos) do
-			print(info.name, tolua(self:getInfo(info.name)))
+			local value
+			-- special case
+			if info.name == 'CL_DEVICE_EXTENSIONS'
+			or info.name == 'CL_PLATFORM_EXTENSIONS'
+			then
+				value = '\n\t'..self:getInfoStrList(info.name):concat'\n\t'
+			else
+				value = tolua(self:getInfo(info.name))
+			end
+			print(info.name, value)
 		end
 	end
 	

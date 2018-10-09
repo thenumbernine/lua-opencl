@@ -68,7 +68,7 @@ function Device:getDriverVersion() return self:getInfo'CL_DRIVER_VERSION' end
 function Device:getProfile() return self:getInfo'CL_DEVICE_PROFILE' end
 function Device:getVersion() return self:getInfo'CL_DEVICE_VERSION' end
 function Device:getVendor() return self:getInfo'CL_DEVICE_VENDOR' end
-function Device:getExtensions() return self:getInfo'CL_DEVICE_EXTENSIONS' end
+function Device:getExtensions() return self:getInfoStrList'CL_DEVICE_EXTENSIONS' end
 
 
 return Device

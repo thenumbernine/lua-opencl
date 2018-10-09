@@ -33,9 +33,9 @@ function Context:init(args)
 	}
 	if args.glSharing then
 		
-if not device:getExtensions():find'_gl_sharing' then
+if not device:getExtensions():map(string.lower):find(function(s) return s:match'_gl_sharing' end) then
 	print"warning: couldn't find gl_sharing in device extensions:"
-	print(device:getExtensions())
+	print('',device:getExtensions():concat'\n\t')
 end
 		
 		if ffi.os == 'OSX' then

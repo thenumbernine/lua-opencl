@@ -17,6 +17,7 @@ args:
 		read
 		write
 		rw
+	(TODO change to 'readwrite' field instead of multiple fields)
 
 	size
 	

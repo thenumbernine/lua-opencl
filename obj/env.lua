@@ -50,7 +50,7 @@ local CLEnv = class()
 
 local function get64bit(list, precision)
 	local all = list:map(function(item)
-		local exts = string.trim(item:getExtensions():lower())
+		local exts = item:getExtensions():map(string.lower)
 		return {
 			item=item, 
 			fp64=exts:match'cl_%w+_fp64',
@@ -109,7 +109,7 @@ function CLEnv:init(args)
 
 	local _, fp64, fp16 = get64bit(table{self.device}, precision)
 
-	local exts = string.split(string.trim(self.device:getExtensions()):lower(),'%s+')
+	local exts = self.device:getExtensions():map(string.lower)
 	
 	-- don't use GL sharing if we're told not to
 	if not args or args.useGLSharing ~= false then
@@ -219,12 +219,17 @@ function CLEnv:buffer(args)
 	return (args and args.domain or self.base):buffer(args)
 end
 
-function CLEnv:clalloc(size, name, ctype)
+--[[
+size = size in bytes
+readwrite = (optional) default to 'rw'.  options are rw, read, write
+--]]
+function CLEnv:clalloc(size, name, ctype, readwrite)
+	readwrite = readwrite or 'rw'
 	self.totalGPUMem = self.totalGPUMem + size
 	if self.verbose then
-		print((name and (name..' ') or '')..'allocating '..tostring(size)..' elements of type '..ctype..' size '..ffi.sizeof(ctype)..', total '..self.totalGPUMem..' bytes')
+		print((name and (name..' ') or '')..'allocating '..tostring(size)..' bytes of type '..ctype..' size '..ffi.sizeof(ctype)..', total '..self.totalGPUMem..' bytes')
 	end
-	return self.ctx:buffer{rw=true, size=size}
+	return self.ctx:buffer{[readwrite]=true, size=size}
 end
 
 function CLEnv:program(args)

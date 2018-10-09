@@ -5,14 +5,16 @@ local CLBuffer = class()
 
 --[[
 'size' is misleading -- it is the # of elements.  
-maybe I should call it 'length' instead?
+maybe I should call it 'length' or 'count' instead?
+readwrite = rw|read|write. default rw
 --]]
 function CLBuffer:init(args)
 	self.env = assert(args.env)
 	self.name = args.name or 'buffer_'..tostring(self):sub(10)
 	self.type = args.type or args.env.real
 	self.size = args.size or args.env.base.volume
-	self.obj = self.env:clalloc(self.size * ffi.sizeof(self.type), self.name, self.type)
+	self.readwrite = args.readwrite or 'rw'
+	self.obj = self.env:clalloc(self.size * ffi.sizeof(self.type), self.name, self.type, self.readwrite)
 	
 	-- TODO use hostptr of cl.buffer, which is hidden behind env:clalloc
 	if args.data then self:fromCPU(args.data) end

@@ -86,6 +86,6 @@ function Platform:getProfile() return self:getInfo'CL_PLATFORM_PROFILE' end
 function Platform:getVersion() return self:getInfo'CL_PLATFORM_VERSION' end
 function Platform:getName() return self:getInfo'CL_PLATFORM_NAME' end
 function Platform:getVendor() return self:getInfo'CL_PLATFORM_VENDOR' end
-function Platform:getExtensions() return self:getInfo'CL_PLATFORM_EXTENSIONS' end
+function Platform:getExtensions() return self:getInfoStrList'CL_PLATFORM_EXTENSIONS' end
 
 return Platform
