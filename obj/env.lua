@@ -53,11 +53,10 @@ local function get64bit(list, precision)
 		local exts = item:getExtensions():map(string.lower)
 		return {
 			item=item, 
-			fp64=exts:match'cl_%w+_fp64',
-			fp16=exts:match'cl_%w+_fp16',
+			fp64=not not exts:find(nil, function(ext) return ext:match'cl_.*_fp64' end),
+			fp16=not not exts:find(nil, function(ext) return ext:match'cl_.*_fp16' end),
 		}
 	end)
-
 	-- choose double if we must
 	if precision == 'double' then
 		all = all:filter(function(a) return a.fp64 end)
