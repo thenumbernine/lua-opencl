@@ -40,7 +40,7 @@ local function GetInfoBehavior(parent)
 			local n = tonumber(size[0] / ffi.sizeof(baseType))	
 			local result = ffi.new(baseType..'[?]', n)
 			classert(getter(id, nameValue, size[0], result, nil))
-			return range(0,n-1):map(function(i) return result[i] end)
+			return range(0,n-1):mapi(function(i) return result[i] end)
 		else
 			local result = ffi.new(infoType..'[1]')
 			classert(getter(id, nameValue, ffi.sizeof(infoType), result, nil))

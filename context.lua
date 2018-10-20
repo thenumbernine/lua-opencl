@@ -32,12 +32,14 @@ function Context:init(args)
 		ffi.cast('cl_context_properties', platform.id),
 	}
 	if args.glSharing then
-		
-if not device:getExtensions():map(string.lower):find(function(s) return s:match'_gl_sharing' end) then
+	
+if not device:getExtensions():mapi(string.lower):find(nil, function(s)
+	return s:match'_gl_sharing'
+end) then
 	print"warning: couldn't find gl_sharing in device extensions:"
 	print('',device:getExtensions():concat'\n\t')
 end
-		
+	
 		if ffi.os == 'OSX' then
 			ffi.cdef[[
 typedef void* CGLContextObj;
@@ -110,7 +112,7 @@ function Context:program(args)
 	return require 'cl.program'(table(args, {context=self}))
 end
 
-Context.infoGetter = cl.clGetContextInfo 
+Context.infoGetter = cl.clGetContextInfo
 
 Context.infos = {
 	{name='CL_CONTEXT_REFERENCE_COUNT', type='cl_uint'},

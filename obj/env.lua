@@ -49,8 +49,8 @@ end
 local CLEnv = class()
 
 local function get64bit(list, precision)
-	local all = list:map(function(item)
-		local exts = item:getExtensions():map(string.lower)
+	local all = list:mapi(function(item)
+		local exts = item:getExtensions():mapi(string.lower)
 		return {
 			item=item, 
 			fp64=not not exts:find(nil, function(ext) return ext:match'cl_.*_fp64' end),
@@ -108,7 +108,7 @@ function CLEnv:init(args)
 
 	local _, fp64, fp16 = get64bit(table{self.device}, precision)
 
-	local exts = self.device:getExtensions():map(string.lower)
+	local exts = self.device:getExtensions():mapi(string.lower)
 	
 	-- don't use GL sharing if we're told not to
 	if not args or args.useGLSharing ~= false then

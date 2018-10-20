@@ -80,7 +80,7 @@ function CLProgram:compile()
 		-- but is only included by env code
 		
 		self.code or '',
-	}:append(table.map(self.kernels, function(kernel)
+	}:append(table.mapi(self.kernels, function(kernel)
 		return kernel.code
 	end)):concat'\n'
 

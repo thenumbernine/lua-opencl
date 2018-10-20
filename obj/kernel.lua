@@ -54,7 +54,7 @@ function CLKernel:init(args)
 		:append(self.argsOut)
 		:append(self.argsIn)
 		:append(args.setArgObjs or {})
-		:map(function(arg) 
+		:mapi(function(arg) 
 			return arg.obj
 		end)
 		:append(args.setArgs or {})

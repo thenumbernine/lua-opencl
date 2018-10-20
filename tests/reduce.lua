@@ -43,7 +43,7 @@ for _,size in ipairs(values) do
 		-- this way a reduce any less than size will show how much less than size
 		-- and a reduce any more than size will show n+ how much more than size
 		data=range(size,1,-1)
-			:append(range(size):map(function(i) return i+size end)),
+			:append(range(size):mapi(function(i) return i+size end)),
 	}
 	local cpu = buf:toCPU()
 	local reduce = env:reduce{

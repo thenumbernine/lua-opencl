@@ -212,7 +212,7 @@ function CommandQueue:enqueueAcquireGLObjects(args)
 	classert(cl.clEnqueueAcquireGLObjects(
 		self.id,
 		#objs,
-		ffi_new_table('cl_mem', table.map(objs, function(obj) return obj.id end)),
+		ffi_new_table('cl_mem', table.mapi(objs, function(obj) return obj.id end)),
 		0,
 		nil,
 		nil))
@@ -227,7 +227,7 @@ function CommandQueue:enqueueReleaseGLObjects(args)
 	classert(cl.clEnqueueReleaseGLObjects(
 		self.id,
 		#objs,
-		ffi_new_table('cl_mem', table.map(objs, function(obj) return obj.id end)),
+		ffi_new_table('cl_mem', table.mapi(objs, function(obj) return obj.id end)),
 		0,
 		nil,
 		nil))
