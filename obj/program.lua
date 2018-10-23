@@ -1,10 +1,12 @@
 local class = require 'ext.class'
 local table = require 'ext.table'
-local CLMemory = require 'cl.memory'
+local file = require 'ext.file'
+local Memory = require 'cl.memory'
+local Program = require 'cl.program'
 
 local CLProgram = class()
 
--- kernel class to allocate upon Program:kernel
+-- kernel class to allocate upon CLProgram:kernel
 CLProgram.Kernel = require 'cl.obj.kernel'
 
 --[[
@@ -15,12 +17,21 @@ args:
 		kernels with code is incorporated into the compile
 		upon compile, all kernels objects are assigned and args are bound
 	domain = optional, domain passed to kernels, default results in kernels getting env.base
+	cacheFile = optional, set this to cache the binary (.bin) and source (.cl), and only rebuild the program if the source doesn't match the cache file contents
+	binaries = optional binaries to construct the program from.
+		if this is used then code and cacheFile will be ignored
 --]]
 function CLProgram:init(args)
 	self.env = assert(args.env)
 	self.code = args.code
+	self.cacheFile = args.cacheFile
 	self.kernels = table(args.kernels)
 	self.domain = args.domain
+	if args.binaries then
+		self.binaries = args.binaries
+		self.code = nil
+		self.cacheFile = nil
+	end
 end
 
 function CLProgram:setupKernel(kernel)
@@ -29,7 +40,7 @@ function CLProgram:setupKernel(kernel)
 	-- then don't bind them
 	kernel.obj = self.obj:kernel(kernel.name)	--, kernel.argBuffers:unpack())
 	for i,arg in ipairs(kernel.argBuffers) do
-		if CLMemory.is(arg) then
+		if Memory.is(arg) then
 			kernel.obj:setArg(i-1, arg)
 		end
 	end
@@ -72,8 +83,9 @@ function CLProgram:kernel(args, ...)
 	return kernel
 end
 
-function CLProgram:compile()
-	local code = table{
+-- returns the final compiled code, which is the env's and the program's code
+function CLProgram:getCode()
+	return table{
 		self.env.code or '',
 		
 		-- size globals come from domain code
@@ -83,9 +95,48 @@ function CLProgram:compile()
 	}:append(table.mapi(self.kernels, function(kernel)
 		return kernel.code
 	end)):concat'\n'
+end
 
-	self.obj = require 'cl.program'{context=self.env.ctx, devices={self.env.device}, code=code}
-	
+function CLProgram:compile()
+	-- right now this is just for construction by binaries
+	-- if we are caching binaries then it doesn't save it in the object -- just to the cache file
+	if self.binaries then
+		self.obj = Program{
+			context=self.env.ctx,
+			devices={self.env.device},
+			binaries=self.binaries,
+		}
+	else
+		local code = self:getCode()
+
+		if self.cacheFile
+		and code == file[self.cacheFile..'.cl']
+		then
+			-- load cached
+			local bins = require 'ext.fromlua'(assert(file[self.cacheFile..'.bin']))
+			self.obj = Program{
+				context=self.env.ctx,
+				devices={self.env.device},
+				binaries=bins,
+			}
+		else
+			self.obj = Program{
+				context=self.env.ctx,
+				devices={self.env.device},
+				code=code,
+			}
+			
+			-- save cached
+			if self.cacheFile then
+				file[self.cacheFile..'.cl'] = code
+				-- save binary
+				local bins = self.obj:getBinaries()
+				-- how well does encoding binary files work ...
+				file[self.cacheFile..'.bin'] = require 'ext.tolua'(bins)
+			end
+		end
+	end
+
 	for _,kernel in ipairs(self.kernels) do
 		self:setupKernel(kernel)
 	end

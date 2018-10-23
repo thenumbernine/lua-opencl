@@ -108,7 +108,8 @@ function CLKernel:compile()
 	if self.program then
 		error("this kernel already has a program -- use program:compile")
 	end
-	self.env:program{kernels={self}}:compile()	
+	self.program = self.env:program{kernels={self}}
+	self.program:compile()
 end
 
 function CLKernel:__call(...)
