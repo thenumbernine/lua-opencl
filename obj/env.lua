@@ -21,29 +21,29 @@ ffi.cdef'typedef short half;'
 -- boilerplate so OpenCL types will work with ffi types
 -- TODO for support for multiple environments ... 
 --  you could check for previous type declaration with pcall(ffi.sizeof,'real')
-for _,real in ipairs{'half', 'float', 'double'} do
+for _,name in ipairs{'half', 'float', 'double', 'int'} do
 	ffi.cdef(template([[
 typedef union {
-	<?=real?> s[2];
-	struct { <?=real?> s0, s1; };
-	struct { <?=real?> x, y; };
-} <?=real?>2;
+	<?=name?> s[2];
+	struct { <?=name?> s0, s1; };
+	struct { <?=name?> x, y; };
+} <?=name?>2;
 
 //for real4 I'm using x,y,z,w to match OpenCL
 typedef union {
-	<?=real?> s[4];
-	struct { <?=real?> s0, s1, s2, s3; };
-	struct { <?=real?> x, y, z, w; };	
-} <?=real?>4;
+	<?=name?> s[4];
+	struct { <?=name?> s0, s1, s2, s3; };
+	struct { <?=name?> x, y, z, w; };	
+} <?=name?>4;
 
 typedef union {
-	<?=real?> s[8];
-	struct { <?=real?> s0, s1, s2, s3, s4, s5, s6, s7; };
-} <?=real?>8;
+	<?=name?> s[8];
+	struct { <?=name?> s0, s1, s2, s3, s4, s5, s6, s7; };
+} <?=name?>8;
 
 ]], {
-	real = real,
-}))
+		name = name,
+	}))
 end
 
 local CLEnv = class()
