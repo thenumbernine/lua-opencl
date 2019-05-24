@@ -48,7 +48,7 @@ end
 
 function CLBuffer:fill(pattern, patternSize)
 	if not pattern then pattern = 0 end
-	if type(pattern) ~= 'ctype' then
+	if type(pattern) ~= 'cdata' then
 		pattern = ffi.new(self.type..'[1]', pattern)
 	end
 	if not patternSize then

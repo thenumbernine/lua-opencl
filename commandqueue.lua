@@ -79,13 +79,14 @@ args:
 	pattern (optional)
 	patternSize (optional)
 	offset (optional)
-	size
+	size (bytes)
 --]]
+local defaultPattern = ffi.new('int[1]', 0)
 function CommandQueue:enqueueFillBuffer(args)
 	local pattern = args.pattern
 	local patternSize = args.patternSize
 	if not pattern then
-		pattern = ffi.new('int[1]', 0)
+		pattern = defaultPattern
 		patternSize = ffi.sizeof'int'
 	end
 	classert(cl.clEnqueueFillBuffer(
