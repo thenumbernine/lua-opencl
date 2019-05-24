@@ -1,5 +1,6 @@
 #!/usr/bin/env luajit
 local range = require 'ext.range'
+local CLEnv = require 'cl.obj.env'
 
 local sizes = {{64}, {8,8}, {4,4,4}}
 --local sizes = {{8}, {2,4}, {2,2,2}}
@@ -7,7 +8,11 @@ local sizes = {{64}, {8,8}, {4,4,4}}
 for dim,size in ipairs(sizes) do
 	print('test '..dim..'D kernel')
 
-	local env = require 'cl.obj.env'{size=size} 
+	local env = CLEnv{
+		getPlatform = CLEnv.getPlatformFromCmdLine(...),
+		getDevice = CLEnv.getDeviceFromCmdLine(...),
+		size=size,
+	} 
 	local a = env:buffer{name='a', type='real', data=range(env.base.volume)}
 	local b = env:buffer{name='b', type='real', data=range(env.base.volume)}
 	local c = env:buffer{name='c', type='real'}

@@ -1,8 +1,13 @@
 #!/usr/bin/env luajit
 local ffi = require 'ffi'
 require 'ext'
+local CLEnv = require 'cl.obj.env'
 
-local env = require 'cl.obj.env'{size=49}
+local env = CLEnv{
+	getPlatform = CLEnv.getPlatformFromCmdLine(...),
+	getDevice = CLEnv.getDeviceFromCmdLine(...),
+	size=49,
+}
 
 local src = env:buffer{name='src', type='real', data=range(env.base.volume)}
 local dst = env:buffer{name='dst', type='real'}

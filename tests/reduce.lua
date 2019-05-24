@@ -1,10 +1,13 @@
 #!/usr/bin/env luajit
 local range = require 'ext.range'
 local table = require 'ext.table'
+local CLEnv = require 'cl.obj.env'
 
 -- TODO env.size optional?  for no env.base?  but env:kernel needs env.base ...
--- TODO easy way to pick platform or device
-local env = require 'cl.obj.env'()
+local env = CLEnv{
+	getPlatform = CLEnv.getPlatformFromCmdLine(...),
+	getDevice = CLEnv.getDeviceFromCmdLine(...),
+}
 
 local maxWorkGroupSize = tonumber(env.device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
 local values = table()

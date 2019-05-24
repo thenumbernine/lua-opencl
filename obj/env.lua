@@ -77,6 +77,50 @@ local function get64bit(list, precision)
 	return best.item, best.fp64, best.fp16
 end
 
+
+-- predefined getPlatform and getDevice
+
+local function getterForIdent(ident, identType)
+	return function(objs)
+		for i,obj in ipairs(objs) do
+			if type(ident) == 'number' then
+				if ident == i then return obj end
+			elseif type(ident) == 'string' then
+				if ident == obj:getName() then return obj end
+			end
+		end
+		error("couldn't find "..identType)
+	end
+end
+
+local function getCmdline(...)
+	local cmdline = {}
+	local fromlua = require 'ext.fromlua'
+	for _,w in ipairs{...} do
+		local k,v = w:match'^(.-)=(.*)$'
+		if k then
+			cmdline[k] = fromlua(v)
+			if cmdline[k] == nil then cmdline[k] = v end
+		else
+			cmdline[w] = true
+		end
+	end
+	return cmdline
+end
+
+-- predefined option for args.getPlatform
+function CLEnv.getPlatformFromCmdLine(...)
+	local platform = getCmdline(...).platform
+	return platform and getterForIdent(platform, 'platform')
+end
+
+-- predefined option for args.getDevice
+function CLEnv.getDeviceFromCmdLine(...)
+	local device = getCmdline(...).device
+	return device and getterForIdent(device, 'device')
+end
+
+
 --[[
 args for CLEnv:
 	precision = any | half | float | double 
@@ -100,11 +144,17 @@ function CLEnv:init(args)
 	local platforms = require 'cl.platform'.getAll()
 	-- khr_fp16 isn't set on the platform, but it is on the device
 	self.platform = (args.getPlatform or get64bit)(platforms, precision == 'half' and 'float' or precision)
-	
+	if self.verbose then
+		print(self.platform:getName())
+	end
+
 	local fp64
 	self.device, fp64 = args.getDevice 
 		and args.getDevice(self.platform:getDevices())
 		or get64bit(self.platform:getDevices{[args.cpu and 'cpu' or 'gpu']=true}, precision)
+	if self.verbose then
+		print(self.device:getName())
+	end
 
 	local _, fp64, fp16 = get64bit(table{self.device}, precision)
 
