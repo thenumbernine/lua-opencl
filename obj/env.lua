@@ -83,7 +83,9 @@ end
 local function getterForIdent(ident, identType)
 	return function(objs)
 		for i,obj in ipairs(objs) do
-			if type(ident) == 'number' then
+			if type(ident) == 'nil' then
+				return obj
+			elseif type(ident) == 'number' then
 				if ident == i then return obj end
 			elseif type(ident) == 'string' then
 				if ident == obj:getName() then return obj end
@@ -110,8 +112,7 @@ end
 
 -- predefined option for args.getPlatform
 function CLEnv.getPlatformFromCmdLine(...)
-	local platform = getCmdline(...).platform
-	return platform and getterForIdent(platform, 'platform')
+	return getterForIdent(getCmdline(...).platform, 'platform')
 end
 
 -- predefined option for args.getDevice
