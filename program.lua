@@ -21,6 +21,8 @@ args:
 	binaries = table of strings of binary data
 	code and binaries are exclusive
 	devices = array of device ids (optional, but required for binaries)
+		if 'devices' is provided then the program is immediately compiled.
+	buildOptions = options to pass through to Program:build (only if we are compiling, therefore only if 'devices' is provided)
 --]]
 function Program:init(args)
 	assert(args)
@@ -57,7 +59,7 @@ function Program:init(args)
 	end
 	Program.super.init(self, self.id)
 	if args.devices then
-		local success, message = self:build(args.devices)
+		local success, message = self:build(args.devices, args.buildOptions)
 		if not success then
 			print(require 'template.showcode'(code))
 			error(message)

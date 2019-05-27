@@ -97,14 +97,15 @@ function CLProgram:getCode()
 	end)):concat'\n'
 end
 
-function CLProgram:compile()
+function CLProgram:compile(args)
 	-- right now this is just for construction by binaries
 	-- if we are caching binaries then it doesn't save it in the object -- just to the cache file
 	if self.binaries then
 		self.obj = Program{
-			context=self.env.ctx,
-			devices={self.env.device},
-			binaries=self.binaries,
+			context = self.env.ctx,
+			devices = {self.env.device},
+			binaries = self.binaries,
+			buildOptions = args and args.buildOptions,
 		}
 	else
 		local code = self:getCode()
@@ -113,17 +114,21 @@ function CLProgram:compile()
 		and code == file[self.cacheFile..'.cl']
 		then
 			-- load cached
-			local bins = require 'ext.fromlua'(assert(file[self.cacheFile..'.bin']))
+			local binfile = self.cacheFile..'.bin'
+			local bindata = assert(file[binfile], "failed to find opencl compiled program "..binfile)
+			local bins = require 'ext.fromlua'(bindata)
 			self.obj = Program{
 				context=self.env.ctx,
 				devices={self.env.device},
 				binaries=bins,
+				buildOptions=args and args.buildOptions,
 			}
 		else
 			self.obj = Program{
 				context=self.env.ctx,
 				devices={self.env.device},
 				code=code,
+				buildOptions=args and args.buildOptions,
 			}
 			
 			-- save cached
