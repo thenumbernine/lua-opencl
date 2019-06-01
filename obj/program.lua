@@ -138,6 +138,16 @@ function CLProgram:compile(args)
 				local bins = self.obj:getBinaries()
 				-- how well does encoding binary files work ...
 				file[self.cacheFile..'.bin'] = require 'ext.tolua'(bins)
+			
+				-- [[ double check for safety ...
+				local binfile = self.cacheFile..'.bin'
+				local bindata = assert(file[binfile], "failed to find opencl compiled program "..binfile)
+				local binsCheck = require 'ext.fromlua'(bindata)
+				assert(#binsCheck == #bins, 'somehow you encoded a different number of binary blobs than you were given.')
+				for i=1,#bins do
+					assert(bins[i] == binsCheck[i], 'error in encoding a binary blob!')
+				end
+				--]]
 			end
 		end
 	end
