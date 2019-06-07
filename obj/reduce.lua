@@ -76,9 +76,9 @@ args:
 		device = env.device or provided
 
 	for providing the data:
-		buffer = (optional) cl buffer of ctype[size]
-		size = size (in ctype's). env.volume or provided.
-		swapBuffer (optional) = cl buffer of ctype[size / get_local_size(0)]
+		buffer = (optional) cl buffer of ctype[count]
+		count = number of ctype's. env.volume or provided.
+		swapBuffer (optional) = cl buffer of ctype[count / get_local_size(0)]
 		allocate = (optional) env.clalloc or provided. cl allocation function accepts size, in bytes
 		result = (optional) C buffer of ctype to contain the result
 
@@ -90,7 +90,7 @@ args:
 		ctype = env.real
 		ctx
 		device
-		size =  env.base.volume
+		count = env.base.volume
 		allocate = env:clalloc
 		cmds
 --]]
@@ -121,8 +121,9 @@ function Reduce:init(args)
 	self.kernel = self.program:kernel(name)
 
 	self.maxWorkGroupSize = tonumber(self.kernel:getWorkGroupInfo(device, 'CL_KERNEL_WORK_GROUP_SIZE'))
-	
-	self.size = assert(args.size or (env and env.base.volume))
+
+assert(not args.size, "size is deprecated.  use 'count' instead.")
+	self.count = assert(args.count or (env and env.base.volume))
 	
 	local allocate = args.allocate 
 		or (env and function(size, name)
@@ -134,14 +135,14 @@ function Reduce:init(args)
 
 	self.ctypeSize = args.typeSize or ffi.sizeof(self.ctype)
 	self.buffer = args.buffer 
-		or allocate(self.size * self.ctypeSize, 'reduce.buffer')
-	self.swapBufferSize = math.ceil(self.size / self.maxWorkGroupSize)
+		or allocate(self.count * self.ctypeSize, 'reduce.buffer')
+	self.swapBufferSize = math.ceil(self.count / self.maxWorkGroupSize)
 	self.swapBuffer = args.swapBuffer 
 		or allocate(self.swapBufferSize * self.ctypeSize, 'reduce.swapBuffer')
 	
 	self.kernel:setArg(0, self.buffer)
 	self.kernel:setArg(1, {ptr=nil, size=self.maxWorkGroupSize * self.ctypeSize})
-	self.kernel:setArg(2, ffi.new('int[1]', self.size))
+	self.kernel:setArg(2, ffi.new('int[1]', self.count))
 	self.kernel:setArg(3, self.swapBuffer)
 
 	self.result = args.result or ffi.new(self.ctype..'[1]')
@@ -156,9 +157,9 @@ function Reduce:__call(buffer, reduceSize)
 	-- allow overriding the size
 	-- this only works if the new size is <= the allocated size
 	if not reduceSize then
-		reduceSize = self.size
+		reduceSize = self.count
 	else
-		assert(reduceSize <= self.size)
+		assert(reduceSize <= self.count)
 	end
 
 	while reduceSize > 1 do

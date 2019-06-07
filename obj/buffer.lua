@@ -4,17 +4,15 @@ local ffi = require 'ffi'
 local CLBuffer = class()
 
 --[[
-'size' is misleading -- it is the # of elements.  
-maybe I should call it 'length' or 'count' instead?
 readwrite = rw|read|write. default rw
 --]]
 function CLBuffer:init(args)
 	self.env = assert(args.env)
 	self.name = args.name or 'buffer_'..tostring(self):sub(10)
 	self.type = args.type or args.env.real
-	self.size = args.size or args.env.base.volume
+	self.count = args.count or args.env.base.volume
 	self.readwrite = args.readwrite or 'rw'
-	self.obj = self.env:clalloc(self.size * ffi.sizeof(self.type), self.name, self.type, self.readwrite)
+	self.obj = self.env:clalloc(self.count * ffi.sizeof(self.type), self.name, self.type, self.readwrite)
 	
 	-- TODO use hostptr of cl.buffer, which is hidden behind env:clalloc
 	if args.data then self:fromCPU(args.data) end
@@ -24,25 +22,25 @@ end
 
 function CLBuffer:fromCPU(ptr)
 	if type(ptr) == 'table' then	-- convert to ffi memory
-		local cptr = ffi.new(self.type..'[?]', self.size)
-		local m = math.min(#ptr, self.size)
+		local cptr = ffi.new(self.type..'[?]', self.count)
+		local m = math.min(#ptr, self.count)
 		for i=1,m do
 			cptr[i-1] = ffi.cast(self.type, ptr[i])
 		end
 		--[[
-		for i=m,self.size-1 do
+		for i=m,self.count-1 do
 			cptr[i] = ffi.cast(self.type, 0)	-- ?
 		end
 		--]]
 		ptr = cptr
 	end
 	assert(type(ptr) == 'cdata')
-	self.env.cmds:enqueueWriteBuffer{buffer=self.obj, block=true, size=ffi.sizeof(self.type) * self.size, ptr=ptr}
+	self.env.cmds:enqueueWriteBuffer{buffer=self.obj, block=true, size=ffi.sizeof(self.type) * self.count, ptr=ptr}
 end
 
 function CLBuffer:toCPU(ptr)
-	ptr = ptr or ffi.new(self.type..'[?]', self.size)
-	self.env.cmds:enqueueReadBuffer{buffer=self.obj, block=true, size=ffi.sizeof(self.type) * self.size, ptr=ptr}
+	ptr = ptr or ffi.new(self.type..'[?]', self.count)
+	self.env.cmds:enqueueReadBuffer{buffer=self.obj, block=true, size=ffi.sizeof(self.type) * self.count, ptr=ptr}
 	return ptr
 end
 
@@ -58,7 +56,7 @@ function CLBuffer:fill(pattern, patternSize)
 		buffer = self.obj,
 		pattern = pattern,
 		patternSize = patternSize,
-		size = ffi.sizeof(self.type) * self.size,
+		size = ffi.sizeof(self.type) * self.count,
 	}
 end
 
@@ -67,7 +65,7 @@ function CLBuffer:copyFrom(src)
 	self.env.cmds:enqueueCopyBuffer{
 		src = src.obj,
 		dst = self.obj,
-		size = ffi.sizeof(self.type) * self.size,
+		size = ffi.sizeof(self.type) * self.count,
 	}
 end
 

@@ -44,7 +44,7 @@ for dim,size in ipairs(sizes) do
 
 	local sum = env:reduce{
 		buffer = c.obj,
-		size = sizes[1][1]/2,
+		count = sizes[1][1]/2,
 		op = function(x,y) return x .. '+' .. y end,
 	}
 	print('sum 1..'..(sizes[1][1]/2)..' = '..sum())

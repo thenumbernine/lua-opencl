@@ -42,7 +42,7 @@ print('testing reduce on ranges: '..values:concat', ')
 
 for _,size in ipairs(values) do
 	local buf = env:domain{size=size}:buffer{
-		size=2*size,
+		count=2*size,
 		-- data goes n, n-1, ..., 1, n+1, n+2, ..., 2*n
 		-- this way a reduce any less than size will show how much less than size
 		-- and a reduce any more than size will show n+ how much more than size
@@ -51,7 +51,7 @@ for _,size in ipairs(values) do
 	}
 	local cpu = buf:toCPU()
 	local reduce = env:reduce{
-		size = size,
+		count = size,
 		buffer = buf.obj,
 		initValue = 'HUGE_VALF',
 		op = function(x,y) return 'min('..x..', '..y..')' end,

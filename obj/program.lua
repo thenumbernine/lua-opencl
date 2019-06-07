@@ -55,22 +55,26 @@ if args is a string then
 	with setArgs a table of ..., and setArgs.n the # of ... (to preserve nils)
 --]]
 function CLProgram:kernel(args, ...)
+	local setArgs
 	if type(args) == 'string' then
 		args = {
 			name = args,
 			domain = self.domain,
 		}
-		local n = select('#', ...)
-		if n > 0 then
-			args.setArgs = {n=n}
-			for i=1,n do
-				local obj = select(i, ...)
-				if type(obj) == 'table' and obj.obj then obj = obj.obj end
-				args.setArgs[i] = obj
-			end
+		if select('#', ...) > 0 then
+			setArgs = table.pack(...)
 		end
 	else
 		args.domain = args.domain or self.domain
+		setArgs = args.setArgs
+	end
+	if setArgs then
+		for i=1,setArgs.n or #setArgs do
+			local obj = setArgs[i]
+			if type(obj) == 'table' and obj.obj then obj = obj.obj end
+			setArgs[i] = obj
+		end
+		args.setArgs = setArgs
 	end
 	local kernel = self.Kernel(table(args, {env=self.env, program=self}))
 	self.kernels:insert(kernel)
