@@ -68,24 +68,36 @@ function CLKernel:init(args)
 	self.code = table{
 		args.header or '',
 		args.body and template([[
-kernel void <?=self.name?>(
-<?
+kernel void <?=self.name?>(<?
 local sep = ''
 for _,arg in ipairs(self.argsOut or {}) do 
+	?><?=sep?>
+	<?
 	if arg.obj then
-		?>	<?=sep?>global <?=arg.type or 'real'?>* <?=arg.name?>
-<?	else
-		?>	<?=sep?><?=arg.type or 'real'?> <?=arg.name?>
-<?	end
-	sep = ', '
+		?>global <?=arg.type or 'real'?>* <?=arg.name?><?
+	else
+		?><?=arg.type or 'real'?> <?=arg.name?><?
+	end
+	sep = ','
 end
 for _,arg in ipairs(self.argsIn or {}) do
+	?><?=sep?>
+	<?
 	if arg.obj then
-		?>	<?=sep?>global const <?=arg.type or 'real'?>* <?=arg.name?>
-<?	else
-		?>	<?=sep?><?=arg.type or 'real'?> <?=arg.name?>
-<?	end
-	sep = ', '
+		if arg.constant then
+			?>constant <?
+		else
+			?>global const <?
+		end
+	end
+	?><?=arg.type or 'real'?><?
+	if arg.obj then
+		?>* <?
+	else
+		?> <?
+	end
+	?><?=arg.name?><?
+	sep = ','
 end
 ?>) {
 <? -- don't forget that kernel domains may not match the env domain -- which is the default domain

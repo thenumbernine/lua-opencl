@@ -4,7 +4,8 @@ local ffi = require 'ffi'
 local CLBuffer = class()
 
 --[[
-readwrite = rw|read|write. default rw
+readwrite = rw|read|write. default rw.  used in allocation
+constant = used in kernel parameter generation
 --]]
 function CLBuffer:init(args)
 	self.env = assert(args.env)
@@ -12,6 +13,7 @@ function CLBuffer:init(args)
 	self.type = args.type or args.env.real
 	self.count = args.count or args.env.base.volume
 	self.readwrite = args.readwrite or 'rw'
+	self.constant = args.constant
 	self.obj = self.env:clalloc(self.count * ffi.sizeof(self.type), self.name, self.type, self.readwrite)
 	
 	-- TODO use hostptr of cl.buffer, which is hidden behind env:clalloc
