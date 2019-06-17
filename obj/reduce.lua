@@ -159,7 +159,7 @@ function Reduce:__call(buffer, reduceSize)
 	if not reduceSize then
 		reduceSize = self.count
 	else
-		assert(reduceSize <= self.count)
+		assert(reduceSize <= self.count, "reduceSize parameter "..reduceSize.." is not <= reduce.count "..self.count)
 	end
 
 	while reduceSize > 1 do

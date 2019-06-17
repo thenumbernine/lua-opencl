@@ -19,18 +19,26 @@ args:
 	domain = optional, domain passed to kernels, default results in kernels getting env.base
 	cacheFile = optional, set this to cache the binary (.bin) and source (.cl), and only rebuild the program if the source doesn't match the cache file contents
 	binaries = optional binaries to construct the program from.
-		if this is used then code and cacheFile will be ignored
+	programs = optional list of programs.  provide this to immediately link these programs and create an executable program.
+	code, binaries, and programs are exclusive
 --]]
 function CLProgram:init(args)
 	self.env = assert(args.env)
-	self.code = args.code
-	self.cacheFile = args.cacheFile
 	self.kernels = table(args.kernels)
 	self.domain = args.domain
-	if args.binaries then
+	if args.code then
+		self.code = args.code
+		self.cacheFile = args.cacheFile
+	elseif args.binaries then
 		self.binaries = args.binaries
-		self.code = nil
-		self.cacheFile = nil
+	elseif args.programs then
+		-- unlike providing code or binaries, this will immediately link
+		self.obj = Program{
+			context = self.env.ctx,
+			devices = {self.env.device},
+			programs = args.programs,
+			buildOptions = args and args.buildOptions,
+		}
 	end
 end
 
@@ -101,7 +109,29 @@ function CLProgram:getCode()
 	end)):concat'\n'
 end
 
+-- TODO rename to :build
 function CLProgram:compile(args)
+	-- this is also being fudged in
+	-- I need to straighten this all out
+	-- TODO make this compat with caching?
+	if args.dontLink then
+		local code, binaries
+		if self.binaries then
+			binaries = self.binaries
+		else
+			code = self:getCode()
+		end
+		self.obj = Program{
+			context = self.env.ctx,
+			devices = {self.env.device},
+			code = code,
+			binaries = binaries,
+			buildOptions = args and args.buildOptions,
+			dontLink = args and args.dontLink,
+		}
+		return
+	end
+	
 	-- right now this is just for construction by binaries
 	-- if we are caching binaries then it doesn't save it in the object -- just to the cache file
 	if self.binaries then
@@ -126,6 +156,7 @@ function CLProgram:compile(args)
 				devices={self.env.device},
 				binaries=bins,
 				buildOptions=args and args.buildOptions,
+				dontLink = args and args.dontLink,
 			}
 		else
 			self.obj = Program{
@@ -133,6 +164,7 @@ function CLProgram:compile(args)
 				devices={self.env.device},
 				code=code,
 				buildOptions=args and args.buildOptions,
+				dontLink = args and args.dontLink,
 			}
 			
 			-- save cached
