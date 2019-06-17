@@ -116,6 +116,7 @@ Context.infoGetter = cl.clGetContextInfo
 
 Context.infos = {
 	{name='CL_CONTEXT_REFERENCE_COUNT', type='cl_uint'},
+	{name='CL_CONTEXT_NUM_DEVICES', type='cl_uint'},
 	{name='CL_CONTEXT_DEVICES', type='cl_device_id[]'},
 	{name='CL_CONTEXT_PROPERTIES', type='cl_context_properties[]'},
 }

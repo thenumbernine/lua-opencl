@@ -81,6 +81,7 @@ Platform.infos = {
 	{name='CL_PLATFORM_NAME', type='string'},
 	{name='CL_PLATFORM_VENDOR', type='string'},
 	{name='CL_PLATFORM_EXTENSIONS', type='string'},
+	{name='CL_PLATFORM_HOST_TIMER_RESOLUTION', type='cl_ulong'},
 }
 function Platform:getProfile() return self:getInfo'CL_PLATFORM_PROFILE' end
 function Platform:getVersion() return self:getInfo'CL_PLATFORM_VERSION' end

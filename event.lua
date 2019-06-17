@@ -36,6 +36,7 @@ Event.infos = {
     {name='CL_EVENT_COMMAND_TYPE', type='cl_command_type'},
     {name='CL_EVENT_REFERENCE_COUNT', type='cl_uint'},
     {name='CL_EVENT_COMMAND_EXECUTION_STATUS', type='cl_int'},
+    {name='CL_EVENT_CONTEXT', type='cl_context'},
 }
 
 function Event:getProfilingInfo(name)

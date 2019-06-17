@@ -172,9 +172,9 @@ Program.infos = {
 	{name='CL_PROGRAM_SOURCE', type='string'},
 	{name='CL_PROGRAM_BINARY_SIZES', type='size_t[]'},
 	{name='CL_PROGRAM_BINARIES', type='string[]'},
-	{name='CL_PROGRAM_NUM_KERNELS', type='cl_uint'},
+	{name='CL_PROGRAM_NUM_KERNELS', type='size_t'},
 	{name='CL_PROGRAM_KERNEL_NAMES', type='string'},
-	{name='CL_PROGRAM_IL', type='string[]'},	-- ???
+	{name='CL_PROGRAM_IL', type='void*'},	-- ???
 	
 	-- these are for clGetProgramBuildInfo
 	--{name='CL_PROGRAM_BUILD_STATUS', type='unsigned char*[]'},
@@ -182,13 +182,6 @@ Program.infos = {
 	--{name='CL_PROGRAM_BUILD_LOG', type='cl_uint'},
 	--{name='CL_PROGRAM_BINARY_TYPE', type='cl_uint'},	-- ??? 
 	--{name='CL_PROGRAM_BUILD_GLOBAL_VARIABLE_TOTAL_SIZE', type='cl_uint'},	-- ???
-
-	--[[
-	CL_PROGRAM_BINARY_TYPE_NONE                 = 0x0,
-	CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT      = 0x1,
-	CL_PROGRAM_BINARY_TYPE_LIBRARY              = 0x2,
-	CL_PROGRAM_BINARY_TYPE_EXECUTABLE           = 0x4,
-	--]]
 }
 
 function Program:getRefCount() return self:getInfo'CL_PROGRAM_REFERENCE_COUNT' end
