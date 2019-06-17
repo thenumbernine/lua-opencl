@@ -120,7 +120,7 @@ function Reduce:init(args)
 	
 	self.kernel = self.program:kernel(name)
 
-	self.maxWorkGroupSize = tonumber(self.kernel:getWorkGroupInfo(device, 'CL_KERNEL_WORK_GROUP_SIZE'))
+	self.maxWorkGroupSize = tonumber(self.kernel:getWorkGroupInfo('CL_KERNEL_WORK_GROUP_SIZE', device))
 
 assert(not args.size, "size is deprecated.  use 'count' instead.")
 	self.count = assert(args.count or (env and env.base.volume))

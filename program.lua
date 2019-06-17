@@ -135,19 +135,6 @@ function Program:build(devices, options)
 	return success, message 
 end
 
-function Program:getBuildInfo(device, name)
-	assert(name, "expected name")
-	local size = ffi.new('size_t[1]', 0)
-	classert(cl.clGetProgramBuildInfo(self.id, device.id, name, 0, nil, size))
-	local param = ffi.new('char[?]', size[0])
-	classert(cl.clGetProgramBuildInfo(self.id, device.id, name, size[0], param, nil))
-	return ffi.string(param, size[0])
-end
-
-function Program:getLog(device)
-	return self:getBuildInfo(device, cl.CL_PROGRAM_BUILD_LOG)
-end
-
 --[[
 usage:
 	program:kernel(name, arg1, ...)
@@ -163,25 +150,21 @@ function Program:kernel(args, ...)
 	return require 'cl.kernel'(table(args, {program=self}))
 end
 
-Program.infoGetter = cl.clGetProgramInfo
-Program.infos = {
-	{name='CL_PROGRAM_REFERENCE_COUNT', type='cl_uint'},
-	{name='CL_PROGRAM_CONTEXT', type='cl_uint'},
-	{name='CL_PROGRAM_NUM_DEVICES', type='cl_uint'},
-	{name='CL_PROGRAM_DEVICES', type='cl_device_id[]'},
-	{name='CL_PROGRAM_SOURCE', type='string'},
-	{name='CL_PROGRAM_BINARY_SIZES', type='size_t[]'},
-	{name='CL_PROGRAM_BINARIES', type='string[]'},
-	{name='CL_PROGRAM_NUM_KERNELS', type='size_t'},
-	{name='CL_PROGRAM_KERNEL_NAMES', type='string'},
-	{name='CL_PROGRAM_IL', type='void*'},	-- ???
-	
-	-- these are for clGetProgramBuildInfo
-	--{name='CL_PROGRAM_BUILD_STATUS', type='unsigned char*[]'},
-	--{name='CL_PROGRAM_BUILD_OPTIONS', type='cl_uint'},
-	--{name='CL_PROGRAM_BUILD_LOG', type='cl_uint'},
-	--{name='CL_PROGRAM_BINARY_TYPE', type='cl_uint'},	-- ??? 
-	--{name='CL_PROGRAM_BUILD_GLOBAL_VARIABLE_TOTAL_SIZE', type='cl_uint'},	-- ???
+-- program:getInfo(name of cl_program_build_info)
+Program.getInfo = Program:makeGetter{
+	getter = cl.clGetProgramInfo,
+	vars = {
+		{name='CL_PROGRAM_REFERENCE_COUNT', type='cl_uint'},
+		{name='CL_PROGRAM_CONTEXT', type='cl_uint'},
+		{name='CL_PROGRAM_NUM_DEVICES', type='cl_uint'},
+		{name='CL_PROGRAM_DEVICES', type='cl_device_id[]'},
+		{name='CL_PROGRAM_SOURCE', type='char[]'},
+		{name='CL_PROGRAM_BINARY_SIZES', type='size_t[]'},
+		{name='CL_PROGRAM_BINARIES', type='unsigned char*[]'},	-- ???
+		{name='CL_PROGRAM_NUM_KERNELS', type='size_t'},
+		{name='CL_PROGRAM_KERNEL_NAMES', type='char[]', separator=';'},
+		{name='CL_PROGRAM_IL', type='void*'},	-- ???
+	},
 }
 
 function Program:getRefCount() return self:getInfo'CL_PROGRAM_REFERENCE_COUNT' end
@@ -189,6 +172,7 @@ function Program:getContext() return self:getInfo'CL_PROGRAM_CONTEXT' end
 function Program:getDevices() return self:getInfo'CL_PROGRAM_DEVICES' end
 function Program:getSource() return self:getInfo'CL_PROGRAM_SOURCE' end
 
+-- TODO add to cl/getinfo.lua an entry for char*[], and maybe a field for associated sizes getter variable name
 function Program:getBinaries() 
 	local binSizes = self:getInfo'CL_PROGRAM_BINARY_SIZES' 
 	local bins = ffi.new('unsigned char*[?]', #binSizes)
@@ -197,6 +181,24 @@ function Program:getBinaries()
 	end
 	classert(cl.clGetProgramInfo(self.id, cl.CL_PROGRAM_BINARIES, ffi.sizeof(bins), bins, nil))
 	return binSizes:mapi(function(size,i) return ffi.string(bins[i-1],size) end)
+end
+
+-- program:getBuildInfo(name of cl_program_build_info, cl_device_id)
+Program.getBuildInfo = Program:makeGetter{
+	getter = function(programID, paramName, paramValueSize, paramValue, paramValueSizeRet, deviceID)
+		return cl.clGetProgramBuildInfo(programID, deviceID, paramName, paramValueSize, paramValue, paramValueSizeRet)
+	end,
+	vars = {
+		{name='CL_PROGRAM_BUILD_STATUS', type='unsigned char*[]'},	-- TODO implement this in getinfo.lua
+		{name='CL_PROGRAM_BUILD_OPTIONS', type='cl_uint'},
+		{name='CL_PROGRAM_BUILD_LOG', type='char[]'},	-- ???
+		{name='CL_PROGRAM_BINARY_TYPE', type='cl_program_binary_type'},
+		{name='CL_PROGRAM_BUILD_GLOBAL_VARIABLE_TOTAL_SIZE', type='cl_uint'},	-- ???
+	},
+}
+
+function Program:getLog(device)
+	return self:getBuildInfo('CL_PROGRAM_BUILD_LOG', device.id)
 end
 
 return Program

@@ -12,7 +12,6 @@ local Platform = class(GetInfo())
 -- hence the manual assignment of id here:
 function Platform:init(id)
 	self.id = id	
-	Platform.super.init(self)
 end
 
 -- static method
@@ -74,19 +73,22 @@ function Platform:getDevices(args)
 
 end
 
-Platform.infoGetter = cl.clGetPlatformInfo
-Platform.infos = {
-	{name='CL_PLATFORM_PROFILE', type='string'},
-	{name='CL_PLATFORM_VERSION', type='string'},
-	{name='CL_PLATFORM_NAME', type='string'},
-	{name='CL_PLATFORM_VENDOR', type='string'},
-	{name='CL_PLATFORM_EXTENSIONS', type='string'},
-	{name='CL_PLATFORM_HOST_TIMER_RESOLUTION', type='cl_ulong'},
+Platform.getInfo = Platform:makeGetter{
+	getter = cl.clGetPlatformInfo,
+	vars = {
+		{name='CL_PLATFORM_PROFILE', type='char[]'},
+		{name='CL_PLATFORM_VERSION', type='char[]'},
+		{name='CL_PLATFORM_NAME', type='char[]'},
+		{name='CL_PLATFORM_VENDOR', type='char[]'},
+		{name='CL_PLATFORM_EXTENSIONS', type='char[]', separator=' '},
+		{name='CL_PLATFORM_HOST_TIMER_RESOLUTION', type='cl_ulong'},
+	},
 }
+
 function Platform:getProfile() return self:getInfo'CL_PLATFORM_PROFILE' end
 function Platform:getVersion() return self:getInfo'CL_PLATFORM_VERSION' end
 function Platform:getName() return self:getInfo'CL_PLATFORM_NAME' end
 function Platform:getVendor() return self:getInfo'CL_PLATFORM_VENDOR' end
-function Platform:getExtensions() return self:getInfoStrList'CL_PLATFORM_EXTENSIONS' end
+function Platform:getExtensions() return self:getInfo'CL_PLATFORM_EXTENSIONS' end
 
 return Platform

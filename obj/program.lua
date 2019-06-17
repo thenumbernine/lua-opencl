@@ -114,7 +114,7 @@ function CLProgram:compile(args)
 	-- this is also being fudged in
 	-- I need to straighten this all out
 	-- TODO make this compat with caching?
-	if args.dontLink then
+	if args and args.dontLink then
 		local code, binaries
 		if self.binaries then
 			binaries = self.binaries

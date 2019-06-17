@@ -27,28 +27,26 @@ function Event.waitForEvents(...)
 	classert(cl.clWaitForEvents(n, n > 0 and events or nil))
 end
 
--- for getInfo
-
-Event.infoGetter = cl.clGetEventInfo
-
-Event.infos = {
-    {name='CL_EVENT_COMMAND_QUEUE', type='cl_command_queue'},
-    {name='CL_EVENT_COMMAND_TYPE', type='cl_command_type'},
-    {name='CL_EVENT_REFERENCE_COUNT', type='cl_uint'},
-    {name='CL_EVENT_COMMAND_EXECUTION_STATUS', type='cl_int'},
-    {name='CL_EVENT_CONTEXT', type='cl_context'},
+Event.getInfo = Event:makeGetter{
+	getter = cl.clGetEventInfo,
+	vars = {
+		{name='CL_EVENT_COMMAND_QUEUE', type='cl_command_queue'},
+		{name='CL_EVENT_COMMAND_TYPE', type='cl_command_type'},
+		{name='CL_EVENT_REFERENCE_COUNT', type='cl_uint'},
+		{name='CL_EVENT_COMMAND_EXECUTION_STATUS', type='cl_int'},
+		{name='CL_EVENT_CONTEXT', type='cl_context'},
+	},
 }
 
-function Event:getProfilingInfo(name)
-	local param = ffi.new('cl_ulong[1]', 0)
-	classert(cl.clGetEventProfilingInfo(self.id, cl[name], ffi.sizeof(param), param, nil))
-	return param[0]
-end
---[[ TODO same thing as getInfo, but for multiple functions or something
-	F(cl_profiling_info, CL_PROFILING_COMMAND_QUEUED, cl_ulong) \
-    F(cl_profiling_info, CL_PROFILING_COMMAND_SUBMIT, cl_ulong) \
-    F(cl_profiling_info, CL_PROFILING_COMMAND_START, cl_ulong) \
-    F(cl_profiling_info, CL_PROFILING_COMMAND_END, cl_ulong) \
---]]
+Event.getProfilingInfo = Event:makeGetter{
+	getter = cl.clGetEventProfilingInfo,
+	vars = {
+		{name='CL_PROFILING_COMMAND_QUEUED', type='cl_ulong'},
+		{name='CL_PROFILING_COMMAND_SUBMIT', type='cl_ulong'},
+		{name='CL_PROFILING_COMMAND_START', type='cl_ulong'},
+		{name='CL_PROFILING_COMMAND_END', type='cl_ulong'},
+		{name='CL_PROFILING_COMMAND_COMPLETE', type=''},
+	},
+}
 
 return Event

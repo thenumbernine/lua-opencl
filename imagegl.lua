@@ -4,10 +4,28 @@ local gl = require 'ffi.OpenGL'
 local ffi = require 'ffi'
 local bit = require 'bit'
 local classertparam = require 'cl.assertparam'
-
 local Memory = require 'cl.memory'
+local GetInfo = require 'cl.getinfo'
 
-local Image = class(Memory)
+local Image = class(GetInfo(Memory))
+
+-- TODO verify that this goes with the clCreateFromGLTexture function below
+Image.getInfo = Image:makeGetter{
+	getter = cl.clGetImageInfo,
+	vars = {
+		{name='CL_IMAGE_FORMAT', type=''},
+		{name='CL_IMAGE_ELEMENT_SIZE', type=''},
+		{name='CL_IMAGE_ROW_PITCH', type=''},
+		{name='CL_IMAGE_SLICE_PITCH', type=''},
+		{name='CL_IMAGE_WIDTH', type=''},
+		{name='CL_IMAGE_HEIGHT', type=''},
+		{name='CL_IMAGE_DEPTH', type=''},
+		{name='CL_IMAGE_ARRAY_SIZE', type=''},
+		{name='CL_IMAGE_BUFFER', type=''},
+		{name='CL_IMAGE_NUM_MIP_LEVELS', type=''},
+		{name='CL_IMAGE_NUM_SAMPLES', type=''},
+	},
+}
 
 local ImageGL = class(Image)
 

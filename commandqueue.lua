@@ -5,16 +5,17 @@ local cl = require 'ffi.OpenCL'
 local classert = require 'cl.assert'
 local classertparam = require 'cl.assertparam'
 local Wrapper = require 'cl.wrapper'
+local GetInfo = require 'cl.getinfo'
 
 -- here and commandqueue.lua
 local function ffi_new_table(T, src)
 	return ffi.new(T..'['..#src..']', src)
 end
 
-local CommandQueue = class(Wrapper(
+local CommandQueue = class(GetInfo(Wrapper(
 	'cl_command_queue',
 	cl.clRetainCommandQueue,
-	cl.clReleaseCommandQueue))
+	cl.clReleaseCommandQueue)))
 
 --[[
 args
@@ -237,5 +238,17 @@ end
 function CommandQueue:finish()
 	cl.clFinish(self.id)
 end
+
+CommandQueue.getInfo = CommandQueue:makeGetter{
+	getter = cl.clGetCommandQueueInfo,
+	vars = {
+		{name='CL_QUEUE_CONTEXT', type=''},
+		{name='CL_QUEUE_DEVICE', type=''},
+		{name='CL_QUEUE_REFERENCE_COUNT', type=''},
+		{name='CL_QUEUE_PROPERTIES', type=''},
+		{name='CL_QUEUE_SIZE', type=''},
+		{name='CL_QUEUE_DEVICE_DEFAULT', type=''},
+	},
+}
 
 return CommandQueue

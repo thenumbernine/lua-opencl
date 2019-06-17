@@ -163,7 +163,7 @@ function CLKernel:setSizeProps()
 io.stderr:write('!!!! kernel has no domain -- skipping setSizeProps !!!!\n')
 	end
 	
-	self.maxWorkGroupSize = tonumber(self.obj:getWorkGroupInfo(self.env.device, 'CL_KERNEL_WORK_GROUP_SIZE'))
+	self.maxWorkGroupSize = tonumber(self.obj:getWorkGroupInfo('CL_KERNEL_WORK_GROUP_SIZE', self.env.device))
 
 	self.localSize1d = math.min(self.maxWorkGroupSize, tonumber(self.domain.size:volume()))
 
