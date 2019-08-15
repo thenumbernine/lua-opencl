@@ -23,7 +23,9 @@ local real = fp64 and 'double' or 'float'
 print('using real',real)
 
 local ctx = require 'cl.context'{platform=platform, device=device}
-local cmds = require 'cl.commandqueue'{context=ctx, device=device}
+
+local cl = require 'ffi.OpenCL'
+local cmds = require 'cl.commandqueue'{context=ctx, device=device, properties=cl.CL_QUEUE_PROFILING_ENABLE}
 
 local code =
 '#define N '..n..'\n'..
@@ -62,8 +64,12 @@ cmds:enqueueWriteBuffer{buffer=bBuffer, block=true, size=n*ffi.sizeof(real), ptr
 
 local testKernel = program:kernel('test', cBuffer, aBuffer, bBuffer)
 
-cmds:enqueueNDRangeKernel{kernel=testKernel, globalSize=n, localSize=16}
-
+local event = require 'cl.event'()
+cmds:enqueueNDRangeKernel{kernel=testKernel, globalSize=n, localSize=16, event=event}
+cmds:finish()
+local start = event:getProfilingInfo'CL_PROFILING_COMMAND_START'
+local fin = event:getProfilingInfo'CL_PROFILING_COMMAND_END'
+print('duration', tonumber(fin - start)..' ns')
 cmds:enqueueReadBuffer{buffer=cBuffer, block=true, size=n*ffi.sizeof(real), ptr=cMem}
 for i=0,n-1 do
 	io.write(aMem[i],'*',bMem[i],'=',cMem[i],'\t')
