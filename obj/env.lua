@@ -4,7 +4,7 @@ Honestly lua-cl was just a port of cl.hpp -- no wrapping classes
 This is the wrapping classes for cl.hpp
 
 cl environment for execution
-handles platform, device, command queue
+handles platform, devices, command queue
 glSharing? fp64?
 local sizes, global size
 and ffi typedefs to match the OpenCL types
@@ -48,13 +48,21 @@ end
 
 local CLEnv = class()
 
-local function get64bit(list, precision)
+local function isFP64(obj)
+	return not not obj:getExtensions():mapi(string.lower):find(nil, function(ext) return ext:match'cl_.*_fp64' end)
+end
+
+local function isFP16(obj)
+	return not not obj:getExtensions():mapi(string.lower):find(nil, function(ext) return ext:match'cl_.*_fp16' end)
+end
+
+local function getForPrecision(list, precision)
 	local all = list:mapi(function(item)
 		local exts = item:getExtensions():mapi(string.lower)
 		return {
-			item=item, 
-			fp64=not not exts:find(nil, function(ext) return ext:match'cl_.*_fp64' end),
-			fp16=not not exts:find(nil, function(ext) return ext:match'cl_.*_fp16' end),
+			item = item, 
+			fp64 = isFP64(item),
+			fp16 = isFP16(item),
 		}
 	end)
 	-- choose double if we must
@@ -73,8 +81,7 @@ local function get64bit(list, precision)
 		end)
 	end
 
-	local best = all[1]
-	return best.item, best.fp64, best.fp16
+	return all:mapi(function(o) return o.item end)
 end
 
 
@@ -84,11 +91,11 @@ local function getterForIdent(ident, identType)
 	return function(objs)
 		for i,obj in ipairs(objs) do
 			if type(ident) == 'nil' then
-				return obj
+				return {obj}
 			elseif type(ident) == 'number' then
-				if ident == i then return obj end
+				if ident == i then return {obj} end
 			elseif type(ident) == 'string' then
-				if ident == obj:getName() then return obj end
+				if ident == obj:getName() then return {obj} end
 			end
 		end
 		error("couldn't find "..identType)
@@ -111,14 +118,22 @@ local function getCmdline(...)
 end
 
 -- predefined option for args.getPlatform
+-- () -> ( (platform list, precision) -> platform )
 function CLEnv.getPlatformFromCmdLine(...)
-	return getterForIdent(getCmdline(...).platform, 'platform')
+	local cmdline = getCmdline(...)
+	return getterForIdent(cmdline.platform, 'platform')
 end
 
--- predefined option for args.getDevice
-function CLEnv.getDeviceFromCmdLine(...)
-	local device = getCmdline(...).device
-	return device and getterForIdent(device, 'device')
+-- Predefined option for args.getDevices
+-- () -> ( (platform list, precision) -> platform )
+-- This allows for device=1 or "device=Intel OpenCL"
+-- But does not yet handle multiple devices
+function CLEnv.getDevicesFromCmdLine(devices, ...)
+	local cmdline = getCmdline(devices, ...)
+	if cmdline.device then
+		return getterForIdent(cmdline.device, 'device')
+	end
+	return devices
 end
 
 
@@ -144,41 +159,59 @@ function CLEnv:init(args)
 	
 	local platforms = require 'cl.platform'.getAll()
 	-- khr_fp16 isn't set on the platform, but it is on the device
-	self.platform = (args.getPlatform or get64bit)(platforms, precision == 'half' and 'float' or precision)
+	local getter = args.getPlatform or getForPrecision
+	assert(getter, "expected either args.getPlatform or getForPrecision to exist")
+	platforms = getter(platforms, precision == 'half' and 'float' or precision)
+	self.platform = assert(platforms[1], "couldn't find any platforms with precision "..tostring(precision))
 	if self.verbose then
 		print(self.platform:getName())
 	end
 
-	local fp64
-	self.device, fp64 = args.getDevice 
-		and args.getDevice(self.platform:getDevices())
-		or get64bit(self.platform:getDevices{[args.cpu and 'cpu' or 'gpu']=true}, precision)
+	self.devices = self.platform:getDevices({[args.cpu and 'cpu' or 'gpu'] = true})
+	if args.getDevices then
+		self.devices = args.getDevices(self.devices)
+assert(self.devices)
+	else
+		self.devices = getForPrecision(self.devices, precision)
+		if #self.devices == 0 then
+			error("couldn't get any devices for precision "..tostring(precision))
+		end
+	end
+assert(self.devices)
+
 	if self.verbose then
-		print(self.device:getName())
+		for i,device in ipairs(self.devices) do
+			print(i, device:getName())
+		end
 	end
 
-	local _, fp64, fp16 = get64bit(table{self.device}, precision)
-
-	local exts = self.device:getExtensions():mapi(string.lower)
+	local fp64 = #self.devices:filter(isFP64) == #self.devices
+	local fp16 = #self.devices:filter(isFP16) == #self.devices
 	
 	-- don't use GL sharing if we're told not to
 	if not args or args.useGLSharing ~= false then
-		self.useGLSharing = not not exts:find(nil, function(ext) 
-			return ext:match'cl_%w+_gl_sharing' 
-		end)
+		self.useGLSharing = #self.devices:filter(function(device)
+			return device:getExtensions():mapi(string.lower):find(function(ext)
+				return ext:match'cl_%w+_gl_sharing'
+			end)
+		end) == #self.devices
 	end
 
 	self.ctx = require 'cl.context'{
 		platform = self.platform, 
-		device = self.device,
+		devices = self.devices,
 		glSharing = self.useGLSharing,
 	}
-	self.cmds = require 'cl.commandqueue'{	
-		context = self.ctx,
-		device = self.device,
-		properties = args and args.queue and args.queue.properties,
-	}
-	
+
+	local CommandQueue = require 'cl.commandqueue'
+	self.cmds = self.devices:mapi(function(device)
+		return CommandQueue{
+			context = self.ctx,
+			device = device,
+			properties = args and args.queue and args.queue.properties,
+		}
+	end)
+
 	-- if no size/dim is provided then don't make a base
 	-- however, this will make constructing buffers and kernels difficult 
 	-- (does that mean I shouldn't route those calls through domain -- though they are very domain-specific)
@@ -187,6 +220,9 @@ function CLEnv:init(args)
 			size = args.size,
 			dim = args.dim,
 			verbose = args.verbose,
+			
+			-- default domain gets a default device
+			device = self.devices[1],
 		}
 	end
 

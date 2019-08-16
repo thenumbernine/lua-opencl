@@ -73,7 +73,7 @@ args:
 	
 	for making the kernel:
 		ctx = env.ctx or provided
-		device = env.device or provided
+		devices = env.devices or provided
 
 	for providing the data:
 		buffer = (optional) cl buffer of ctype[count]
@@ -89,7 +89,7 @@ args:
 		header
 		ctype = env.real
 		ctx
-		device
+		devices
 		count = env.base.volume
 		allocate = env:clalloc
 		cmds
@@ -97,8 +97,8 @@ args:
 function Reduce:init(args)
 	local env = args.env
 	local ctx = assert(args.ctx or (env and env.ctx))
-	local device = assert(args.device or (env and env.device))
-	self.cmds = assert(args.cmds or (env and env.cmds))
+	local devices = assert(args.devices or (env and env.devices))
+	self.cmds = assert(args.cmds or (env and env.cmds[1]))
 	self.ctype = args.type or (env and env.real) or 'float'	
 	local name = args.name or 'reduce'
 	local header = args.header or ''
@@ -114,13 +114,14 @@ function Reduce:init(args)
 
 	self.program = require 'cl.program'{
 		context = ctx,
-		devices = {device},
+		devices = devices,
 		code = code,
 	}
 	
 	self.kernel = self.program:kernel(name)
 
-	self.maxWorkGroupSize = tonumber(self.kernel:getWorkGroupInfo('CL_KERNEL_WORK_GROUP_SIZE', device))
+	-- how to handle multiple devices ...
+	self.maxWorkGroupSize = tonumber(self.kernel:getWorkGroupInfo('CL_KERNEL_WORK_GROUP_SIZE', devices[1]))
 
 assert(not args.size, "size is deprecated.  use 'count' instead.")
 	self.count = assert(args.count or (env and env.base.volume))

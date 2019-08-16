@@ -7,13 +7,15 @@ local CLDomain = class()
 --[[
 args:
 	env
-	size
-	dim
+	size = either a number or a table of numbers
+	dim = optional, default is #size
+	device = optional, default is env.devices[1]
 --]]
 function CLDomain:init(args)
 
 	self.verbose = args.verbose
 	self.env = assert(args.env)
+	self.device = args.device or self.env.devices[1]
 
 	-- default kernel and buffer size
 	local size = args.size
@@ -27,7 +29,7 @@ function CLDomain:init(args)
 
 	-- https://stackoverflow.com/questions/15912668/ideal-global-local-work-group-sizes-opencl
 	-- product of all local sizes must be <= max workgroup size
-	local maxWorkGroupSize = tonumber(self.env.device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
+	local maxWorkGroupSize = tonumber(self.device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
 	if self.verbose then
 		print('maxWorkGroupSize',maxWorkGroupSize)
 	end

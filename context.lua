@@ -19,27 +19,29 @@ local Context = class(GetInfo(Wrapper(
 --[[
 args:
 	platform
-	device
+	devices
 	glSharing
 --]]
 function Context:init(args)
 	assert(args)
 	local platform = assert(args.platform)
-	local device = assert(args.device)
+	local devices = assert(args.devices)
 	
 	local properties = table{
 		cl.CL_CONTEXT_PLATFORM,
 		ffi.cast('cl_context_properties', platform.id),
 	}
 	if args.glSharing then
-	
-if not device:getExtensions():mapi(string.lower):find(nil, function(s)
-	return s:match'_gl_sharing'
-end) then
-	print"warning: couldn't find gl_sharing in device extensions:"
-	print('',device:getExtensions():concat'\n\t')
+
+for _,device in ipairs(args.devices) do
+	if not device:getExtensions():mapi(string.lower):find(nil, function(s)
+		return s:match'_gl_sharing'
+	end) then
+		print("warning: couldn't find gl_sharing in device "..device:getName().." extensions:")
+		print('',device:getExtensions():concat'\n\t')
+	end
 end
-	
+
 		if ffi.os == 'OSX' then
 			ffi.cdef[[
 typedef void* CGLContextObj;
@@ -96,7 +98,7 @@ Display* glXGetCurrentDisplay();
 	properties:insert(0)
 	properties = ffi_new_table('cl_context_properties', properties)
 
-	local devices = {device.id}
+	local devices = args.devices:mapi(function(device) return device.id end)
 	local deviceIDs = ffi_new_table('cl_device_id', devices)
 
 	self.id = classertparam('clCreateContext', properties, #devices, deviceIDs, nil, nil)

@@ -6,10 +6,10 @@ local CLEnv = require 'cl.obj.env'
 -- TODO env.size optional?  for no env.base?  but env:kernel needs env.base ...
 local env = CLEnv{
 	getPlatform = CLEnv.getPlatformFromCmdLine(...),
-	getDevice = CLEnv.getDeviceFromCmdLine(...),
+	getDevices = CLEnv.getDevicesFromCmdLine(...),
 }
 
-local maxWorkGroupSize = tonumber(env.device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
+local maxWorkGroupSize = tonumber(env.devices[1]:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
 local values = table()
 local nbhd = 3
 do

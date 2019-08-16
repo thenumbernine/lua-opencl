@@ -9,18 +9,19 @@ for dim,size in ipairs(sizes) do
 	print('test '..dim..'D kernel')
 
 	local env = CLEnv{
+		verbose = true,
 		getPlatform = CLEnv.getPlatformFromCmdLine(...),
-		getDevice = CLEnv.getDeviceFromCmdLine(...),
-		size=size,
+		getDevices = CLEnv.getDevicesFromCmdLine(...),
+		size = size,
 	} 
 	local a = env:buffer{name='a', type='real', data=range(env.base.volume)}
 	local b = env:buffer{name='b', type='real', data=range(env.base.volume)}
 	local c = env:buffer{name='c', type='real'}
 	env:kernel{
 		-- testing varying-shaped domains
-		domain = env:domain{dim=1, size=sizes[1][1]},
+		domain = env:domain{dim=1, size=sizes[1][1], device=env.devices[1]},
 		argsOut = {c},
-		argsIn = {a,b},
+		argsIn = {a, b},
 		body='c[index] = a[index] * b[index];',
 	}()
 

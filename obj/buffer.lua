@@ -22,7 +22,13 @@ function CLBuffer:init(args)
 	-- TODO optionally keep track of data as self.data with self.keep flag
 end
 
-function CLBuffer:fromCPU(ptr)
+--[[
+	ptr = pointer to copy to
+	cmd = command-queue to use to copy.
+		default = self.env.cmds[1]
+--]]
+function CLBuffer:fromCPU(ptr, cmd)
+	cmd = cmd or self.env.cmds[1]
 	if type(ptr) == 'table' then	-- convert to ffi memory
 		local cptr = ffi.new(self.type..'[?]', self.count)
 		local m = math.min(#ptr, self.count)
@@ -37,16 +43,22 @@ function CLBuffer:fromCPU(ptr)
 		ptr = cptr
 	end
 	assert(type(ptr) == 'cdata')
-	self.env.cmds:enqueueWriteBuffer{buffer=self.obj, block=true, size=ffi.sizeof(self.type) * self.count, ptr=ptr}
+	cmd:enqueueWriteBuffer{buffer=self.obj, block=true, size=ffi.sizeof(self.type) * self.count, ptr=ptr}
 end
 
-function CLBuffer:toCPU(ptr)
+--[[
+ptr = pointer to use
+cmd = command-queue to use
+--]]
+function CLBuffer:toCPU(ptr, cmd)
+	cmd = cmd or self.env.cmds[1]
 	ptr = ptr or ffi.new(self.type..'[?]', self.count)
-	self.env.cmds:enqueueReadBuffer{buffer=self.obj, block=true, size=ffi.sizeof(self.type) * self.count, ptr=ptr}
+	cmd:enqueueReadBuffer{buffer=self.obj, block=true, size=ffi.sizeof(self.type) * self.count, ptr=ptr}
 	return ptr
 end
 
-function CLBuffer:fill(pattern, patternSize)
+function CLBuffer:fill(pattern, patternSize, cmd)
+	cmd = cmd or self.env.cmds[1]
 	if not pattern then pattern = 0 end
 	if type(pattern) ~= 'cdata' then
 		pattern = ffi.new(self.type..'[1]', pattern)
@@ -54,7 +66,7 @@ function CLBuffer:fill(pattern, patternSize)
 	if not patternSize then
 		patternSize = ffi.sizeof(pattern)
 	end
-	self.env.cmds:enqueueFillBuffer{
+	cmd:enqueueFillBuffer{
 		buffer = self.obj,
 		pattern = pattern,
 		patternSize = patternSize,
@@ -63,8 +75,9 @@ function CLBuffer:fill(pattern, patternSize)
 end
 
 -- TODO support for arguments.  varying size, offset, etc.
-function CLBuffer:copyFrom(src)
-	self.env.cmds:enqueueCopyBuffer{
+function CLBuffer:copyFrom(src, cmd)
+	cmd = cmd or self.env.cmds[1]
+	cmd:enqueueCopyBuffer{
 		src = src.obj,
 		dst = self.obj,
 		size = ffi.sizeof(self.type) * self.count,

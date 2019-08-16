@@ -5,7 +5,7 @@ local CLEnv = require 'cl.obj.env'
 
 local env = CLEnv{
 	getPlatform = CLEnv.getPlatformFromCmdLine(...),
-	getDevice = CLEnv.getDeviceFromCmdLine(...),
+	getDevices = CLEnv.getDevicesFromCmdLine(...),
 	size=49,
 }
 

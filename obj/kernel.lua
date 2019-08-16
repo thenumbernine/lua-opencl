@@ -124,6 +124,10 @@ function CLKernel:compile()
 	self.program:compile()
 end
 
+--[[
+how to handle multiple command queues?
+honestly, time to move this function to obj/commandqueue
+--]]
 function CLKernel:__call(...)
 	-- if we get a call request when we have no kernel/program, make sure to get one 
 	if not self.obj then
@@ -134,7 +138,7 @@ function CLKernel:__call(...)
 		self.obj:setArgs(...)
 	end
 	
-	self.env.cmds:enqueueNDRangeKernel{
+	self.env.cmds[1]:enqueueNDRangeKernel{
 		kernel = self.obj,
 		dim = self.domain.dim,
 		globalSize = (self.globalSize or self.domain.globalSize):ptr(),
@@ -154,6 +158,12 @@ local function roundup(a, b)
 	return a
 end
 
+--[[
+TODO what to do here
+these props are based on device info
+so we need one per kernel per device
+for now I'll use self.domain's device
+--]]
 local vec3sz = require 'ffi.vec.vec3sz'
 function CLKernel:setSizeProps()
 	if not self.domain then
@@ -163,7 +173,7 @@ function CLKernel:setSizeProps()
 io.stderr:write('!!!! kernel has no domain -- skipping setSizeProps !!!!\n')
 	end
 	
-	self.maxWorkGroupSize = tonumber(self.obj:getWorkGroupInfo('CL_KERNEL_WORK_GROUP_SIZE', self.env.device))
+	self.maxWorkGroupSize = tonumber(self.obj:getWorkGroupInfo('CL_KERNEL_WORK_GROUP_SIZE', self.domain.device))
 
 	self.localSize1d = math.min(self.maxWorkGroupSize, tonumber(self.domain.size:volume()))
 

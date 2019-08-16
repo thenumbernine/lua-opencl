@@ -35,7 +35,7 @@ function CLProgram:init(args)
 		-- unlike providing code or binaries, this will immediately link
 		self.obj = Program{
 			context = self.env.ctx,
-			devices = {self.env.device},
+			devices = self.env.devices,
 			programs = args.programs,
 			buildOptions = args and args.buildOptions,
 		}
@@ -123,7 +123,7 @@ function CLProgram:compile(args)
 		end
 		self.obj = Program{
 			context = self.env.ctx,
-			devices = {self.env.device},
+			devices = self.env.devices,
 			code = code,
 			binaries = binaries,
 			buildOptions = args and args.buildOptions,
@@ -137,7 +137,7 @@ function CLProgram:compile(args)
 	if self.binaries then
 		self.obj = Program{
 			context = self.env.ctx,
-			devices = {self.env.device},
+			devices = self.env.devices,
 			binaries = self.binaries,
 			buildOptions = args and args.buildOptions,
 		}
@@ -153,7 +153,7 @@ function CLProgram:compile(args)
 			local bins = require 'ext.fromlua'(bindata)
 			self.obj = Program{
 				context=self.env.ctx,
-				devices={self.env.device},
+				devices=self.env.devices,
 				binaries=bins,
 				buildOptions=args and args.buildOptions,
 				dontLink = args and args.dontLink,
@@ -161,7 +161,7 @@ function CLProgram:compile(args)
 		else
 			self.obj = Program{
 				context=self.env.ctx,
-				devices={self.env.device},
+				devices=self.env.devices,
 				code=code,
 				buildOptions=args and args.buildOptions,
 				dontLink = args and args.dontLink,

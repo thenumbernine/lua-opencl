@@ -2,11 +2,18 @@
 local ffi = require 'ffi'
 require 'ext'
 
+local function matchExt(obj, pat)
+	local exts = obj:getExtensions():mapi(string.lower)
+	return not not exts:find(nil, function(s) return s:match(pat) end)
+end
+
+local function isFP64(obj)
+	return matchExt(obj, 'cl_%w+_fp64')
+end
 
 local function get64bit(list)
 	local best = list:mapi(function(item)
-		local exts = item:getExtensions():mapi(string.lower)
-		return {item=item, fp64=exts:find(function(s) return s:match'cl_%w+_fp64' end)}
+		return {item=item, fp64=isFP64(item)}
 	end):sort(function(a,b)
 		return (a.fp64 and 1 or 0) > (b.fp64 and 1 or 0)
 	end)[1]
@@ -14,18 +21,26 @@ local function get64bit(list)
 end
 
 local platform = get64bit(require 'cl.platform'.getAll())
-local device, fp64 = get64bit(platform:getDevices{gpu=true})
+local devices = platform:getDevices{gpu=true}:mapi(function(device)
+	return isFP64(device) and device
+end)
+for i,device in ipairs(devices) do
+	print('device '..i..': '..tostring(device:getName()))
+end
 
-print('device', device:getName())
+local fp64 = #devices:filter(isFP64) == #devices
 
 local n = 64
 local real = fp64 and 'double' or 'float'
 print('using real',real)
 
-local ctx = require 'cl.context'{platform=platform, device=device}
+local ctx = require 'cl.context'{platform=platform, devices=devices}
 
 local cl = require 'ffi.OpenCL'
-local cmds = require 'cl.commandqueue'{context=ctx, device=device, properties=cl.CL_QUEUE_PROFILING_ENABLE}
+local CommandQueue = require 'cl.commandqueue'
+local cmds = devices:mapi(function(device)
+	return CommandQueue{context=ctx, device=device, properties=cl.CL_QUEUE_PROFILING_ENABLE}
+end)
 
 local code =
 '#define N '..n..'\n'..
@@ -43,7 +58,8 @@ kernel void test(
 }
 ]]
 
-local program = require 'cl.program'{context=ctx, devices={device}, code=code}
+local Program = require 'cl.program'
+local program = Program{context=ctx, devices=devices, code=code}
 
 -- gpu mem
 local aBuffer = ctx:buffer{rw=true, size=n*ffi.sizeof(real)}
@@ -59,18 +75,18 @@ for i=0,n-1 do
 	bMem[i] = i+1
 end
 
-cmds:enqueueWriteBuffer{buffer=aBuffer, block=true, size=n*ffi.sizeof(real), ptr=aMem}
-cmds:enqueueWriteBuffer{buffer=bBuffer, block=true, size=n*ffi.sizeof(real), ptr=bMem}
+cmds[1]:enqueueWriteBuffer{buffer=aBuffer, block=true, size=n*ffi.sizeof(real), ptr=aMem}
+cmds[1]:enqueueWriteBuffer{buffer=bBuffer, block=true, size=n*ffi.sizeof(real), ptr=bMem}
 
 local testKernel = program:kernel('test', cBuffer, aBuffer, bBuffer)
 
 local event = require 'cl.event'()
-cmds:enqueueNDRangeKernel{kernel=testKernel, globalSize=n, localSize=16, event=event}
-cmds:finish()
+cmds[1]:enqueueNDRangeKernel{kernel=testKernel, globalSize=n, localSize=16, event=event}
+cmds[1]:finish()
 local start = event:getProfilingInfo'CL_PROFILING_COMMAND_START'
 local fin = event:getProfilingInfo'CL_PROFILING_COMMAND_END'
 print('duration', tonumber(fin - start)..' ns')
-cmds:enqueueReadBuffer{buffer=cBuffer, block=true, size=n*ffi.sizeof(real), ptr=cMem}
+cmds[1]:enqueueReadBuffer{buffer=cBuffer, block=true, size=n*ffi.sizeof(real), ptr=cMem}
 for i=0,n-1 do
 	io.write(aMem[i],'*',bMem[i],'=',cMem[i],'\t')
 end

@@ -12,10 +12,10 @@ for i,platform in ipairs(platforms) do
 		print()
 		print('-device '..i)
 		device:printInfo()
-		
-		local context = require 'cl.context'(table({platform=platform, device=device}))
-		print()
-		print'--context'
-		context:printInfo()
 	end
+
+	local context = require 'cl.context'(table({platform=platform, devices=devices}))
+	print()
+	print'--context'
+	context:printInfo()
 end
