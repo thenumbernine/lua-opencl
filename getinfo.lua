@@ -364,7 +364,11 @@ if var.type == nil or var.type == '' then error("you haven't defined the type fo
 
 	function template:printInfo()
 		for _,var in ipairs(self.printVars) do
-			print(var.name, tolua(self:getInfo(var.name)))
+			xpcall(function()
+				print(var.name, tolua(self:getInfo(var.name)))
+			end, function(err)
+				print(var.name, 'error: '..err)
+			end)
 		end
 	end
 
