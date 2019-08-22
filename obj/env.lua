@@ -224,6 +224,7 @@ assert(self.devices)
 			-- default domain gets a default device
 			device = self.devices[1],
 		}
+		self.dim = self.dim or self.base.dim
 	end
 
 	-- initialize types
@@ -315,7 +316,7 @@ function CLEnv:clalloc(size, name, ctype, readwrite)
 	if self.verbose then
 		print((name and (name..' ') or '')..'allocating '..tostring(size)..' bytes of type '..ctype..' size '..ffi.sizeof(ctype)..', total '..tostring(self.totalGPUMem)..' bytes')
 	end
-	return self.ctx:buffer{[readwrite]=true, size=size}
+	return self.ctx:buffer{readwrite=readwrite, size=size}
 end
 
 function CLEnv:program(args)

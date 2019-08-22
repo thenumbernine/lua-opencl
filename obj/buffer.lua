@@ -1,5 +1,7 @@
 local class = require 'ext.class'
 local ffi = require 'ffi'
+local cl = require 'ffi.OpenCL'
+local classertparam = require 'cl.assertparam'
 
 local CLBuffer = class()
 
@@ -82,6 +84,36 @@ function CLBuffer:copyFrom(src, cmd)
 		dst = self.obj,
 		size = ffi.sizeof(self.type) * self.count,
 	}
+end
+
+--[[
+args:
+	flags = read/write flags.
+	
+	TODO use origin and size, use bytes, instead of treating buffers like arrays
+	start = optional, default 0
+	count = optional, default self.count * sizeof(self.type)
+--]]
+function CLBuffer:subBuffer(args)
+	local start = args.start or 0
+	local count = args.count or self.count
+	local origin = start * ffi.sizeof(self.type)
+	local size = count * ffi.sizeof(self.type)
+
+	return setmetatable({
+		obj = self.obj:createSubBuffer{
+			readwrite = self.readwrite,
+			origin = origin,
+			size = size,
+		},
+		env = self.env,
+		name = 'subbuffer_'..tostring(self):sub(10),
+		type = self.type,
+		start = start,
+		count = count,
+		readwrite = self.readwrite,
+		constant = args.constant,
+	}, CLBuffer)
 end
 
 return CLBuffer

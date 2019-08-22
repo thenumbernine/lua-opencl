@@ -30,6 +30,7 @@ typedef struct ]]..gcCType..' '..gcCType..[[;
 	})
 
 	local template = class()
+	template.gcCType = gcCType
 
 	-- TODO only use gc.ptr[0] instead of id?
 	function template:init(id)
