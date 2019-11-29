@@ -98,7 +98,7 @@ Display* glXGetCurrentDisplay();
 	properties:insert(0)
 	properties = ffi_new_table('cl_context_properties', properties)
 
-	local devices = args.devices:mapi(function(device) return device.id end)
+	local devices = table.mapi(args.devices, function(device) return device.id end)
 	local deviceIDs = ffi_new_table('cl_device_id', devices)
 
 	self.id = classertparam('clCreateContext', properties, #devices, deviceIDs, nil, nil)
