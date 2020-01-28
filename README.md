@@ -1,17 +1,17 @@
-lua port of 
-1. the cl.hpp file
-2. my CLCommon code
+OpenCL bindings / OOP for Lua.
 
-I'm going to create wrapper classes (just like I do with my 'gl' project)
-But should I put them in the 'cl' directly, and the cl.hpp equivalent functions elsewhere?
-or should I put them elsewhere and leave cl.hpp here?  This for now.  I'll put the wrapper classes in the obj folder.
+This library is a mess.  The first thing I did with it was port the cl.hpp into Lua.  Next, I added to it some quick initialization code as you can find in the CLCommon project. 
+Next I made OOP-ish port similar to my lua-gl project.  
+The two are different APIs at different levels of abstraction, so I made the latter sit on top of the former.
 
-Dependencies:
-* luajit
-* my lua-ext project
-* my lua-template project
-* my lua-ffi-bindings repo
-* I am half tempted to change the require 'ffi.OpenGL' to require 'gl' and make it depend on my lua-gl project as well, but not until I do use this in a GLES environment.
+### Dependencies:
+
+- LuaJIT
+- https://github.com/thenumbernine/lua-ext
+- https://github.com/thenumbernine/lua-template
+- https://github.com/thenumbernine/lua-ffi-bindings (OpenCL, OpenGL if you use 'glSharing', ffi-based vector types)
+
+### Example:
 
 Here's an example of the code:
 

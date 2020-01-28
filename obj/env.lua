@@ -129,11 +129,11 @@ end
 -- This allows for device=1 or "device=Intel OpenCL"
 -- But does not yet handle multiple devices
 function CLEnv.getDevicesFromCmdLine(devices, ...)
-	local cmdline = getCmdline(devices, ...)
+	local cmdline = getCmdline(...)
 	if cmdline.device then
 		return getterForIdent(cmdline.device, 'device')
 	end
-	return devices
+	return function(...) return ... end
 end
 
 
@@ -169,15 +169,13 @@ function CLEnv:init(args)
 
 	self.devices = self.platform:getDevices({[args.cpu and 'cpu' or 'gpu'] = true})
 	if args.getDevices then
-		self.devices = args.getDevices(self.devices)
-assert(self.devices)
+		self.devices = table(args.getDevices(self.devices))
 	else
-		self.devices = getForPrecision(self.devices, precision)
+		self.devices = table(getForPrecision(self.devices, precision))
 		if #self.devices == 0 then
 			error("couldn't get any devices for precision "..tostring(precision))
 		end
 	end
-assert(self.devices)
 
 	if self.verbose then
 		for i,device in ipairs(self.devices) do
