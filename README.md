@@ -9,7 +9,8 @@ The two are different APIs at different levels of abstraction, so I made the lat
 - LuaJIT
 - https://github.com/thenumbernine/lua-ext
 - https://github.com/thenumbernine/lua-template
-- https://github.com/thenumbernine/lua-ffi-bindings (OpenCL, OpenGL if you use 'glSharing', ffi-based vector types)
+- https://github.com/thenumbernine/lua-ffi-bindings (OpenCL, OpenGL if you use 'glSharing')
+- https://github.com/thenumbernine/vec-ffi-lua
 
 ### Example:
 
