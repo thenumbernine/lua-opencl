@@ -164,7 +164,7 @@ these props are based on device info
 so we need one per kernel per device
 for now I'll use self.domain's device
 --]]
-local vec3sz = require 'ffi.vec.vec3sz'
+local vec3sz = require 'vec-ffi.vec3sz'
 function CLKernel:setSizeProps()
 	if not self.domain then
 -- if no env.domain, kernel.domain, or program.domain is provided

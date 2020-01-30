@@ -1,6 +1,6 @@
 local class = require 'ext.class'
 local table = require 'ext.table'
-local vec3sz = require 'ffi.vec.vec3sz'
+local vec3sz = require 'vec-ffi.vec3sz'
 
 local CLDomain = class()
 
