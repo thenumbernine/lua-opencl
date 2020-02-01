@@ -1,8 +1,16 @@
 OpenCL bindings / OOP for Lua.
 
-This library is a mess.  The first thing I did with it was port the cl.hpp into Lua.  Next, I added to it some quick initialization code as you can find in the CLCommon project. 
+This library is a mess.
+
+The first thing I did with it was port the cl.hpp into Lua.
+
+Next, I added to it some quick initialization code as you can find in the CLCommon project. 
+
 Next I made OOP-ish port similar to my lua-gl project.  
+
 The two are different APIs at different levels of abstraction, so I made the latter sit on top of the former.
+
+TODO: get rid of the cl.hpp stuff and just use the C API.
 
 ### Dependencies:
 
