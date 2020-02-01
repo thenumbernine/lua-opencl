@@ -70,9 +70,9 @@ function CLDomain:init(args)
 	-- round up to next localSize factor
 	self.globalSize = vec3sz()
 	for i=0,2 do
-		self.globalSize:ptr()[i] = (self.size:ptr()[i] / self.localSize:ptr()[i]) * self.localSize:ptr()[i]
-		if self.size:ptr()[i] % self.localSize:ptr()[i] ~= 0 then
-			self.globalSize:ptr()[i] = self.globalSize:ptr()[i] + self.localSize:ptr()[i]
+		self.globalSize.s[i] = (self.size.s[i] / self.localSize.s[i]) * self.localSize.s[i]
+		if self.size.s[i] % self.localSize.s[i] ~= 0 then
+			self.globalSize.s[i] = self.globalSize.s[i] + self.localSize.s[i]
 		end
 	end
 	if self.verbose then

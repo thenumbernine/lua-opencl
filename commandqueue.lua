@@ -131,7 +131,6 @@ args:
 	globalSize
 	localSize
 --]]
-local size_t_ptr_type = ffi.typeof(ffi.new('size_t[1]')+1)
 local offset = ffi.new('size_t[3]')
 local globalSize = ffi.new('size_t[3]')
 local localSize = ffi.new('size_t[3]')
@@ -153,9 +152,7 @@ local function fillParam(dim, src, dst)
 		for i=1,dim do
 			dst[i-1] = src[i]
 		end
-	elseif type(src) == 'cdata'
-	and ffi.typeof(src) == size_t_ptr_type
-	then
+	elseif type(src) == 'cdata' then
 		assert(dim)
 		for i=0,dim-1 do
 			dst[i] = src[i]

@@ -137,12 +137,12 @@ function CLKernel:__call(...)
 	if select('#', ...) > 0 then
 		self.obj:setArgs(...)
 	end
-	
+
 	self.env.cmds[1]:enqueueNDRangeKernel{
 		kernel = self.obj,
 		dim = self.domain.dim,
-		globalSize = (self.globalSize or self.domain.globalSize):ptr(),
-		localSize = (self.localSize or self.domain.localSize):ptr(),
+		globalSize = (self.globalSize or self.domain.globalSize).s,
+		localSize = (self.localSize or self.domain.localSize).s,
 		-- these have to be specified beforehand
 		wait = self.wait,
 		event = self.event,
