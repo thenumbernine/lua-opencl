@@ -313,6 +313,11 @@ typedef <?=real?>8 real8;
 end
 
 function CLEnv:buffer(args)
+	-- if args.count is specified then we don't need to assume things from the domain
+	if args and args.count then
+		return require 'cl.obj.buffer'(table(args, {env=self}))
+	end
+	-- otherwise depend on the domain (or env's domain)'s size
 	return (args and args.domain or self.base):buffer(args)
 end
 
