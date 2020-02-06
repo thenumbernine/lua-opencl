@@ -10,10 +10,11 @@ local sizes, global size
 and ffi typedefs to match the OpenCL types
 --]]
 
+local ffi = require 'ffi'
+local cl = require 'ffi.OpenCL'
 local class = require 'ext.class'
 local table = require 'ext.table'
 local string = require 'ext.string'
-local ffi = require 'ffi'
 local template = require 'template'
 
 ffi.cdef[[
@@ -148,6 +149,35 @@ function CLEnv.getDevicesFromCmdLine(devices, ...)
 	return function(...) return ... end
 end
 
+-- Predefined option for args.deviceType
+-- cmdline properties:
+--	default = CL_DEVICE_TYPE_DEFAULT
+--	cpu = CL_DEVICE_TYPE_CPU
+--	gpu = CL_DEVICE_TYPE_GPU
+--	accelerator = CL_DEVICE_TYPE_ACCELERATOR
+--	all = CL_DEVICE_TYPE_ALL
+--  deviceType=<type> = specifies the type above (default|cpu|gpu|accelerator|all)
+-- 	deviceType=<number> = specifies the numeric CL device type
+local deviceTypeValueForName = {
+	default = cl.CL_DEVICE_TYPE_DEFAULT,
+	cpu = cl.CL_DEVICE_TYPE_CPU,
+	gpu = cl.CL_DEVICE_TYPE_GPU,
+	accelerator = cl.CL_DEVICE_TYPE_ACCELERATOR,
+	all = cl.CL_DEVICE_TYPE_ALL,
+}
+function CLEnv.getDeviceTypeFromCmdLine(...)
+	local cmdline = getCmdline(...)
+	local deviceType = cmdline.deviceType
+	if type(deviceType) == 'string' then 
+		deviceType = assert(deviceTypeValueForName[deviceType], "couldn't understand deviceType="..tostring(deviceType))
+	end
+	for k,v in pairs(deviceTypeValueForName) do
+		if cmdline[k] then
+			deviceType = bit.bor(deviceType or 0, v) 
+		end
+	end
+	return deviceType or cl.CL_DEVICE_TYPE_ALL
+end
 
 --[[
 args for CLEnv:
@@ -156,13 +186,20 @@ args for CLEnv:
 			honestly 'any' and 'float' are the same, because any device is going to have floating precision.
 			both of these also prefer devices with double precision.
 			but only 'double' will error out if it can't find double precision.
+	getPlatform = (optional) function(platforms) returns desired platform
+	getDevice = (optional) function(devices) returns table of desired devices
+	deviceType = (optional) function() returns CL_DEVICE_TYPE_*** 
+	cpu = (optional) only use CL_DEVICE_TYPE_CPU
+	gpu = (optional, default) only use CL_DEVICE_TYPE_GPU
+	useGLSharing = (optional) set to false to disable GL sharing
+
+args passed to CLCommandQueue:
+	queue = (optional) command-queue arguments 
 
 args passed along to CLDomain:
 	size
 	dim
 	verbose
-	queue = (optional) command-queue arguments 
-	useGLSharing = (optional) set to false to disable GL sharing
 --]]
 function CLEnv:init(args)
 	args = args or {}
@@ -179,7 +216,10 @@ function CLEnv:init(args)
 		print(self.platform:getName())
 	end
 
-	self.devices = self.platform:getDevices({[args.cpu and 'cpu' or 'gpu'] = true})
+	self.devices = self.platform:getDevices{
+		[args.cpu and 'cpu' or (args.deviceType and '' or 'gpu')] = true,
+		[args.deviceType and 'deviceType' or ''] = args.deviceType or nil,
+	}
 	if args.getDevices then
 		self.devices = table(args.getDevices(self.devices))
 	else

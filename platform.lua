@@ -54,14 +54,15 @@ function Platform:getDevices(args)
 	local Device = require 'cl.device'
 	local deviceType = args and args.deviceType
 	if args then
-		if args.default then deviceType = bit.bor(deviceType or 0 , cl.CL_DEVICE_TYPE_DEFAULT) end
-		if args.cpu then deviceType = bit.bor(deviceType or 0 , cl.CL_DEVICE_TYPE_CPU) end
-		if args.gpu then deviceType = bit.bor(deviceType or 0 , cl.CL_DEVICE_TYPE_GPU) end
-		if args.accelerator then deviceType = bit.bor(deviceType or 0 , cl.CL_DEVICE_TYPE_ACCELERATOR) end
-		if args.all then deviceType = bit.bor(deviceType or 0 , cl.CL_DEVICE_TYPE_ALL) end
+		if args.default then deviceType = bit.bor(deviceType or 0, cl.CL_DEVICE_TYPE_DEFAULT) end
+		if args.cpu then deviceType = bit.bor(deviceType or 0, cl.CL_DEVICE_TYPE_CPU) end
+		if args.gpu then deviceType = bit.bor(deviceType or 0, cl.CL_DEVICE_TYPE_GPU) end
+		if args.accelerator then deviceType = bit.bor(deviceType or 0, cl.CL_DEVICE_TYPE_ACCELERATOR) end
+		if args.all then deviceType = bit.bor(deviceType or 0, cl.CL_DEVICE_TYPE_ALL) end
 	end
 	deviceType = deviceType or cl.CL_DEVICE_TYPE_ALL
 	local n = ffi.new('cl_uint[1]',0)
+print('getting device type '..('0x%x'):format(deviceType))
 	classert(cl.clGetDeviceIDs(self.id, deviceType, 0, nil, n))
 	local ids = ffi.new('cl_device_id[?]', n[0])
 	classert(cl.clGetDeviceIDs(self.id, deviceType, n[0], ids, nil))

@@ -12,6 +12,7 @@ for dim,size in ipairs(sizes) do
 		verbose = true,
 		getPlatform = CLEnv.getPlatformFromCmdLine(...),
 		getDevices = CLEnv.getDevicesFromCmdLine(...),
+		deviceType = CLEnv.getDeviceTypeFromCmdLine(...),
 		size = size,
 	} 
 	local a = env:buffer{name='a', type='real', data=range(env.base.volume)}
