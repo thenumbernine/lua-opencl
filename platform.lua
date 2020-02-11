@@ -42,13 +42,15 @@ end
 
 --[[
 args:
+	verbose
 	one of the following:
-	deviceType
-	default
-	cpu
-	gpu
-	accelerator
-	all
+	deviceType = explicitly state the CL_DEVICE_TYPE_*, either as a constant or as a string, otherwise...
+	default = CL_DEVICE_TYPE_DEFAULT
+	cpu = CL_DEVICE_TYPE_CPU
+	gpu = CL_DEVICE_TYPE_GPU
+	accelerator = CL_DEVICE_TYPE_ACCELERATOR
+	all = CL_DEVICE_TYPE_ALL
+	
 --]]
 function Platform:getDevices(args)
 	local Device = require 'cl.device'
@@ -62,7 +64,9 @@ function Platform:getDevices(args)
 	end
 	deviceType = deviceType or cl.CL_DEVICE_TYPE_ALL
 	local n = ffi.new('cl_uint[1]',0)
-print('getting device type '..('0x%x'):format(deviceType))
+	if self.verbose then
+		print('getting device type '..('0x%x'):format(deviceType))
+	end
 	classert(cl.clGetDeviceIDs(self.id, deviceType, 0, nil, n))
 	local ids = ffi.new('cl_device_id[?]', n[0])
 	classert(cl.clGetDeviceIDs(self.id, deviceType, n[0], ids, nil))
