@@ -232,6 +232,10 @@ function CommandQueue:enqueueReleaseGLObjects(args)
 		nil))
 end
 
+function CommandQueue:flush()
+	cl.clFlush(self.id)
+end
+
 function CommandQueue:finish()
 	cl.clFinish(self.id)
 end
