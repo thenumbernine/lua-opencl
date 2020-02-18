@@ -1,3 +1,4 @@
+#!/usr/bin/env luajit
 
 local range = require 'ext.range'
 
@@ -17,4 +18,3 @@ local cMem = c:toCPU()
 for i=0,env.base.volume-1 do
 	print(aMem[i]..' * '..bMem[i]..' = '..cMem[i])
 end
-
