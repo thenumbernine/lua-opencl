@@ -18,6 +18,8 @@ args:
 		upon compile, all kernels objects are assigned and args are bound
 	domain = optional, domain passed to kernels, default results in kernels getting env.base
 	cacheFile = optional, set this to cache the binary (.bin) and source (.cl), and only rebuild the program if the source doesn't match the cache file contents
+		cacheFileCL = optional.  uses args.cacheFile..'.cl' otherwise.
+		cacheFileBin = optional.  uses args.cacheFile..'.bin' otherwise.
 	binaries = optional binaries to construct the program from.
 	programs = optional list of programs.  provide this to immediately link these programs and create an executable program.
 	code, binaries, and programs are exclusive
@@ -29,6 +31,8 @@ function CLProgram:init(args)
 	if args.code then
 		self.code = args.code
 		self.cacheFile = args.cacheFile
+		self.cacheFileCL = args.cacheFileCL
+		self.cacheFileBin = args.cacheFileBin
 	elseif args.binaries then
 		self.binaries = args.binaries
 	elseif args.programs then
@@ -144,39 +148,50 @@ function CLProgram:compile(args)
 	else
 		local code = self:getCode()
 
-		if self.cacheFile
-		and code == file[self.cacheFile..'.cl']
-		then
+		-- define either cacheFile, or define both cacheFileCL and cacheFileBin
+		local usingCache
+		local clfile, binfile
+		if self.cacheFile then
+			assert(not self.cacheFileCL, "you defined cacheFile and cacheFileCL")
+			assert(not self.cacheFileBin, "you defined cacheFile and cacheFileBin")
+			clfile = self.cacheFile..'.cl'
+			binfile = self.cacheFile..'.bin'
+			usingCache = true
+		elseif self.cacheFileCL or self.cacheFileBin then
+			clfile = assert(self.cacheFileCL, "you defined cacheFileBin but not cacheFileCL")
+			binfile = assert(self.cacheFileBin, "you defined cacheFileCL but not cacheFileBin")
+			usingCache = true
+		end
+
+		if usingCache and code == file[clfile] then
 			-- load cached
-			local binfile = self.cacheFile..'.bin'
 			local bindata = assert(file[binfile], "failed to find opencl compiled program "..binfile)
 			local bins = require 'ext.fromlua'(bindata)
 			self.obj = Program{
-				context=self.env.ctx,
-				devices=self.env.devices,
-				binaries=bins,
-				buildOptions=args and args.buildOptions,
+				context = self.env.ctx,
+				devices = self.env.devices,
+				binaries = bins,
+				buildOptions = args and args.buildOptions,
 				dontLink = args and args.dontLink,
 			}
 		else
 			self.obj = Program{
-				context=self.env.ctx,
-				devices=self.env.devices,
-				code=code,
-				buildOptions=args and args.buildOptions,
+				context = self.env.ctx,
+				devices = self.env.devices,
+				code = code,
+				buildOptions = args and args.buildOptions,
 				dontLink = args and args.dontLink,
 			}
-			
+
 			-- save cached
-			if self.cacheFile then
-				file[self.cacheFile..'.cl'] = code
+			if usingCache then
+				file[clfile] = code
 				-- save binary
 				local bins = self.obj:getBinaries()
 				-- how well does encoding binary files work ...
-				file[self.cacheFile..'.bin'] = require 'ext.tolua'(bins)
+				file[binfile] = require 'ext.tolua'(bins)
 			
 				-- [[ double check for safety ...
-				local binfile = self.cacheFile..'.bin'
 				local bindata = assert(file[binfile], "failed to find opencl compiled program "..binfile)
 				local binsCheck = require 'ext.fromlua'(bindata)
 				assert(#binsCheck == #bins, 'somehow you encoded a different number of binary blobs than you were given.')
