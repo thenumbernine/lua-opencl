@@ -150,22 +150,50 @@ function CLProgram:compile(args)
 
 		-- define either cacheFile, or define both cacheFileCL and cacheFileBin
 		local usingCache
-		local clfile, binfile
+		local clfn, binfn
 		if self.cacheFile then
 			assert(not self.cacheFileCL, "you defined cacheFile and cacheFileCL")
 			assert(not self.cacheFileBin, "you defined cacheFile and cacheFileBin")
-			clfile = self.cacheFile..'.cl'
-			binfile = self.cacheFile..'.bin'
+			clfn = self.cacheFile..'.cl'
+			binfn = self.cacheFile..'.bin'
 			usingCache = true
 		elseif self.cacheFileCL or self.cacheFileBin then
-			clfile = assert(self.cacheFileCL, "you defined cacheFileBin but not cacheFileCL")
-			binfile = assert(self.cacheFileBin, "you defined cacheFileCL but not cacheFileBin")
+			clfn = assert(self.cacheFileCL, "you defined cacheFileBin but not cacheFileCL")
+			binfn = assert(self.cacheFileBin, "you defined cacheFileCL but not cacheFileBin")
 			usingCache = true
 		end
 
-		if usingCache and code == file[clfile] then
-			-- load cached
-			local bindata = assert(file[binfile], "failed to find opencl compiled program "..binfile)
+		-- if the code matches what is cached then use the cached binary
+		local cacheMatches
+		if usingCache 
+		and code == file[clfn] 
+		then
+			cacheMatches = true
+		end
+
+		--[[ should we verify that the source file was not modified?
+		-- this is starting to get out of the scope of the cl library ...
+		if cacheMatches then
+			local found, lfs = pcall(require, 'lfs')
+			-- if lfs is not found then always reload the program
+			if not found then
+				-- lfs not found, can't determine last file write time, can't verify that the cached code is correct
+				cacheMatches = false
+			else
+				local clattr = lfs.attributes(clfn)
+				local binattr = lfs.attributes(binfn)
+				if clattr and binattr then
+					if clattr.change > binattr.change then
+						cacheMatches = false
+					end
+				end
+			end
+		end
+		--]]
+
+		if cacheMatches then
+			-- load cached binary
+			local bindata = assert(file[binfn], "failed to find opencl compiled program "..binfn)
 			local bins = require 'ext.fromlua'(bindata)
 			self.obj = Program{
 				context = self.env.ctx,
@@ -185,14 +213,14 @@ function CLProgram:compile(args)
 
 			-- save cached
 			if usingCache then
-				file[clfile] = code
+				file[clfn] = code
 				-- save binary
 				local bins = self.obj:getBinaries()
 				-- how well does encoding binary files work ...
-				file[binfile] = require 'ext.tolua'(bins)
+				file[binfn] = require 'ext.tolua'(bins)
 			
 				-- [[ double check for safety ...
-				local bindata = assert(file[binfile], "failed to find opencl compiled program "..binfile)
+				local bindata = assert(file[binfn], "failed to find opencl compiled program "..binfn)
 				local binsCheck = require 'ext.fromlua'(bindata)
 				assert(#binsCheck == #bins, 'somehow you encoded a different number of binary blobs than you were given.')
 				for i=1,#bins do
