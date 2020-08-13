@@ -1,6 +1,7 @@
 local class = require 'ext.class'
 local table = require 'ext.table'
 local file = require 'ext.file'
+local io = require 'ext.io'
 local Memory = require 'cl.memory'
 local Program = require 'cl.program'
 
@@ -168,7 +169,13 @@ function CLProgram:compile(args)
 		if usingCache 
 		and code == file[clfn] 
 		then
-			cacheMatches = true
+			if io.fileexists(binfn) then
+				cacheMatches = true
+			else
+				-- we have a cl file but not a bin file ... 
+				-- cache doesn't match clearly.
+				-- delete the cl file too?  no need to, why destroy what someone might be working on?
+			end
 		end
 
 		--[[ should we verify that the source file was not modified?
@@ -203,6 +210,13 @@ function CLProgram:compile(args)
 				dontLink = args and args.dontLink,
 			}
 		else
+			-- save cached code before compiling
+			-- also delete the cached bin so that the two don't go out of sync
+			if usingCache then
+				file[clfn] = code
+				file[binfn] = nil
+			end
+
 			self.obj = Program{
 				context = self.env.ctx,
 				devices = self.env.devices,
@@ -211,9 +225,7 @@ function CLProgram:compile(args)
 				dontLink = args and args.dontLink,
 			}
 
-			-- save cached
 			if usingCache then
-				file[clfn] = code
 				-- save binary
 				local bins = self.obj:getBinaries()
 				-- how well does encoding binary files work ...
