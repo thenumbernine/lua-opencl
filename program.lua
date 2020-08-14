@@ -14,6 +14,8 @@ local Program = class(GetInfo(Wrapper(
 	cl.clRetainProgram,
 	cl.clReleaseProgram)))
 
+Program.showCodeOnError = true
+
 --[[
 args:
 	context
@@ -88,7 +90,9 @@ function Program:init(args)
 		else
 			local success, message = self:build(args.devices, args.buildOptions)
 			if not success then
-				if code then print(require 'template.showcode'(code)) end
+				if code and self.showCodeOnError then 
+					print(require 'template.showcode'(code)) 
+				end
 				error(message)
 			end
 		end
