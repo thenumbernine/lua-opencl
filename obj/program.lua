@@ -1,7 +1,7 @@
 local class = require 'ext.class'
 local table = require 'ext.table'
 local file = require 'ext.file'
-local io = require 'ext.io'
+local os = require 'ext.os'
 local Memory = require 'cl.memory'
 local Program = require 'cl.program'
 
@@ -169,7 +169,7 @@ function CLProgram:compile(args)
 		if usingCache 
 		and code == file[clfn] 
 		then
-			if io.fileexists(binfn) then
+			if os.fileexists(binfn) then
 				cacheMatches = true
 			else
 				-- we have a cl file but not a bin file ... 

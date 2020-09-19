@@ -189,7 +189,14 @@ function Reduce:__call(buffer, reduceSize)
 		reduceSize = nextSize
 	end
 	self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.result}
-	
+
+--[[ debugging ... I think I'm writing oob
+print('globalSize', globalSize)
+print('localSize', localSize)
+print('self.ctypeSize', self.ctypeSize)
+print('self.result', self.result)
+print('self.result[0]', self.result[0])
+--]]	
 	return self.result[0]
 end
 
