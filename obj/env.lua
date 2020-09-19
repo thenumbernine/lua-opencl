@@ -15,6 +15,7 @@ local cl = require 'ffi.OpenCL'
 local class = require 'ext.class'
 local table = require 'ext.table'
 local string = require 'ext.string'
+local getCmdline = require 'ext.cmdline'
 local template = require 'template'
 
 ffi.cdef[[
@@ -113,21 +114,6 @@ local function getterForIdent(ident, identType)
 		end
 		error("couldn't find "..identType)
 	end
-end
-
-local function getCmdline(...)
-	local cmdline = {}
-	local fromlua = require 'ext.fromlua'
-	for _,w in ipairs{...} do
-		local k,v = w:match'^(.-)=(.*)$'
-		if k then
-			cmdline[k] = fromlua(v)
-			if cmdline[k] == nil then cmdline[k] = v end
-		else
-			cmdline[w] = true
-		end
-	end
-	return cmdline
 end
 
 -- predefined option for args.getPlatform
