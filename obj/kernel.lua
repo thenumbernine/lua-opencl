@@ -109,6 +109,9 @@ end
 }
 ]], {self=self, args=args}) or ''
 	}:concat'\n'
+
+	-- strictly forwarding to program upon :compile()
+	self.showCodeOnError = args.showCodeOnError
 end
 
 -- used for stand-alone compiling
@@ -120,7 +123,10 @@ function CLKernel:compile()
 	if self.program then
 		error("this kernel already has a program -- use program:compile")
 	end
-	self.program = self.env:program{kernels={self}}
+	self.program = self.env:program{
+		kernels = {self},
+		showCodeOnError = self.showCodeOnError,
+	}
 	self.program:compile()
 end
 

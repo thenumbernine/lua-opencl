@@ -90,7 +90,7 @@ function Program:init(args)
 		else
 			local success, message = self:build(args.devices, args.buildOptions)
 			if not success then
-				if code and self.showCodeOnError then 
+				if code and (self.showCodeOnError or args.showCodeOnError) then 
 					print(require 'template.showcode'(code)) 
 				end
 				error(message)

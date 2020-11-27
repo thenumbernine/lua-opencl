@@ -29,6 +29,10 @@ function CLProgram:init(args)
 	self.env = assert(args.env)
 	self.kernels = table(args.kernels)
 	self.domain = args.domain
+	
+	-- strictly for forwarding:
+	self.showCodeOnError = args and args.showCodeOnError or nil
+
 	if args.code then
 		self.code = args.code
 		self.cacheFile = args.cacheFile
@@ -43,6 +47,7 @@ function CLProgram:init(args)
 			devices = self.env.devices,
 			programs = args.programs,
 			buildOptions = args and args.buildOptions,
+			showCodeOnError = self.showCodeOnError,
 		}
 	end
 end
@@ -133,6 +138,7 @@ function CLProgram:compile(args)
 			binaries = binaries,
 			buildOptions = args and args.buildOptions,
 			dontLink = args and args.dontLink,
+			showCodeOnError = self.showCodeOnError,
 		}
 		return
 	end
@@ -145,6 +151,7 @@ function CLProgram:compile(args)
 			devices = self.env.devices,
 			binaries = self.binaries,
 			buildOptions = args and args.buildOptions,
+			showCodeOnError = self.showCodeOnError,
 		}
 	else
 		local code = self:getCode()
@@ -208,6 +215,7 @@ function CLProgram:compile(args)
 				binaries = bins,
 				buildOptions = args and args.buildOptions,
 				dontLink = args and args.dontLink,
+				showCodeOnError = self.showCodeOnError,
 			}
 		else
 			-- save cached code before compiling
@@ -223,6 +231,7 @@ function CLProgram:compile(args)
 				code = code,
 				buildOptions = args and args.buildOptions,
 				dontLink = args and args.dontLink,
+				showCodeOnError = self.showCodeOnError,
 			}
 
 			if usingCache then
