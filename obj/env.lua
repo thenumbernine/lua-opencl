@@ -226,17 +226,30 @@ function CLEnv:init(args)
 	
 	-- don't use GL sharing if we're told not to
 	if not args or args.useGLSharing ~= false then
-		self.useGLSharing = #self.devices:filter(function(device)
-			return device:getExtensions():mapi(string.lower):find(function(ext)
-				return ext:match'cl_%w+_gl_sharing'
+		local numDevicesWithGLSharing = #self.devices:filter(function(device, deviceIndex)
+			local exts = device:getExtensions()
+			return exts:mapi(string.lower):find(nil, function(ext)
+				local found = ext:match'cl_%w+_gl_sharing'
+				if self.verbose and found then
+					print('device '..device:getName()..' has gl sharing extension: '..ext)
+				end
+				return found
 			end)
-		end) == #self.devices
+		end)
+		if self.verbose then
+			print(numDevicesWithGLSharing..'/'..#self.devices..' devices have gl sharing')
+		end
+		self.useGLSharing = numDevicesWithGLSharing == #self.devices
+	end
+	if self.verbose then
+		print('using GL sharing: '..tostring(self.useGLSharing or false))
 	end
 
 	self.ctx = require 'cl.context'{
 		platform = self.platform, 
 		devices = self.devices,
 		glSharing = self.useGLSharing,
+		verbose = self.verbose,
 	}
 
 	local CommandQueue = require 'cl.commandqueue'

@@ -33,14 +33,14 @@ function Context:init(args)
 	}
 	if args.glSharing then
 
-for _,device in ipairs(args.devices) do
-	if not device:getExtensions():mapi(string.lower):find(nil, function(s)
-		return s:match'_gl_sharing'
-	end) then
-		print("warning: couldn't find gl_sharing in device "..device:getName().." extensions:")
-		print('',device:getExtensions():concat'\n\t')
-	end
-end
+		for _,device in ipairs(args.devices) do
+			if not device:getExtensions():mapi(string.lower):find(nil, function(s)
+				return s:match'_gl_sharing'
+			end) then
+				print("warning: couldn't find gl_sharing in device "..device:getName().." extensions:")
+				print('',device:getExtensions():concat'\n\t')
+			end
+		end
 
 		if ffi.os == 'OSX' then
 			ffi.cdef[[
@@ -66,9 +66,14 @@ typedef intptr_t HDC;
 HGLRC wglGetCurrentContext();
 HDC wglGetCurrentDC();
 ]]
-			local gl = require 'ffi.OpenGL'
+			--local gl = require 'ffi.OpenGL'
+			local gl = require 'gl'
 			local ctx = gl.wglGetCurrentContext()
 			local dc = gl.wglGetCurrentDC()
+			if args and args.verbose then
+				print('wglGetCurrentContext()', ctx)
+				print('wglGetCurrentDC()', dc)
+			end
 			if ctx == 0 or dc == 0 then
 				io.stderr:write("No GL context or DC found.  GL sharing will not be enabled.\n")
 			else
@@ -79,7 +84,7 @@ HDC wglGetCurrentDC();
 					ffi.cast('cl_context_properties', dc),
 				}
 			end
-		else
+		else	-- linux
 			ffi.cdef[[
 typedef void Display;
 typedef intptr_t GLXContext;
@@ -96,11 +101,15 @@ Display* glXGetCurrentDisplay();
 		end
 	end
 	properties:insert(0)
+	if args and args.verbose then
+		print('properties: '..require 'ext.tolua'(properties))
+	end
 	properties = ffi_new_table('cl_context_properties', properties)
 
 	local devices = table.mapi(args.devices, function(device) return device.id end)
 	local deviceIDs = ffi_new_table('cl_device_id', devices)
 
+	-- useGLSharing on windows with the AMD is failing here with error -1000: CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR
 	self.id = classertparam('clCreateContext', properties, #devices, deviceIDs, nil, nil)
 
 	Context.super.init(self, self.id)
