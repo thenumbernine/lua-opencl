@@ -7,6 +7,25 @@ local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 local classert = require 'cl.assert'
 
+local band = bit.band
+
+if not pcall(function()
+	bit.band(ffi.new'cl_command_queue_properties', ffi.new'cl_command_queue_properties')
+end) then
+	-- luajit 2.0.5, band doesn't work on int64
+	-- luajit 2.1.0 beta, it does
+	-- and on ubuntu amd opencl, cl_command_queue_properties == uint64_t
+	-- so for now I'm only seeing bits 0-3 used ...
+	band = function(a,b)
+		-- TODO test a and verify it will work, that it's not an out of bounds int
+		return bit.band(
+			tonumber(a),
+			tonumber(b)
+		)
+	end
+end
+
+
 --[[
 OpenCL #define enums are grouped.
 The prefix to each group is the cl_* type associated with the constants.
@@ -311,7 +330,7 @@ if var.type == nil or var.type == '' then error("you haven't defined the type fo
 				local usedFlagNames = table()
 				for _,bitflagName in ipairs(allBitflagNames) do
 					local bitflagValue = assert(cl[bitflagName])
-					if bit.band(result[0], bitflagValue) then
+					if band(result[0], bitflagValue) ~= 0 then
 						usedFlagNames:insert(bitflagName)
 					end
 				end

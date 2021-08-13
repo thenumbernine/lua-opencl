@@ -7,6 +7,8 @@ local classertparam = require 'cl.assertparam'
 local Wrapper = require 'cl.wrapper'
 local GetInfo = require 'cl.getinfo'
 
+local defaultEvent
+
 -- here and commandqueue.lua
 local function ffi_new_table(T, src)
 	return ffi.new(T..'['..#src..']', src)
@@ -39,8 +41,10 @@ args:
 	offset (optional) default 0
 	size
 	ptr
+	event (optional) (cl.event)
 --]]
 function CommandQueue:enqueueReadBuffer(args)
+	defaultEvent = defaultEvent or require 'cl.event'()
 	classert(cl.clEnqueueReadBuffer(
 		self.id,
 		assert(args.buffer, "expected buffer").id,
@@ -50,7 +54,7 @@ function CommandQueue:enqueueReadBuffer(args)
 		assert(args.ptr, "expected ptr"),
 		0,
 		nil,
-		nil))
+		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
 end
 
 --[[
@@ -81,6 +85,7 @@ args:
 	patternSize (optional)
 	offset (optional)
 	size (bytes)
+	event (optional) cl.event
 --]]
 local defaultPattern = ffi.new('int[1]', 0)
 function CommandQueue:enqueueFillBuffer(args)
@@ -90,6 +95,7 @@ function CommandQueue:enqueueFillBuffer(args)
 		pattern = defaultPattern
 		patternSize = ffi.sizeof'int'
 	end
+	defaultEvent = defaultEvent or require 'cl.event'()
 	classert(cl.clEnqueueFillBuffer(
 		self.id,
 		assert(args.buffer, "expected buffer").id,
@@ -99,7 +105,22 @@ function CommandQueue:enqueueFillBuffer(args)
 		assert(args.size, "expected size"),
 		0,
 		nil,
-		nil))
+		args.event and args.event.gc.ptr 
+		
+		-- or nil
+--[[
+https://github.com/thenumbernine/HydrodynamicsGPU/blob/master/src/Solver/Solver.cpp
+line 24:
+if you don't pass that &event pointer on my AMD Radeon then it writes garbage
+CL_DEVICE_NAME:	AMD Radeon R9 M370X Compute Engine
+CL_DEVICE_VENDOR:	AMD
+CL_DEVICE_VERSION:	OpenCL 1.2 
+CL_DRIVER_VERSION:	1.2 (Jan 11 2016 18:56:15)
+
+...and here we are in 2021...
+--]]	
+		or defaultEvent.gc.ptr
+	))
 end
 
 --[[
@@ -167,9 +188,9 @@ args:
 	offset
 	globalSize
 	localSize
-	kernel	=> cl.kernel object
-	wait => table of cl.event
-	event => cl.event
+	kernel	(optional) cl.kernel
+	wait (optional) table of cl.event
+	event (optional) cl.event
 --]]
 function CommandQueue:enqueueNDRangeKernel(args)
 	local dim = args.dim
