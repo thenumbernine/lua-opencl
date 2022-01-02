@@ -81,11 +81,13 @@ end
 Platform.getInfo = Platform:makeGetter{
 	getter = cl.clGetPlatformInfo,
 	vars = {
+		-- 1.0
 		{name='CL_PLATFORM_PROFILE', type='char[]'},
 		{name='CL_PLATFORM_VERSION', type='char[]'},
 		{name='CL_PLATFORM_NAME', type='char[]'},
 		{name='CL_PLATFORM_VENDOR', type='char[]'},
 		{name='CL_PLATFORM_EXTENSIONS', type='char[]', separator=' '},
+		-- 2.1
 		{name='CL_PLATFORM_HOST_TIMER_RESOLUTION', type='cl_ulong'},
 	},
 }

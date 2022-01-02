@@ -10,7 +10,7 @@ local Device = class(GetInfo(Wrapper(
 
 Device.getInfo = Device:makeGetter{
 	getter = cl.clGetDeviceInfo,
-	vars = {	
+	vars = {
 		{name='CL_DEVICE_TYPE', type='cl_device_type'},
 		{name='CL_DEVICE_VENDOR_ID', type='cl_uint'},
 		{name='CL_DEVICE_MAX_COMPUTE_UNITS', type='cl_uint'},

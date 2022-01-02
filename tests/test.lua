@@ -22,8 +22,9 @@ end
 
 local platform = get64bit(require 'cl.platform'.getAll())
 local devices = platform:getDevices{gpu=true}:mapi(function(device)
-	return isFP64(device) and device
+	return isFP64(device) and device or nil
 end)
+if #devices == 0 then error("found no devices with fp64") end
 for i,device in ipairs(devices) do
 	print('device '..i..': '..tostring(device:getName()))
 end
