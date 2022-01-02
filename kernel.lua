@@ -78,12 +78,14 @@ end
 Kernel.getInfo = Kernel:makeGetter{
 	getter = cl.clGetKernelInfo,
 	vars = {
-		{name='CL_KERNEL_FUNCTION_NAME', type=''},
-		{name='CL_KERNEL_NUM_ARGS', type=''},
+		-- 1.0
+		{name='CL_KERNEL_FUNCTION_NAME', type='char[]'},
+		{name='CL_KERNEL_NUM_ARGS', type='cl_uint'},
 		{name='CL_KERNEL_REFERENCE_COUNT', type='cl_uint'},	-- ???
-		{name='CL_KERNEL_CONTEXT', type=''},
-		{name='CL_KERNEL_PROGRAM', type=''},
-		{name='CL_KERNEL_ATTRIBUTES', type=''},
+		{name='CL_KERNEL_CONTEXT', type='cl_context'},
+		{name='CL_KERNEL_PROGRAM', type='cl_program'},
+		-- 1.2
+		{name='CL_KERNEL_ATTRIBUTES', type='char[]'},
 		{name='CL_KERNEL_MAX_NUM_SUB_GROUPS', type=''},
 		{name='CL_KERNEL_COMPILE_NUM_SUB_GROUPS', type=''},
 	},
