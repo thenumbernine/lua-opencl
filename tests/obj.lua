@@ -51,3 +51,5 @@ for dim,size in ipairs(sizes) do
 	}
 	print('sum 1..'..(sizes[1][1]/2)..' = '..sum())
 end
+
+print'done'

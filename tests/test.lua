@@ -92,3 +92,5 @@ for i=0,n-1 do
 	io.write(aMem[i],'*',bMem[i],'=',cMem[i],'\t')
 end
 print()
+
+print'done'
