@@ -182,10 +182,9 @@ assert(not args.size, "size is deprecated.  use 'count' instead.")
 
 	if self.secondPassInCPU then
 		local nextSize = math.ceil(self.count/self.maxWorkGroupSize)
-		self.result = args.result or ffi.new(self.ctype..'[?]', nextSize)
-	else
-		self.result = args.result or ffi.new(self.ctype..'[1]')
+		self.cpuResult = ffi.new(self.ctype..'[?]', nextSize)
 	end
+	self.result = args.result or ffi.new(self.ctype..'[1]')
 end
 
 function Reduce:__call(buffer, reduceSize)
@@ -217,15 +216,37 @@ function Reduce:__call(buffer, reduceSize)
 		if src == buffer then src = self.buffer end
 		src, dst = dst, src
 
-		self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.result}
+		self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.cpuResult}
 
-		local accumValue = assert(loadstring('return '..self.initValue))()
-		local accumFunc = assert(loadstring('local a,b = ... return '..self.op('a', 'b')))
+--print('initValue', self.initValue)
+		if not self.cpuAccumInitValue then 
+			self.cpuAccumInitValue = assert(loadstring('return '..
+				(
+					self.initValue
+					:gsub('INFINITY', 'math.huge')
+				)
+			))()
+		end
+		local accumValue = self.cpuAccumInitValue
+--print('accumValue', accumValue)		
+		if not self.cpuAccumFunc then
+			self.cpuAccumFunc = assert(loadstring('local a,b = ... return '..
+				(
+					self.op('a', 'b')
+					-- TODO ... bleh, I don't like this.  why not just do it all on the GPU?
+					:gsub('min', 'math.min')
+					:gsub('max', 'math.max')
+				)
+			))
+		end
+		local accumFunc = self.cpuAccumFunc
 		for i=0,nextSize-1 do
---print('reading', self.result[i])
-			accumValue = accumFunc(accumValue, self.result[i])
+--print('reading result['..i..'] = ', self.cpuResult[i])
+			accumValue = accumFunc(accumValue, self.cpuResult[i])
 		end
 --print('accumValue', accumValue)	
+		-- in case self.result was provided externally ...
+		self.result[0] = accumValue
 		return accumValue
 	else
 	-- learning experience: 
