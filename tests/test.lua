@@ -80,9 +80,10 @@ cmds[1]:enqueueWriteBuffer{buffer=aBuffer, block=true, size=n*ffi.sizeof(real), 
 cmds[1]:enqueueWriteBuffer{buffer=bBuffer, block=true, size=n*ffi.sizeof(real), ptr=bMem}
 
 local testKernel = program:kernel('test', cBuffer, aBuffer, bBuffer)
+local maxWorkGroupSize = tonumber(testKernel:getWorkGroupInfo('CL_KERNEL_WORK_GROUP_SIZE', devices[1]))
 
 local event = require 'cl.event'()
-cmds[1]:enqueueNDRangeKernel{kernel=testKernel, globalSize=n, localSize=16, event=event}
+cmds[1]:enqueueNDRangeKernel{kernel=testKernel, globalSize=n, localSize=math.min(16, maxWorkGroupSize), event=event}
 cmds[1]:finish()
 local start = event:getProfilingInfo'CL_PROFILING_COMMAND_START'
 local fin = event:getProfilingInfo'CL_PROFILING_COMMAND_END'

@@ -16,39 +16,61 @@ kernel void <?=name?>(
 	global <?=ctype?>* result)
 {
 	//for the first iteration
-	
+//printf("reduce() begin\n");
+
+//printf(" local_id(0)=%ld", get_local_id(0));
+//printf(" global_id(0)=%ld", get_global_id(0));
+//printf(" group_id(0)=%ld", get_group_id(0));
+//printf(" local_size(0)=%ld", get_local_size(0));
+//printf(" global_size(0)=%ld", get_global_size(0));
+//printf("\n");
+
 	//threads 0...get_local_size(0)-1 start 
-	int global_index = get_global_id(0);
-	
+	size_t global_index = get_global_id(0);
+
 	//with accumulator values set to initial values 
 	<?=ctype?> accumulator = <?=initValue?>;
 	
 	//loop sequentially over chunks of the input vector
-	//so for N elements of size get_local_size(0) we perform N/get_local_size(0) iterations
+	// this grabs the first element as the global_index
+	// then reduces it with every next element + global_size
+	// ... which means, this loop will only run once if your global size >= your length
 	while (global_index < length) {
-		<?=ctype?> element = buffer[global_index];
+//printf("reading accumulator <= buffer[global_index+offset=%ld]\n", global_index);
+		<?=ctype?> const element = buffer[global_index];
 		accumulator = <?=op('accumulator', 'element')?>;
 		global_index += get_global_size(0);
 	}
 
+//printf("done with first accum\n");
+
 	// Perform parallel reduction
-	//as many times as log2(get_local_size(0))
-	int local_index = get_local_id(0);
+	// now we write to the scratch memory at local_index
+	// that means the scratch memory should be equal to the local size
+	size_t const local_index = get_local_id(0);
+//printf("writing scratch[local_index=%ld] <= accumulator\n", local_index);	
 	scratch[local_index] = accumulator;
+	
 	barrier(CLK_LOCAL_MEM_FENCE);
-	for (int offset = get_local_size(0) / 2; offset > 0; offset = offset / 2) {
+	
+	for (int offset = get_local_size(0) >> 1; offset > 0; offset >>= 1) {
 		if (local_index < offset) {
-			<?=ctype?> other = scratch[local_index + offset];
-			<?=ctype?> mine = scratch[local_index];
+			<?=ctype?> const other = scratch[local_index + offset];
+			<?=ctype?> const mine = scratch[local_index];
+//printf("scratch[local_index=%ld] <= scratch[local_index=%ld] + scratch[local_index+offset=%ld]\n", local_index, local_index, local_index + offset);
 			scratch[local_index] = <?=op('mine', 'other')?>;
 		}
+		
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
-	
+
 	//result[get_group_id(0)] is going to hold the reduction from get_local_size(0)*localIndex through length?
 	if (local_index == 0) {
+//printf("result[group_id=%ld] <= scratch[0]\n", get_group_id(0));
 		result[get_group_id(0)] = scratch[0];
 	}
+
+//printf("reduce() done\n");
 }
 ]]
 
@@ -69,7 +91,7 @@ args:
 		name (optional) default 'reduce'
 		ctype (optional) default env.real or 'float'
 		initValue (optional) default 0
-		op (optional) default min(x,y).  provides a function(x,y) that returns a string of the code to be run. 
+		op (optional) default min(x,y).  provides a function(x,y) that returns a string of the code to be run.
 	
 	for making the kernel:
 		ctx = env.ctx or provided
@@ -81,6 +103,7 @@ args:
 		swapBuffer (optional) = cl buffer of ctype[count / get_local_size(0)]
 		allocate = (optional) env.clalloc or provided. cl allocation function accepts size, in bytes
 		result = (optional) C buffer of ctype to contain the result
+		secondPassInCPU = (optional) default false.  Whether to perform the second pass on the CPU, mind you not in parallel and in Lua.
 
 	for executing:
 		cmds
@@ -104,12 +127,15 @@ function Reduce:init(args)
 	local header = args.header or ''
 	if env then header = header .. '\n' .. env.code end
 
+	self.initValue = args.initValue or '0.'
+	self.op = args.op or function(x,y) return 'min('..x..', '..y..')' end
+
 	local code = template(reduceCode, {
 		header = header,
 		name = name,
 		ctype = self.ctype,
-		initValue = args.initValue or '0.',
-		op = args.op or function(x,y) return 'min('..x..', '..y..')' end,
+		initValue = self.initValue,
+		op = self.op,
 	})
 
 	self.program = require 'cl.program'{
@@ -146,7 +172,20 @@ assert(not args.size, "size is deprecated.  use 'count' instead.")
 	self.kernel:setArg(2, ffi.new('int[1]', self.count))
 	self.kernel:setArg(3, self.swapBuffer)
 
-	self.result = args.result or ffi.new(self.ctype..'[1]')
+	self.secondPassInCPU = args.secondPassInCPU
+	if not self.secondPassInCPU
+	and self.maxWorkGroupSize == 1
+	then
+--		print("WARNING - your reduce() had a workgroup size of 1, so it must do the second pass in CPU")
+		self.secondPassInCPU = true
+	end
+
+	if self.secondPassInCPU then
+		local nextSize = math.ceil(self.count/self.maxWorkGroupSize)
+		self.result = args.result or ffi.new(self.ctype..'[?]', nextSize)
+	else
+		self.result = args.result or ffi.new(self.ctype..'[1]')
+	end
 end
 
 function Reduce:__call(buffer, reduceSize)
@@ -154,6 +193,8 @@ function Reduce:__call(buffer, reduceSize)
 	-- this won't destroy the source, instead it'll switch over to the internal buffer after the first iteration
 	local src = buffer or self.buffer
 	local dst = self.swapBuffer
+
+--print('call')
 
 	-- allow overriding the size
 	-- this only works if the new size is <= the allocated size
@@ -163,32 +204,61 @@ function Reduce:__call(buffer, reduceSize)
 		assert(reduceSize <= self.count, "reduceSize parameter "..reduceSize.." is not <= reduce.count "..self.count)
 	end
 
-	while reduceSize > 1 do
+	-- ok this is a bad idea because now we need the operators and initial value in both CL and Lua ...
+	if self.secondPassInCPU then
 		local nextSize = math.ceil(reduceSize/self.maxWorkGroupSize)
-		local globalSize, localSize
-		-- if it's the last iteration then make the local size as small as possible
-		if nextSize == 1 then
-			localSize = rup2(reduceSize)
-			globalSize = localSize
-		else
-			globalSize = nextSize * self.maxWorkGroupSize
-			localSize = self.maxWorkGroupSize
-		end
-		
+		local localSize = self.maxWorkGroupSize
+		local globalSize = localSize
+
 		self.kernel:setArg(0, src)
 		self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
 		self.kernel:setArg(3, dst)
 		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=globalSize, localSize=localSize}
-		
-		-- only use buffer for reading the first iteration, so it doesn't destroy the buffer for multiple iterations
 		if src == buffer then src = self.buffer end
-	
-		-- swap buffers
 		src, dst = dst, src
 
-		reduceSize = nextSize
+		self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.result}
+
+		local accumValue = assert(loadstring('return '..self.initValue))()
+		local accumFunc = assert(loadstring('local a,b = ... return '..self.op('a', 'b')))
+		for i=0,nextSize-1 do
+--print('reading', self.result[i])
+			accumValue = accumFunc(accumValue, self.result[i])
+		end
+--print('accumValue', accumValue)	
+		return accumValue
+	else
+	-- learning experience: 
+	-- if maxWorkGroupSize is 1 (as it is on my debug cpu single-threaded implementation)
+	-- then this will run forever. 
+	-- so in that case, use "secondPassInCPU"
+		while reduceSize > 1 do
+			local nextSize = math.ceil(reduceSize/self.maxWorkGroupSize)
+			local globalSize, localSize
+			-- if it's the last iteration then make the local size as small as possible
+			if nextSize == 1 then
+				localSize = rup2(reduceSize)
+				globalSize = localSize
+			else
+				globalSize = nextSize * self.maxWorkGroupSize
+				localSize = self.maxWorkGroupSize
+			end
+			
+			self.kernel:setArg(0, src)
+			self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
+			self.kernel:setArg(3, dst)
+			self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=globalSize, localSize=localSize}
+			
+			-- only use buffer for reading the first iteration, so it doesn't destroy the buffer for multiple iterations
+			if src == buffer then src = self.buffer end
+		
+			-- swap buffers
+			src, dst = dst, src
+
+			reduceSize = nextSize
+		end
+		self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.result}
 	end
-	self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.result}
 
 --[[ debugging ... I think I'm writing oob
 print('globalSize', globalSize)

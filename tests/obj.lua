@@ -5,11 +5,13 @@ local CLEnv = require 'cl.obj.env'
 local sizes = {{64}, {8,8}, {4,4,4}}
 --local sizes = {{8}, {2,4}, {2,2,2}}
 
+
 for dim,size in ipairs(sizes) do
 	print('test '..dim..'D kernel')
 
 	local env = CLEnv{
 		verbose = true,
+		useGLSharing = false,
 		getPlatform = CLEnv.getPlatformFromCmdLine(...),
 		getDevices = CLEnv.getDevicesFromCmdLine(...),
 		deviceType = CLEnv.getDeviceTypeFromCmdLine(...),
@@ -40,8 +42,8 @@ for dim,size in ipairs(sizes) do
 		buffer = c.obj,
 		op = function(x,y) return x .. '+' .. y end,
 	}
-	print('sum 1..'..sizes[1][1]..' = '..sum())
-
+	local val = sum()
+	print('sum 1..'..sizes[1][1]..' = '..val)
 	print('test '..dim..'D reduce buffer subset')
 
 	local sum = env:reduce{
@@ -49,7 +51,16 @@ for dim,size in ipairs(sizes) do
 		count = sizes[1][1]/2,
 		op = function(x,y) return x .. '+' .. y end,
 	}
-	print('sum 1..'..(sizes[1][1]/2)..' = '..sum())
+	local val = sum()
+	print('sum 1..'..(sizes[1][1]/2)..' = '..val)
+
+	local sum = env:reduce{
+		buffer = c.obj,
+		op = function(x,y) return x .. '+' .. y end,
+	}
+	local val = sum(nil, sizes[1][1]/2)
+	print('sum 1..'..(sizes[1][1]/2)..' = '..val)
+	print('test '..dim..'D reduce buffer subset')
 end
 
 print'done'
