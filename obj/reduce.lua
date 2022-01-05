@@ -25,10 +25,10 @@ kernel void <?=name?>(
 //printf(" global_size(0)=%ld", get_global_size(0));
 //printf("\n");
 
-	//threads 0...get_local_size(0)-1 start 
+	//threads 0...get_local_size(0)-1 start
 	size_t global_index = get_global_id(0);
 
-	//with accumulator values set to initial values 
+	//with accumulator values set to initial values
 	<?=ctype?> accumulator = <?=initValue?>;
 	
 	//loop sequentially over chunks of the input vector
@@ -48,7 +48,7 @@ kernel void <?=name?>(
 	// now we write to the scratch memory at local_index
 	// that means the scratch memory should be equal to the local size
 	size_t const local_index = get_local_id(0);
-//printf("writing scratch[local_index=%ld] <= accumulator\n", local_index);	
+//printf("writing scratch[local_index=%ld] <= accumulator\n", local_index);
 	scratch[local_index] = accumulator;
 	
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -122,7 +122,7 @@ function Reduce:init(args)
 	local ctx = assert(args.ctx or (env and env.ctx))
 	local devices = assert(args.devices or (env and env.devices))
 	self.cmds = assert(args.cmds or (env and env.cmds[1]))
-	self.ctype = args.type or (env and env.real) or 'float'	
+	self.ctype = args.type or (env and env.real) or 'float'
 	local name = args.name or 'reduce'
 	local header = args.header or ''
 	if env then header = header .. '\n' .. env.code end
@@ -152,7 +152,7 @@ function Reduce:init(args)
 assert(not args.size, "size is deprecated.  use 'count' instead.")
 	self.count = assert(args.count or (env and env.base.volume))
 	
-	local allocate = args.allocate 
+	local allocate = args.allocate
 		or (env and function(size, name)
 			return env:clalloc(size, name, self.ctype)
 		end)
@@ -161,10 +161,10 @@ assert(not args.size, "size is deprecated.  use 'count' instead.")
 		end
 
 	self.ctypeSize = args.typeSize or ffi.sizeof(self.ctype)
-	self.buffer = args.buffer 
+	self.buffer = args.buffer
 		or allocate(self.count * self.ctypeSize, 'reduce.buffer')
 	self.swapBufferSize = math.ceil(self.count / self.maxWorkGroupSize)
-	self.swapBuffer = args.swapBuffer 
+	self.swapBuffer = args.swapBuffer
 		or allocate(self.swapBufferSize * self.ctypeSize, 'reduce.swapBuffer')
 	
 	self.kernel:setArg(0, self.buffer)
@@ -181,8 +181,13 @@ assert(not args.size, "size is deprecated.  use 'count' instead.")
 	end
 
 	if self.secondPassInCPU then
+		--[[ using the reduce kernel ...
 		local nextSize = math.ceil(self.count/self.maxWorkGroupSize)
 		self.cpuResult = ffi.new(self.ctype..'[?]', nextSize)
+		--]]
+		-- [[ just do it on the cpu ...
+		self.cpuResult = ffi.new(self.ctype..'[?]', self.count)
+		--]]
 	end
 	self.result = args.result or ffi.new(self.ctype..'[1]')
 end
@@ -205,10 +210,11 @@ function Reduce:__call(buffer, reduceSize)
 
 	-- ok this is a bad idea because now we need the operators and initial value in both CL and Lua ...
 	if self.secondPassInCPU then
+		--[[
 		local nextSize = math.ceil(reduceSize/self.maxWorkGroupSize)
 		local localSize = self.maxWorkGroupSize
 		local globalSize = localSize
-
+		
 		self.kernel:setArg(0, src)
 		self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
 		self.kernel:setArg(3, dst)
@@ -217,9 +223,14 @@ function Reduce:__call(buffer, reduceSize)
 		src, dst = dst, src
 
 		self.cmds:enqueueReadBuffer{buffer=src, block=true, size=self.ctypeSize, ptr=self.cpuResult}
+		--]]
+		-- [[ at this point it's basically a copy buffer operation ...
+		local nextSize = reduceSize
+		self.cmds:enqueueReadBuffer{buffer=src, block=true, size=ffi.sizeof(self.ctype) * nextSize, ptr=self.cpuResult}
+		--]]
 
 --print('initValue', self.initValue)
-		if not self.cpuAccumInitValue then 
+		if not self.cpuAccumInitValue then
 			self.cpuAccumInitValue = assert(loadstring('return '..
 				(
 					self.initValue
@@ -228,7 +239,7 @@ function Reduce:__call(buffer, reduceSize)
 			))()
 		end
 		local accumValue = self.cpuAccumInitValue
---print('accumValue', accumValue)		
+--print('accumValue', accumValue)
 		if not self.cpuAccumFunc then
 			self.cpuAccumFunc = assert(loadstring('local a,b = ... return '..
 				(
@@ -244,14 +255,14 @@ function Reduce:__call(buffer, reduceSize)
 --print('reading result['..i..'] = ', self.cpuResult[i])
 			accumValue = accumFunc(accumValue, self.cpuResult[i])
 		end
---print('accumValue', accumValue)	
+--print('accumValue', accumValue)
 		-- in case self.result was provided externally ...
 		self.result[0] = accumValue
 		return accumValue
 	else
-	-- learning experience: 
+	-- learning experience:
 	-- if maxWorkGroupSize is 1 (as it is on my debug cpu single-threaded implementation)
-	-- then this will run forever. 
+	-- then this will run forever.
 	-- so in that case, use "secondPassInCPU"
 		while reduceSize > 1 do
 			local nextSize = math.ceil(reduceSize/self.maxWorkGroupSize)
@@ -287,7 +298,7 @@ print('localSize', localSize)
 print('self.ctypeSize', self.ctypeSize)
 print('self.result', self.result)
 print('self.result[0]', self.result[0])
---]]	
+--]]
 	return self.result[0]
 end
 
