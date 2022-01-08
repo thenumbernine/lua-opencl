@@ -116,7 +116,7 @@ Display* glXGetCurrentDisplay();
 	it seems with AMD you will always fail unless you pick the device listed as current: 
 	then, before any of that, let's see what's avaiable ...
 	--]]
-	if verbose then
+	if args.glSharing and verbose then
 		local CLDevice = require 'cl.device'
 		local classert = require 'cl.assert'
 		local clGetGLContextInfoKHR = ffi.cast('clGetGLContextInfoKHR_fn', cl.clGetExtensionFunctionAddressForPlatform(platform.id, 'clGetGLContextInfoKHR'))
