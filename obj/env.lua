@@ -237,7 +237,7 @@ function CLEnv:init(args)
 			end)
 		end)
 		if self.verbose then
-			print(numDevicesWithGLSharing..'/'..#self.devices..' devices have gl sharing')
+			print(numDevicesWithGLSharing..'/'..#self.devices..' devices have gl sharing (according to device cl extensions)')
 		end
 		self.useGLSharing = numDevicesWithGLSharing == #self.devices
 	end

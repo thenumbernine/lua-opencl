@@ -26,7 +26,8 @@ function Context:init(args)
 	assert(args)
 	local platform = assert(args.platform)
 	local devices = assert(args.devices)
-	
+	local verbose = args.verbose
+
 	local properties = table{
 		cl.CL_CONTEXT_PLATFORM,
 		ffi.cast('cl_context_properties', platform.id),
@@ -70,7 +71,7 @@ HDC wglGetCurrentDC();
 			local gl = require 'gl'
 			local ctx = gl.wglGetCurrentContext()
 			local dc = gl.wglGetCurrentDC()
-			if args and args.verbose then
+			if verbose then
 				print('wglGetCurrentContext()', ctx)
 				print('wglGetCurrentDC()', dc)
 			end
@@ -101,7 +102,7 @@ Display* glXGetCurrentDisplay();
 		end
 	end
 	properties:insert(0)
-	if args and args.verbose then
+	if verbose then
 		print('properties: '..require 'ext.tolua'(properties))
 	end
 	properties = ffi_new_table('cl_context_properties', properties)
@@ -109,7 +110,45 @@ Display* glXGetCurrentDisplay();
 	local devices = table.mapi(args.devices, function(device) return device.id end)
 	local deviceIDs = ffi_new_table('cl_device_id', devices)
 
-	-- useGLSharing on windows with the AMD is failing here with error -1000: CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR
+	--[[
+	if you're on AMD and GL sharing won't work ...
+		TODO FIXME NOTICE READ THIS
+	it seems with AMD you will always fail unless you pick the device listed as current: 
+	then, before any of that, let's see what's avaiable ...
+	--]]
+	if verbose then
+		local CLDevice = require 'cl.device'
+		local classert = require 'cl.assert'
+		local clGetGLContextInfoKHR = ffi.cast('clGetGLContextInfoKHR_fn', cl.clGetExtensionFunctionAddressForPlatform(platform.id, 'clGetGLContextInfoKHR'))
+	
+		local numGLDevicesRef = ffi.new'size_t[1]'
+		classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, 0, nil, numGLDevicesRef))
+		local numGLDevices = tonumber(numGLDevicesRef[0]) / ffi.sizeof'cl_device_id'
+		print('clGetGLContextInfoKHR: '..numGLDevices..' devices that have GL sharing')
+		local allGLDeviceIDs = ffi.new('cl_device_id[?]', numGLDevices)
+		classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id' * numGLDevices, allGLDeviceIDs, nil))
+		print'clGetGLContextInfoKHR: all devices with GL sharing:'
+		local allGLDevices = table()
+		for i=0,tonumber(numGLDevices)-1 do
+			local device = CLDevice(allGLDeviceIDs[i])
+			allGLDevices:insert(device)
+			print('', device:getName())
+		end
+
+		local currentGLDeviceIDRef = ffi.new'cl_device_id[1]'
+		classert(clGetGLContextInfoKHR(properties, cl.CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id', currentGLDeviceIDRef, nil))
+		local gldeviceid = currentGLDeviceIDRef[0]
+		local gldevice = CLDevice(gldeviceid)
+		print('clGetGLContextInfoKHR: current GL device:', gldevice:getName())
+	end
+
+	--[[
+	With AMD, if you just use any device that says it has cl_khr_gl_sharing, this will probably fail.
+	Why? BECAUSE THE AMD CL EXTENSION REPORTS BULLSHIT INFORMATION.
+	My AMD OpenCL reports two devices, both claim to have "cl_khr_gl_sharing", but only one of them shows up on the list of clGetGLContextInfoKHR.
+	With AMD you *cannot* only go by extension. You must also query clGetGLContextInfoKHR
+	Otherwise here you will get an error -1000: CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR
+	--]]
 	self.id = classertparam('clCreateContext', properties, #devices, deviceIDs, nil, nil)
 
 	Context.super.init(self, self.id)

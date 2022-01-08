@@ -66,6 +66,7 @@ args:
 	ptr
 --]]
 function CommandQueue:enqueueWriteBuffer(args)
+	defaultEvent = defaultEvent or require 'cl.event'()
 	classert(cl.clEnqueueWriteBuffer(
 		self.id,
 		assert(args.buffer, "expected buffer").id,
@@ -75,7 +76,7 @@ function CommandQueue:enqueueWriteBuffer(args)
 		assert(args.ptr, "expected ptr"),
 		0,
 		nil,
-		nil))
+		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
 end
 
 --[[
@@ -89,13 +90,13 @@ args:
 --]]
 local defaultPattern = ffi.new('int[1]', 0)
 function CommandQueue:enqueueFillBuffer(args)
+	defaultEvent = defaultEvent or require 'cl.event'()
 	local pattern = args.pattern
 	local patternSize = args.patternSize
 	if not pattern then
 		pattern = defaultPattern
 		patternSize = ffi.sizeof'int'
 	end
-	defaultEvent = defaultEvent or require 'cl.event'()
 	classert(cl.clEnqueueFillBuffer(
 		self.id,
 		assert(args.buffer, "expected buffer").id,
@@ -132,6 +133,7 @@ args:
 	size
 --]]
 function CommandQueue:enqueueCopyBuffer(args)
+	defaultEvent = defaultEvent or require 'cl.event'()
 	classert(cl.clEnqueueCopyBuffer(
 		self.id,
 		assert(args.src, "expected src").id,
@@ -141,7 +143,7 @@ function CommandQueue:enqueueCopyBuffer(args)
 		assert(args.size, "expected size"),
 		0,
 		nil,
-		nil))
+		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
 end
 
 --[[
@@ -193,6 +195,7 @@ args:
 	event (optional) cl.event
 --]]
 function CommandQueue:enqueueNDRangeKernel(args)
+	defaultEvent = defaultEvent or require 'cl.event'()
 	local dim = args.dim
 	dim = fillParam(dim, args.offset, offset)
 	dim = fillParam(dim, args.globalSize, globalSize)
@@ -215,7 +218,7 @@ function CommandQueue:enqueueNDRangeKernel(args)
 		localSize,
 		numWait,
 		wait,
-		args.event and args.event.gc.ptr or nil))
+		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
 	
 	-- hmm should I even use 'id' if gc.ptr[0] will be holding the same information?
 	if args.event then
@@ -228,6 +231,7 @@ args:
 	objs
 --]]
 function CommandQueue:enqueueAcquireGLObjects(args)
+	defaultEvent = defaultEvent or require 'cl.event'()
 	local objs = assert(args.objs, "expected objs")
 	classert(cl.clEnqueueAcquireGLObjects(
 		self.id,
@@ -235,7 +239,7 @@ function CommandQueue:enqueueAcquireGLObjects(args)
 		ffi_new_table('cl_mem', table.mapi(objs, function(obj) return obj.id end)),
 		0,
 		nil,
-		nil))
+		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
 end
 
 --[[
@@ -243,6 +247,7 @@ args:
 	objs
 --]]
 function CommandQueue:enqueueReleaseGLObjects(args)
+	defaultEvent = defaultEvent or require 'cl.event'()
 	local objs = assert(args.objs, "expected objs")
 	classert(cl.clEnqueueReleaseGLObjects(
 		self.id,
@@ -250,7 +255,7 @@ function CommandQueue:enqueueReleaseGLObjects(args)
 		ffi_new_table('cl_mem', table.mapi(objs, function(obj) return obj.id end)),
 		0,
 		nil,
-		nil))
+		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
 end
 
 function CommandQueue:flush()
