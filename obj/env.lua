@@ -58,6 +58,10 @@ typedef union {
 ]], {
 		name = name,
 	}))
+	
+	assert(ffi.sizeof(name..'2') == 2 * ffi.sizeof(name))
+	assert(ffi.sizeof(name..'4') == 4 * ffi.sizeof(name))
+	assert(ffi.sizeof(name..'8') == 8 * ffi.sizeof(name))
 end
 
 local CLEnv = class()

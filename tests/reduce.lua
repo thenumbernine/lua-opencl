@@ -1,10 +1,14 @@
 #!/usr/bin/env luajit
-local range = require 'ext.range'
+local ffi = require 'ffi'
 local table = require 'ext.table'
+local cmdline = require 'ext.cmdline'(...)
 local CLEnv = require 'cl.obj.env'
 
 -- TODO env.size optional?  for no env.base?  but env:kernel needs env.base ...
 local env = CLEnv{
+	precision = cmdline.precision,
+	verbose = cmdline.verbose,
+	useGLSharing = not not cmdline.glsharing,	-- TODO default false?
 	getPlatform = CLEnv.getPlatformFromCmdLine(...),
 	getDevices = CLEnv.getDevicesFromCmdLine(...),
 }
@@ -41,13 +45,16 @@ end
 print('testing reduce on ranges: '..values:concat', ')
 
 for _,size in ipairs(values) do
-	local buf = env:domain{size=size}:buffer{
-		count=2*size,
+	local data = ffi.new(env.real..'[?]', 2*size)
+	for i=0,2*size-1 do
 		-- data goes n, n-1, ..., 1, n+1, n+2, ..., 2*n
 		-- this way a reduce any less than size will show how much less than size
 		-- and a reduce any more than size will show n+ how much more than size
-		data=range(size,1,-1)
-			:append(range(size):mapi(function(i) return i+size end)),
+		data[i] = ((size-1-i)%(2*size))+1
+	end
+	local buf = env:domain{size=size}:buffer{
+		count = 2*size,
+		data = data,
 	}
 	local cpu = buf:toCPU()
 	local reduce = env:reduce{
