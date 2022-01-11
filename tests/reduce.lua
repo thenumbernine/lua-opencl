@@ -2,6 +2,7 @@
 local ffi = require 'ffi'
 local table = require 'ext.table'
 local cmdline = require 'ext.cmdline'(...)
+local half = require 'cl.obj.half'	-- for when we are using a half precision
 local CLEnv = require 'cl.obj.env'
 
 -- TODO env.size optional?  for no env.base?  but env:kernel needs env.base ...
@@ -17,7 +18,7 @@ local maxWorkGroupSize = tonumber(env.devices[1]:getInfo'CL_DEVICE_MAX_WORK_GROU
 local values = table()
 local nbhd = 3
 do
-	-- make a range from 1 to max workgroup size, step by power of two, and include plus or minus a few 
+	-- make a range from 1 to max workgroup size, step by power of two, and include plus or minus a few
 	local i = 1
 	while i <= maxWorkGroupSize do
 		for ofs=i-nbhd,i+nbhd do
@@ -37,7 +38,7 @@ do
 			end
 			i = i + maxWorkGroupSize
 		end
-	end	
+	end
 	
 	values = values:keys():sort()
 end
@@ -50,7 +51,7 @@ for _,size in ipairs(values) do
 		-- data goes n, n-1, ..., 1, n+1, n+2, ..., 2*n
 		-- this way a reduce any less than size will show how much less than size
 		-- and a reduce any more than size will show n+ how much more than size
-		data[i] = ((size-1-i)%(2*size))+1
+		data[i] = half.toreal(((size-1-i)%(2*size))+1)
 	end
 	local buf = env:domain{size=size}:buffer{
 		count = 2*size,
@@ -63,7 +64,7 @@ for _,size in ipairs(values) do
 		initValue = 'HUGE_VALF',
 		op = function(x,y) return 'min('..x..', '..y..')' end,
 	}
-	local reduceResult = reduce()
+	local reduceResult = half.fromreal(reduce())
 	print('size',size,'reduce',reduceResult)
 	assert(reduceResult == 1, "expected 1 but found "..reduceResult)
 end

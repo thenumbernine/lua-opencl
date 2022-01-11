@@ -338,6 +338,7 @@ constant const int4 stepsize = (int4)(1, <?=
 	self.totalGPUMem = 0
 end
 
+-- TODO don't cdef this twice or else luajit might complain about overlapping / twice defined types
 function CLEnv:getTypeCode()
 	return template([[
 <? if real == 'double' then ?>

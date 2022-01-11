@@ -71,16 +71,18 @@ function CLKernel:init(args)
 kernel void <?=self.name?>(<?
 local sep = ''
 for _,arg in ipairs(self.argsOut or {}) do 
+	local argType = arg.type or self.env.real
 	?><?=sep?>
 	<?
 	if arg.obj then
-		?>global <?=arg.type or 'real'?>* <?=arg.name?><?
+		?>global <?=argType?>* <?=arg.name?><?
 	else
-		?><?=arg.type or 'real'?> <?=arg.name?><?
+		?><?=argType?> <?=arg.name?><?
 	end
 	sep = ','
 end
 for _,arg in ipairs(self.argsIn or {}) do
+	local argType = arg.type or self.env.real
 	?><?=sep?>
 	<?
 	if arg.obj then
@@ -90,7 +92,7 @@ for _,arg in ipairs(self.argsIn or {}) do
 			?>global const <?
 		end
 	end
-	?><?=arg.type or 'real'?><?
+	?><?=argType?><?
 	if arg.obj then
 		?>* <?
 	else

@@ -47,16 +47,16 @@ local function tohalf(x)	-- converts to 'half' type defined in cl/obj/env.lua
 				local negexp = 13 - exp	-- negexp in [13,23]
 				local c = bit.bor(b32.mant, 0x800000)
 				h.i = bit.rshift(c, negexp+1)
-				if bit.band(c, bit.lshift(1, negexp)) ~= 0 
-				and bit.band(c, (bit.lshift(3, negexp) - 1)) ~= 0 
+				if bit.band(c, bit.lshift(1, negexp)) ~= 0
+				and bit.band(c, (bit.lshift(3, negexp) - 1)) ~= 0
 				then
 					h.i = h.i + 1
 				end
 			else
 				h.mant = bit.rshift(b32.mant, 13)
 				h.exp = exp
-				if bit.band(b32.mant, 0x1000) ~= 0 
-				and bit.band(b32.mant, 0x2fff) ~= 0 
+				if bit.band(b32.mant, 0x1000) ~= 0
+				and bit.band(b32.mant, 0x2fff) ~= 0
 				then
 					h.i = h.i + 1	-- add through mant & exp
 				end
@@ -102,7 +102,7 @@ local function fromhalf(x)
 	ff800000 = 1 : 111 1111 1000 0 : 000 0000 0000 0000 0000 = -inf
 	ffc00000 = 1 : 111 1111 1100 0 : 000 0000 0000 0000 0000 = nan
 	
-	value doesn't convert with tonumber(float32): 
+	value doesn't convert with tonumber(float32):
 	
 	fff80000 = 1 : 111 1111 1111 1 : 000 0000 0000 0000 0000
 	--]]
@@ -112,7 +112,61 @@ local function fromhalf(x)
 	return y
 end
 
+-- use these for optional converting when half is used, or keeping as number if it's not
+-- but TODO this uses 'real' type, defined in cl.obj.env and used nowhere else in the cl repo
+
+local function fromreal(x)
+	if ffi.sizeof'real' == 2 then
+		return fromhalf(x)
+	end
+	return x
+end
+
+local function toreal(x)
+	if ffi.sizeof'real' == 2 then
+		return tohalf(x)
+	end
+	return x
+end
+
+--[[ how well does this work?
+--[=[
+local function test(x)
+	local h = half.to(x)
+	local y = half.from(h)
+	print(math.abs(y-x), x, ('%x'):format(h.i), y)
+end
+for x=-10,10 do test(x + 1e-5) end
+for x=-10,10 do test(x - 1e-5) end
+for x=-10,10 do test(10^x) end
+for x=-10,10 do test(-10^x) end
+test(1/0)
+test(-1/0)
+test(0/0)
+test(-0/0)
+--]=]
+
+local math = require 'ext.math'
+-- numbers that don't map back and forth: 16-bit nans and 0
+for i=0,65536 do
+	local h = ffi.new'half'
+	h.i = i
+	local x = half.from(h)
+	assert(type(x) == 'number')
+	b32.f = x
+	local h2 = half.to(x)
+	if i ~= h2.i then
+		print(('%x\t%x\t%x'):format(i, h2.i, b32.i), x)
+		assert(not math.isfinite(x) or h.i == h2.i)
+	end
+end
+os.exit()
+--]]
+
 return {
 	to = tohalf,
 	from = fromhalf,
+
+	toreal = toreal,
+	fromreal = fromreal,
 }
