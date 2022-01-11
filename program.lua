@@ -6,13 +6,14 @@ local string = require 'ext.string'
 local classert = require 'cl.assert'
 local classertparam = require 'cl.assertparam'
 local clCheckError = require 'cl.checkerror'
-local Wrapper = require 'cl.wrapper'
+local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
-local Program = class(GetInfo(Wrapper(
-	'cl_program',
-	cl.clRetainProgram,
-	cl.clReleaseProgram)))
+local Program = class(GetInfo(GCWrapper{
+	ctype = 'cl_program',
+	retain = cl.clRetainProgram,
+	release = cl.clReleaseProgram,
+}))
 
 Program.showCodeOnError = true
 

@@ -3,7 +3,7 @@ local table = require 'ext.table'
 local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 local classertparam = require 'cl.assertparam'
-local Wrapper = require 'cl.wrapper'
+local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
 -- here and commandqueue.lua
@@ -11,10 +11,11 @@ local function ffi_new_table(T, src)
 	return ffi.new(T..'['..#src..']', src)
 end
 
-local Context = class(GetInfo(Wrapper(
-	'cl_context',
-	cl.clRetainContext,
-	cl.clReleaseContext)))
+local Context = class(GetInfo(GCWrapper{
+	ctype = 'cl_context',
+	retain = cl.clRetainContext,
+	release = cl.clReleaseContext,
+}))
 
 --[[
 args:

@@ -5,15 +5,16 @@ local cl = require 'ffi.OpenCL'
 local classert = require 'cl.assert'
 local classertparam = require 'cl.assertparam'
 local clCheckError = require 'cl.checkerror'
-local Wrapper = require 'cl.wrapper'
+local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
 local CLMemory = require 'cl.memory'
 local CLBufferObj = require 'cl.obj.buffer'
 local GetInfo = require 'cl.getinfo'
 
-local Kernel = class(GetInfo(Wrapper(
-	'cl_kernel',
-	cl.clRetainKernel,
-	cl.clReleaseKernel)))
+local Kernel = class(GetInfo(GCWrapper{
+	ctype = 'cl_kernel',
+	retain = cl.clRetainKernel,
+	release = cl.clReleaseKernel,
+}))
 
 --[[
 args:

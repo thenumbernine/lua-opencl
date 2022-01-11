@@ -1,12 +1,13 @@
 local cl = require 'ffi.OpenCL'
 local class = require 'ext.class'
-local Wrapper = require 'cl.wrapper'
+local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
-local Device = class(GetInfo(Wrapper(
-	'cl_device_id',
-	cl.clRetainDevice,
-	cl.clReleaseDevice)))
+local Device = class(GetInfo(GCWrapper{
+	ctype = 'cl_device_id',
+	retain = cl.clRetainDevice,
+	release = cl.clReleaseDevice,
+}))
 
 Device.getInfo = Device:makeGetter{
 	getter = cl.clGetDeviceInfo,

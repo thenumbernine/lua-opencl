@@ -4,7 +4,7 @@ local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 local classert = require 'cl.assert'
 local classertparam = require 'cl.assertparam'
-local Wrapper = require 'cl.wrapper'
+local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
 local defaultEvent
@@ -14,10 +14,11 @@ local function ffi_new_table(T, src)
 	return ffi.new(T..'['..#src..']', src)
 end
 
-local CommandQueue = class(GetInfo(Wrapper(
-	'cl_command_queue',
-	cl.clRetainCommandQueue,
-	cl.clReleaseCommandQueue)))
+local CommandQueue = class(GetInfo(GCWrapper{
+	ctype = 'cl_command_queue',
+	retain = cl.clRetainCommandQueue,
+	release = cl.clReleaseCommandQueue,
+}))
 
 --[[
 args

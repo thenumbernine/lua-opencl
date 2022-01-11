@@ -2,13 +2,14 @@ local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 local class = require 'ext.class'
 local classert = require 'cl.assert'
-local Wrapper = require 'cl.wrapper'
+local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
-local Event = class(GetInfo(Wrapper(
-	'cl_event',
-	cl.clRetainEvent,
-	cl.clReleaseEvent)))
+local Event = class(GetInfo(GCWrapper{
+	ctype = 'cl_event',
+	retain = cl.clRetainEvent,
+	release = cl.clReleaseEvent,
+}))
 
 function Event:wait()
 	classert(cl.clWaitForEvents(1, self.gc.ptr))

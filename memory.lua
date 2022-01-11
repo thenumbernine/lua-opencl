@@ -1,12 +1,13 @@
 local cl = require 'ffi.OpenCL'
 local class = require 'ext.class'
-local Wrapper = require 'cl.wrapper'
+local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
-local Memory = class(GetInfo(Wrapper(
-	'cl_mem',
-	cl.clRetainMemObject,
-	cl.clReleaseMemObject)))
+local Memory = class(GetInfo(GCWrapper{
+	ctype = 'cl_mem',
+	retain = cl.clRetainMemObject,
+	release = cl.clReleaseMemObject,
+}))
 
 Memory.getInfo = Memory:makeGetter{
 	getter = cl.clGetMemObjectInfo,

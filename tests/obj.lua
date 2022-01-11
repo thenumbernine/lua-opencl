@@ -61,6 +61,7 @@ for dim,size in ipairs(sizes) do
 	local val = sum(nil, sizes[1][1]/2)
 	print('sum 1..'..(sizes[1][1]/2)..' = '..val)
 	print('test '..dim..'D reduce buffer subset')
+	collectgarbage()	-- see if all the cl objs get freed here
 end
 
 print'done'

@@ -1,16 +1,16 @@
 package = "cl"
 version = "dev-1"
 source = {
-	url = "git+https://github.com/thenumbernine/lua-opencl.git"
+	url = "git+https://github.com/thenumbernine/lua-opencl"
 }
 description = {
 	summary = "OpenCL bindings / OOP for Lua.",
-	detailed = [[OpenCL bindings / OOP for Lua.]],
+	detailed = ""OpenCL bindings / OOP for Lua.",
 	homepage = "https://github.com/thenumbernine/lua-opencl",
 	license = "MIT"
 }
 dependencies = {
-	"lua => 5.1"
+	"lua >= 5.1"
 }
 build = {
 	type = "builtin",
@@ -44,6 +44,5 @@ build = {
 		["cl.tests.readme-test"] = "tests/readme-test.lua",
 		["cl.tests.reduce"] = "tests/reduce.lua",
 		["cl.tests.test"] = "tests/test.lua",
-		["cl.wrapper"] = "wrapper.lua"
 	}
 }
