@@ -7,9 +7,14 @@ local GetInfo = require 'cl.getinfo'
 
 local Event = class(GetInfo(GCWrapper{
 	ctype = 'cl_event',
-	retain = cl.clRetainEvent,
-	release = cl.clReleaseEvent,
+	retain = function(ptr) return cl.clRetainEvent(ptr[0]) end,
+	release = function(ptr) return cl.clReleaseEvent(ptr[0]) end,
 }))
+
+function Event:init(...)
+	Event.super.init(self, ...)
+	self.id = self.gc.ptr[0]
+end
 
 function Event:wait()
 	classert(cl.clWaitForEvents(1, self.gc.ptr))

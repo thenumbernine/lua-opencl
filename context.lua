@@ -13,8 +13,8 @@ end
 
 local Context = class(GetInfo(GCWrapper{
 	ctype = 'cl_context',
-	retain = cl.clRetainContext,
-	release = cl.clReleaseContext,
+	retain = function(ptr) return cl.clRetainContext(ptr[0]) end,
+	release = function(ptr) return cl.clReleaseContext(ptr[0]) end,
 }))
 
 --[[

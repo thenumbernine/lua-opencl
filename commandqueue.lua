@@ -16,8 +16,8 @@ end
 
 local CommandQueue = class(GetInfo(GCWrapper{
 	ctype = 'cl_command_queue',
-	retain = cl.clRetainCommandQueue,
-	release = cl.clReleaseCommandQueue,
+	retain = function(ptr) return cl.clRetainCommandQueue(ptr[0]) end,
+	release = function(ptr) return cl.clReleaseCommandQueue(ptr[0]) end,
 }))
 
 --[[

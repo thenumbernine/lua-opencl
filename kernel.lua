@@ -12,8 +12,8 @@ local GetInfo = require 'cl.getinfo'
 
 local Kernel = class(GetInfo(GCWrapper{
 	ctype = 'cl_kernel',
-	retain = cl.clRetainKernel,
-	release = cl.clReleaseKernel,
+	retain = function(ptr) return cl.clRetainKernel(ptr[0]) end,
+	release = function(ptr) return cl.clReleaseKernel(ptr[0]) end,
 }))
 
 --[[

@@ -11,8 +11,8 @@ local GetInfo = require 'cl.getinfo'
 
 local Program = class(GetInfo(GCWrapper{
 	ctype = 'cl_program',
-	retain = cl.clRetainProgram,
-	release = cl.clReleaseProgram,
+	retain = function(ptr) return cl.clRetainProgram(ptr[0]) end,
+	release = function(ptr) return cl.clReleaseProgram(ptr[0]) end,
 }))
 
 Program.showCodeOnError = true

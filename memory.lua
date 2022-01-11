@@ -5,8 +5,8 @@ local GetInfo = require 'cl.getinfo'
 
 local Memory = class(GetInfo(GCWrapper{
 	ctype = 'cl_mem',
-	retain = cl.clRetainMemObject,
-	release = cl.clReleaseMemObject,
+	retain = function(ptr) return cl.clRetainMemObject(ptr[0]) end,
+	release = function(ptr) return cl.clReleaseMemObject(ptr[0]) end,
 }))
 
 Memory.getInfo = Memory:makeGetter{
@@ -24,5 +24,10 @@ Memory.getInfo = Memory:makeGetter{
 		{name='CL_MEM_USES_SVM_POINTER', type='cl_bool'},	-- ???
 	},
 }
+
+function Memory:init(...)
+	Memory.super.init(self, ...)
+	self.id = self.gc.ptr[0]
+end
 
 return Memory

@@ -5,8 +5,8 @@ local GetInfo = require 'cl.getinfo'
 
 local Device = class(GetInfo(GCWrapper{
 	ctype = 'cl_device_id',
-	retain = cl.clRetainDevice,
-	release = cl.clReleaseDevice,
+	retain = function(ptr) return cl.clRetainDevice(ptr[0]) end,
+	release = function(ptr) return cl.clReleaseDevice(ptr[0]) end,
 }))
 
 Device.getInfo = Device:makeGetter{
@@ -108,6 +108,11 @@ Device.getInfo = Device:makeGetter{
 		{name='CL_DEVICE_SUB_GROUP_INDEPENDENT_FORWARD_PROGRESS', type='cl_bool'},
 	},
 }
+
+function Device:init(...)
+	Device.super.init(self, ...)
+	self.id = self.gc.ptr[0]
+end
 
 function Device:getName() return self:getInfo'CL_DEVICE_NAME' end
 function Device:getVendor() return self:getInfo'CL_DEVICE_VENDOR' end
