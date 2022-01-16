@@ -47,10 +47,10 @@ function Kernel:setArg(index, value)
 	if value == nil then
 		return
 	elseif type(value) == 'table' then
-		if CLBufferObj.is(value) then
+		if CLBufferObj:isa(value) then
 			value = value.obj	-- get the cl.memory
 		end
-		if CLMemory.is(value) then
+		if CLMemory:isa(value) then
 			assert(value.id)
 			ptr = ffi.new('cl_mem[1]', value.id)
 			size = ffi.sizeof'cl_mem'
@@ -107,7 +107,7 @@ Kernel.getArgInfo = Kernel:makeGetter{
 
 Kernel.getWorkGroupInfo = Kernel:makeGetter{
 	getter = function(kernelID, paramName, paramValueSize, paramValue, paramValueSizeRet, deviceID)
-		if require 'cl.device'.is(deviceID) then deviceID = deviceID.id end
+		if require 'cl.device':isa(deviceID) then deviceID = deviceID.id end
 		return cl.clGetKernelWorkGroupInfo(kernelID, deviceID, paramName, paramValueSize, paramValue, paramValueSizeRet)
 	end,
 	vars = {
@@ -123,7 +123,7 @@ Kernel.getWorkGroupInfo = Kernel:makeGetter{
 --kernel:getSubGroupInfo(name, deviceID, inputValueSize, inputValue)
 Kernel.getSubGroupInfo = Kernel:makeGetter{
 	getter = function(kernelID, paramName, paramValueSize, paramValue, paramValueSizeRet, deviceID, inputValueSize, inputValue)
-		if require 'cl.device'.is(deviceID) then deviceID = deviceID.id end
+		if require 'cl.device':isa(deviceID) then deviceID = deviceID.id end
 		return cl.clGetKernelSubGroupInfo(kernelID, deviceID, paramName, paramValueSize, paramValue, paramValueSizeRet)
 	end,
 	vars = {

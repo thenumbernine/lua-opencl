@@ -58,7 +58,7 @@ function CLProgram:setupKernel(kernel)
 	-- then don't bind them
 	kernel.obj = self.obj:kernel(kernel.name)	--, kernel.argBuffers:unpack())
 	for i,arg in ipairs(kernel.argBuffers) do
-		if Memory.is(arg) then
+		if Memory:isa(arg) then
 			kernel.obj:setArg(i-1, arg)
 		end
 	end
