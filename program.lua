@@ -36,7 +36,7 @@ function Program:init(args)
 	local binaries = args.binaries
 	local programs = args.programs
 	assert(code or binaries or programs, "expected either code, binaries, or program")
-	if code then	
+	if code then
 		local strings = ffi.new('const char*[1]')
 		strings[0] = ffi.cast('const char*',code)
 		local lengths = ffi.new('size_t[1]')
@@ -91,8 +91,8 @@ function Program:init(args)
 		else
 			local success, message = self:build(args.devices, args.buildOptions)
 			if not success then
-				if code and (self.showCodeOnError or args.showCodeOnError) then 
-					print(require 'template.showcode'(code)) 
+				if code and (self.showCodeOnError or args.showCodeOnError) then
+					print(require 'template.showcode'(code))
 				end
 				error(message)
 			end
@@ -100,7 +100,7 @@ function Program:init(args)
 	end
 end
 
--- calls clCompileProgram, which just does source -> obj 
+-- calls clCompileProgram, which just does source -> obj
 function Program:compile(devices, options)
 	-- notice, cl.hpp doesn't use devices
 	local devices = assert(devices, "binaries expects devices")
@@ -111,14 +111,14 @@ function Program:compile(devices, options)
 	local err = cl.clCompileProgram(self.id, #devices, deviceIDs, options, 0, nil, nil, nil, nil)
 	local success = err == cl.CL_SUCCESS
 	local message
-	if not success then 
+	if not success then
 		message = table{'failed to compile with error '..tostring(err)}
 		for _,device in ipairs(devices) do
 			message:insert(self:getLog(device))
 		end
 		message = message:concat'\n'
 	end
-	return success, message 
+	return success, message
 end
 
 -- calls clBuildProgram, which compiles source -> obj and then obj -> exe
@@ -130,14 +130,14 @@ function Program:build(devices, options)
 	local err = cl.clBuildProgram(self.id, #devices, deviceIDs, options, nil, nil)
 	local success = err == cl.CL_SUCCESS
 	local message
-	if not success then 
+	if not success then
 		message = table{'failed to build with error '..tostring(err)}
 		for _,device in ipairs(devices) do
 			message:insert(self:getLog(device))
 		end
 		message = message:concat'\n'
 	end
-	return success, message 
+	return success, message
 end
 
 --[[
@@ -178,8 +178,8 @@ function Program:getDevices() return self:getInfo'CL_PROGRAM_DEVICES' end
 function Program:getSource() return self:getInfo'CL_PROGRAM_SOURCE' end
 
 -- TODO add to cl/getinfo.lua an entry for char*[], and maybe a field for associated sizes getter variable name
-function Program:getBinaries() 
-	local binSizes = self:getInfo'CL_PROGRAM_BINARY_SIZES' 
+function Program:getBinaries()
+	local binSizes = self:getInfo'CL_PROGRAM_BINARY_SIZES'
 	local bins = ffi.new('unsigned char*[?]', #binSizes)
 	for i,size in ipairs(binSizes) do
 		bins[i-1] = ffi.new('unsigned char[?]', size)

@@ -62,14 +62,14 @@ function CLProgram:setupKernel(kernel)
 			kernel.obj:setArg(i-1, arg)
 		end
 	end
-	-- while we're here, store the max work group size	
+	-- while we're here, store the max work group size
 	kernel:setSizeProps()
 end
 
 --[[
 args are forwarded to cl.obj.kernel's ctor
-if args is a string then 
-	{name=args} is forwarded 
+if args is a string then
+	{name=args} is forwarded
 	with setArgs a table of ..., and setArgs.n the # of ... (to preserve nils)
 --]]
 function CLProgram:kernel(args, ...)
@@ -119,8 +119,16 @@ function CLProgram:getCode()
 	end)):concat'\n'
 end
 
--- TODO rename to :build
+--[[
+TODO rename to :build
+args:
+	verbose = for now just debugging whether the cached file is used or not
+	dontLink = just build an object, for linking later
+	buildOptions
+--]]
 function CLProgram:compile(args)
+	local verbose = args.verbose
+
 	-- this is also being fudged in
 	-- I need to straighten this all out
 	-- TODO make this compat with caching?
@@ -173,16 +181,41 @@ function CLProgram:compile(args)
 
 		-- if the code matches what is cached then use the cached binary
 		local cacheMatches
-		if usingCache 
-		and code == file[clfn] 
-		then
-			if os.fileexists(binfn) then
-				cacheMatches = true
+		if usingCache then
+			if code == file[clfn] then
+if verbose then
+	print("*** CL CACHE *** 111 *** CL FILE MATCHES CACHED CL FILE: "..clfn)
+end
+				if os.fileexists(binfn) then
+if verbose then
+	print("*** CL CACHE *** 222 *** AND BINARY FILE EXISTS -- USING CACHED BINARY FOR: "..clfn)
+end
+					cacheMatches = true
+				else
+					-- we have a cl file but not a bin file ...
+					-- cache doesn't match clearly.
+					-- delete the cl file too?  no need to, why destroy what someone might be working on?
+if verbose then
+	print("*** CL CACHE *** ### *** BUT BINARY FILE DOESN'T EXIST -- REBUILDING BINARY FOR "..clfn)
+end
+				end
 			else
-				-- we have a cl file but not a bin file ... 
-				-- cache doesn't match clearly.
-				-- delete the cl file too?  no need to, why destroy what someone might be working on?
+if verbose then
+	print("*** CL CACHE *** ### *** CL FILE DOES NOT MATCH CACHED CL FILE -- REBUILDING BINARY FOR "..clfn)
+end
+--[[ want to see the diffs?
+file.tmp_compare_cl_cache = code
+os.execute(('diff %q %q'):format(clfn, 'tmp_compare_cl_cache'))
+file.tmp_compare_cl_cache = nil
+--]]
+-- [[ want to save the old, for manually diffing later?
+				file[clfn..'.old'] = file[clfn]
+--]]
 			end
+		else
+if verbose then
+	print("*** CL CACHE *** ### *** WE ARE NOT USING CACHE FOR FILE "..clfn)
+end
 		end
 
 		--[[ should we verify that the source file was not modified?
@@ -209,6 +242,9 @@ function CLProgram:compile(args)
 			-- load cached binary
 			local bindata = assert(file[binfn], "failed to find opencl compiled program "..binfn)
 			local bins = require 'ext.fromlua'(bindata)
+if verbose then
+	print("*** CL CACHE *** 333 *** BUILDING PROGRAM FROM CACHED BINARY: "..clfn)
+end
 			self.obj = Program{
 				context = self.env.ctx,
 				devices = self.env.devices,
@@ -218,9 +254,19 @@ function CLProgram:compile(args)
 				showCodeOnError = self.showCodeOnError,
 			}
 		else
+if verbose then
+	print("*** CL CACHE *** ### *** BUILDING PROGRAM FROM CL: "..clfn)
+end
 			-- save cached code before compiling
 			-- also delete the cached bin so that the two don't go out of sync
 			if usingCache then
+if verbose then
+	if require 'ext.os'.fileexists(binfn) then
+		print("*** CL CACHE *** ### *** DELETING OLD CL BINARY: "..clfn)
+	else
+		print("*** CL CACHE *** ### *** BUILDING FULLY NEW CL BINARY: "..clfn)
+	end
+end
 				file[clfn] = code
 				file[binfn] = nil
 			end

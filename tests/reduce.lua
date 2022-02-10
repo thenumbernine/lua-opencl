@@ -16,10 +16,10 @@ local env = CLEnv{
 
 local maxWorkGroupSize = tonumber(env.devices[1]:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
 local values = table()
-local nbhd = 3
+local nbhd = 1
 do
-	-- make a range from 1 to max workgroup size, step by power of two, and include plus or minus a few
-	local i = 1
+	-- [[ make a range from 1 to max workgroup size, step by power of two, and include plus or minus a few
+	local i = math.max(1, maxWorkGroupSize/4)
 	while i <= maxWorkGroupSize do
 		for ofs=i-nbhd,i+nbhd do
 			if ofs > 0 then
@@ -28,13 +28,14 @@ do
 		end
 		i = i * 2
 	end
-	
+	--]]
+
 	-- then include factors of max workgroup size plus or minus a few
 	for po4=1,3 do
 		local maxFactor = 4^po4
 		while i < maxWorkGroupSize*maxFactor do
 			for ofs=i-nbhd,i+nbhd do
-				values[ofs] = true
+				values[512*ofs] = true
 			end
 			i = i + maxWorkGroupSize
 		end
