@@ -127,7 +127,7 @@ args:
 	buildOptions
 --]]
 function CLProgram:compile(args)
-	local verbose = args.verbose
+	local verbose = args and args.verbose
 
 	-- this is also being fudged in
 	-- I need to straighten this all out
