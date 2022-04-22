@@ -250,15 +250,16 @@ function Reduce:__call(buffer, reduceSize)
 				)
 			))
 		end
+		local half = require 'cl.obj.half'
 		local accumFunc = self.cpuAccumFunc
 		for i=0,nextSize-1 do
 --print('reading result['..i..'] = ', self.cpuResult[i])
-			accumValue = accumFunc(accumValue, self.cpuResult[i])
+			accumValue = accumFunc(accumValue, half.fromreal(self.cpuResult[i]))
 		end
 --print('accumValue', accumValue)
 		-- in case self.result was provided externally ...
-		self.result[0] = accumValue
-		return accumValue
+		self.result[0] = half.toreal(accumValue)
+		return self.result[0]
 	else
 	-- learning experience:
 	-- if maxWorkGroupSize is 1 (as it is on my debug cpu single-threaded implementation)
