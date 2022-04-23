@@ -17,20 +17,7 @@ local table = require 'ext.table'
 local string = require 'ext.string'
 local getCmdline = require 'ext.cmdline'
 local template = require 'template'
-
-ffi.cdef[[
-typedef union {
-	unsigned short i;
-	unsigned char ptr[2];
-	struct {
-		unsigned short mant : 10;
-		unsigned short exp : 5;
-		unsigned short sign : 1;
-	};
-} float16bits_t;	//in OpenCL, 'float8' means 8x 4-byte-float ... in some languages 'float16' means 2-byte float ...
-typedef float16bits_t half;
-]]
-assert(ffi.sizeof'float16bits_t' == 2)
+local half = require 'cl.obj.half'	-- has typedef for half
 
 -- boilerplate so OpenCL types will work with ffi types
 -- TODO for support for multiple environments ... 

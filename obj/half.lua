@@ -10,6 +10,20 @@ local math = require 'ext.math'
 
 ffi.cdef[[
 typedef union {
+	unsigned short i;
+	unsigned char ptr[2];
+	struct {
+		unsigned short mant : 10;
+		unsigned short exp : 5;
+		unsigned short sign : 1;
+	};
+} float16bits_t;	//in OpenCL, 'float8' means 8x 4-byte-float ... in some languages 'float16' means 2-byte float ...
+typedef float16bits_t half;
+]]
+assert(ffi.sizeof'float16bits_t' == 2)
+
+ffi.cdef[[
+typedef union {
 	unsigned int i;
 	float f;
 	unsigned char ptr[4];

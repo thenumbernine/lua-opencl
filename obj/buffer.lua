@@ -2,6 +2,7 @@ local class = require 'ext.class'
 local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 local classertparam = require 'cl.assertparam'
+local half = require 'cl.obj.half'
 
 local CLBuffer = class()
 
@@ -61,7 +62,7 @@ end
 
 function CLBuffer:fill(pattern, patternSize, cmd)
 	cmd = cmd or self.env.cmds[1]
-	if not pattern then pattern = 0 end
+	if not pattern then pattern = half.toreal(0) end
 	if type(pattern) ~= 'cdata' then
 		pattern = ffi.new(self.type..'[1]', pattern)
 	end
