@@ -89,18 +89,30 @@ args:
 	size (bytes)
 	event (optional) cl.event
 --]]
-local defaultPattern = ffi.new('int[1]', 0)
+local defaultPattern = ffi.new('int32_t[128/4]', 0)		-- TODO query largest vector possible on the hardware
 function CommandQueue:enqueueFillBuffer(args)
 	defaultEvent = defaultEvent or require 'cl.event'()
 	local size = assert(args.size, "expected size")
 	local pattern = args.pattern
 	local patternSize = args.patternSize
+	--  https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html
+	-- "CL_INVALID_VALUE if offset and size are not a multiple of pattern_size"
+	-- so how come on my AMD OpenCL version 3423.0 when this happens the whole program aborts?
 	if not pattern then
 		pattern = defaultPattern
-		local sizemod = bit.band(size, 3)
-		if sizemod == 0 then
+		if bit.band(size, 0x7f) == 0 then
+			patternSize = 128
+		elseif bit.band(size, 0x3f) == 0 then
+			patternSize = 64
+		elseif bit.band(size, 0x1f) == 0 then
+			patternSize = 32
+		elseif bit.band(size, 0xf) == 0 then
+			patternSize = 16
+		elseif bit.band(size, 0x7) == 0 then
+			patternSize = 8
+		elseif bit.band(size, 0x3) == 0 then
 			patternSize = 4
-		elseif sizemod == 2 then
+		elseif bit.band(size, 0x1) == 0 then
 			patternSize = 2
 		else
 			patternSize = 1
