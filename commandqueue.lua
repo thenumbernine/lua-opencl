@@ -92,11 +92,19 @@ args:
 local defaultPattern = ffi.new('int[1]', 0)
 function CommandQueue:enqueueFillBuffer(args)
 	defaultEvent = defaultEvent or require 'cl.event'()
+	local size = assert(args.size, "expected size")
 	local pattern = args.pattern
 	local patternSize = args.patternSize
 	if not pattern then
 		pattern = defaultPattern
-		patternSize = ffi.sizeof'int'
+		local sizemod = bit.band(size, 3)
+		if sizemod == 0 then
+			patternSize = 4
+		elseif sizemod == 2 then
+			patternSize = 2
+		else
+			patternSize = 1
+		end
 	end
 	classert(cl.clEnqueueFillBuffer(
 		self.id,
@@ -104,7 +112,7 @@ function CommandQueue:enqueueFillBuffer(args)
 		pattern,
 		patternSize,
 		args.offset or 0,
-		assert(args.size, "expected size"),
+		size,
 		0,
 		nil,
 		args.event and args.event.gc.ptr 
