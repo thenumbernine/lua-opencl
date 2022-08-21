@@ -214,7 +214,7 @@ file.tmp_compare_cl_cache = nil
 			end
 		else
 if verbose then
-	print("*** CL CACHE *** ### *** WE ARE NOT USING CACHE FOR FILE "..clfn)
+	print("*** CL CACHE *** ### *** WE ARE NOT USING CACHE FOR FILE "..tostring(clfn))
 end
 		end
 
@@ -255,7 +255,7 @@ end
 			}
 		else
 if verbose then
-	print("*** CL CACHE *** ### *** BUILDING PROGRAM FROM CL: "..clfn)
+	print("*** CL CACHE *** ### *** BUILDING PROGRAM FROM CL: "..tostring(clfn))
 end
 			-- save cached code before compiling
 			-- also delete the cached bin so that the two don't go out of sync
