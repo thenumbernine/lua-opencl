@@ -260,7 +260,7 @@ end
 			-- also delete the cached bin so that the two don't go out of sync
 			if usingCache then
 if verbose then
-	if require 'ext.os'.fileexists(binfn) then
+	if file(binfn):exists() then
 		print("*** CL CACHE *** ### *** DELETING OLD CL BINARY: "..clfn)
 	else
 		print("*** CL CACHE *** ### *** BUILDING FULLY NEW CL BINARY: "..clfn)
