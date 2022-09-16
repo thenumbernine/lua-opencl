@@ -220,19 +220,16 @@ end
 		--[[ should we verify that the source file was not modified?
 		-- this is starting to get out of the scope of the cl library ...
 		if cacheMatches then
-			local found, lfs = pcall(require, 'lfs')
-			-- if lfs is not found then always reload the program
-			if not found then
+			local clattr = file(clfn):attr()
+			local binattr = file(binfn):attr()
+			if clattr and binattr then
+				if clattr.change > binattr.change then
+					cacheMatches = false
+				end
+			else
+				-- if lfs is not found then always reload the program
 				-- lfs not found, can't determine last file write time, can't verify that the cached code is correct
 				cacheMatches = false
-			else
-				local clattr = lfs.attributes(clfn)
-				local binattr = lfs.attributes(binfn)
-				if clattr and binattr then
-					if clattr.change > binattr.change then
-						cacheMatches = false
-					end
-				end
 			end
 		end
 		--]]
