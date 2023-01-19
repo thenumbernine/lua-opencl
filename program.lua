@@ -34,6 +34,7 @@ function Program:init(args)
 	local context = assert(args.context)
 	local code = args.code
 	local binaries = args.binaries
+	local intermediateLanguage = args.IL
 	local programs = args.programs
 	assert(code or binaries or programs, "expected either code, binaries, or program")
 	if code then
@@ -63,6 +64,10 @@ function Program:init(args)
 		for i=1,n do
 			clCheckError(binary_status[i-1], 'clCreateProgramWithBinary failed on binary #'..i)
 		end
+	elseif intermediateLanguage then
+		assert(type(intermediateLanguage) == 'string')
+		local n = #intermediateLanguage
+		self.id = classertparam('clCreateProgramWithIL', context, ffi.cast('const char*', intermediateLanguage), #intermediateLanguage)
 	elseif programs then
 		assert(#programs > 0, "can't link an empty program")
 		-- cl.hpp doesn't pass devices
