@@ -21,6 +21,7 @@ args:
 		cacheFileCL = optional.  uses args.cacheFile..'.cl' otherwise.
 		cacheFileBin = optional.  uses args.cacheFile..'.bin' otherwise.
 	binaries = optional binaries to construct the program from.
+	IL = optional intermediate-language string of binary data to construct program from.
 	programs = optional list of programs.  provide this to immediately link these programs and create an executable program.
 	code, binaries, and programs are exclusive
 --]]
@@ -39,6 +40,8 @@ function CLProgram:init(args)
 		self.cacheFileBin = args.cacheFileBin
 	elseif args.binaries then
 		self.binaries = args.binaries
+	elseif args.IL then
+		self.IL = args.IL
 	elseif args.programs then
 		-- unlike providing code or binaries, this will immediately link
 		self.obj = Program{
@@ -132,9 +135,13 @@ function CLProgram:compile(args)
 	-- I need to straighten this all out
 	-- TODO make this compat with caching?
 	if args and args.dontLink then
-		local code, binaries
+		local code
+		local binaries
+		local IL
 		if self.binaries then
 			binaries = self.binaries
+		elseif self.IL then
+			IL = self.IL
 		else
 			code = self:getCode()
 		end
@@ -143,6 +150,7 @@ function CLProgram:compile(args)
 			devices = self.env.devices,
 			code = code,
 			binaries = binaries,
+			IL = IL,
 			buildOptions = args and args.buildOptions,
 			dontLink = args and args.dontLink,
 			showCodeOnError = self.showCodeOnError,
@@ -158,6 +166,13 @@ function CLProgram:compile(args)
 			devices = self.env.devices,
 			binaries = self.binaries,
 			buildOptions = args and args.buildOptions,
+			showCodeOnError = self.showCodeOnError,
+		}
+	elseif self.IL then
+		self.obj = Program{
+			context = self.env.ctx,		-- not actually needed at all.  but expected.
+			devices = self.env.devices,	-- needed for compile() but not for clCreateProgramWithIL
+			IL = self.IL,
 			showCodeOnError = self.showCodeOnError,
 		}
 	else

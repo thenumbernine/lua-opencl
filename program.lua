@@ -23,7 +23,7 @@ args:
 	code = string
 	binaries = table of strings of binary data to create with clCreateProgramWithBinary
 	programs = table of Programs created with clBuildProgram
-	code / binaries / programs are exclusive arguments.
+	code / binaries / IL / programs are exclusive arguments.
 	devices = array of device ids (optional, but required for binaries)
 		if 'devices' is provided then the program is immediately compiled.
 	dontLink = optional.  when devices is specified, if this is not set then :build is used, if this is set then :compile is used.
@@ -34,7 +34,7 @@ function Program:init(args)
 	local context = assert(args.context)
 	local code = args.code
 	local binaries = args.binaries
-	local intermediateLanguage = args.IL
+	local IL = args.IL	-- intermediateLanguage 
 	local programs = args.programs
 	assert(code or binaries or programs, "expected either code, binaries, or program")
 	if code then
@@ -64,10 +64,10 @@ function Program:init(args)
 		for i=1,n do
 			clCheckError(binary_status[i-1], 'clCreateProgramWithBinary failed on binary #'..i)
 		end
-	elseif intermediateLanguage then
-		assert(type(intermediateLanguage) == 'string')
-		local n = #intermediateLanguage
-		self.id = classertparam('clCreateProgramWithIL', context, ffi.cast('const char*', intermediateLanguage), #intermediateLanguage)
+	elseif IL then
+		assert(type(IL) == 'string')
+		local n = #IL
+		self.id = classertparam('clCreateProgramWithIL', context, ffi.cast('const char*', IL), #IL)
 	elseif programs then
 		assert(#programs > 0, "can't link an empty program")
 		-- cl.hpp doesn't pass devices
