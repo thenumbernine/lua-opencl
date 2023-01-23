@@ -43,52 +43,64 @@ local cmds = devices:mapi(function(device)
 end)
 
 local code =
-'#define N '..n..'\n'..
-'#define real '..real..'\n'..
+'static const constexpr size_t arraySize = '..n..';\n'..
+'using real = '..real..';\n'..
 (fp64 and '#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n' or '')..
 [[
-
-// https://clang.llvm.org/docs/OpenCLSupport.html#c-libraries-for-opencl
-#if 0 // cpptest.clcpp:8:10: fatal error: 'type_traits' file not found
 #pragma OPENCL EXTENSION __cl_clang_function_pointers : enable
 #pragma OPENCL EXTENSION __cl_clang_variadic_functions : enable
-#include <type_traits>
+
+// https://clang.llvm.org/docs/OpenCLSupport.html#c-libraries-for-opencl
+//#include <algorithm>
+//#include <array>
+//#include <cassert>
+//#include <cmath>
+//#include <cstddef>
+//#include <exception>
+//#include <iterator>
+//#include <functional>
+//#include <map>
+//#include <numeric>
+//#include <optional>
+//#include <tuple>
+//#include <type_traits>
+//#include <utility>
+//#include <vector>
+//#include <regex>
+//#include <string>
+//#include <fstream>
+//#include <iostream>
+//#include <sstream>
+//#include <conditional_variable>
+//#include <mutex>
+//#include <thread>
+
 #pragma OPENCL EXTENSION __cl_clang_function_pointers : disable
 #pragma OPENCL EXTENSION __cl_clang_variadic_functions : disable
 
+#if 0
 // C++ test:
 // ex from https://clang.llvm.org/docs/OpenCLSupport.html#c-libraries-for-opencl
 using sint_type = std::make_signed<unsigned int>::type;
 static_assert(!std::is_same<sint_type, unsigned int>::value);
-
 #endif
 
-#if 0
-namespace notused {
-};
-#endif
+namespace N {
 
-#if 0
 class T {
 public:
 	real value;
 };
-#else
-typedef struct {
-	real value;
-} T;
-#endif
-
-// C++ test that doesnt' need include files ...
-using T2 = int;
+static_assert(sizeof(T) == sizeof(real));
+};
 
 kernel void test(
-	global T* c,
-	const global T* a,
-	const global T* b
+	global N::T* c,
+	const global N::T* a,
+	const global N::T* b
 ) {
 	int i = get_global_id(0);
-	if (i >= N) return;
+	if (i >= arraySize) return;
 	c[i].value = a[i].value * b[i].value;
 }
 ]]
@@ -127,7 +139,7 @@ assert(echo(table{
 	--'-triple spir-unknown-unknown',
 	--'-target spir-unknown-unknown',
 	--'-c','-emit-llvm',
-	-- '-I <libclcxx dir>',
+	--'-I <libclcxx dir>',
 	-- from here: https://community.khronos.org/t/clcreateprogramwithil-spir-v-failed-with-cl-invalid-value/109208
 	-- https://clang.llvm.org/docs/OpenCLSupport.html: says -Xclang or -cc1 is exclusive
 	'-Xclang','-finclude-default-header',	-- -X<where> = pass arg to 
@@ -138,9 +150,9 @@ assert(echo(table{
 	--'-triple spir-unknown-unknown',		-- (with --target=) clang: error: unknown argument: '-triple'
 	'-emit-llvm',	-- error: Opaque pointers are only supported in -opaque-pointers mode (Producer: 'LLVM15.0.2' Reader: 'LLVM 14.0.6')
 	--'-opaque-pointers',
-	'-D SPIR',
+	--'-D SPIR',
 	'-c',				-- without -c: clang: cpptest.cl:(.text+0x16): undefined reference to `get_global_id(unsigned int)' clang: error: linker command failed with exit code 1 (use -v to see invocation)
-	'-o0',
+	--'-o0',
 	--'-x cl',	-- clang: error: no such file or directory: 'cl' 
 	--'-cl-std=c++',	-- clang: error: invalid value 'c++' in '-cl-std=c++'
 	-- does that mean I need something extra?
