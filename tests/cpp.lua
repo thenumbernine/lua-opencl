@@ -48,6 +48,21 @@ local code =
 (fp64 and '#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n' or '')..
 [[
 
+// https://clang.llvm.org/docs/OpenCLSupport.html#c-libraries-for-opencl
+#if 0 // cpptest.clcpp:8:10: fatal error: 'type_traits' file not found
+#pragma OPENCL EXTENSION __cl_clang_function_pointers : enable
+#pragma OPENCL EXTENSION __cl_clang_variadic_functions : enable
+#include <type_traits>
+#pragma OPENCL EXTENSION __cl_clang_function_pointers : disable
+#pragma OPENCL EXTENSION __cl_clang_variadic_functions : disable
+
+// C++ test:
+// ex from https://clang.llvm.org/docs/OpenCLSupport.html#c-libraries-for-opencl
+using sint_type = std::make_signed<unsigned int>::type;
+static_assert(!std::is_same<sint_type, unsigned int>::value);
+
+#endif
+
 #if 0
 namespace notused {
 };
@@ -62,8 +77,10 @@ public:
 typedef struct {
 	real value;
 } T;
-
 #endif
+
+// C++ test that doesnt' need include files ...
+using T2 = int;
 
 kernel void test(
 	global T* c,
@@ -83,8 +100,11 @@ local program = Program{context=ctx, devices=devices, code=code}
 --[[ not working, because -cl-std=CLC++ reuqires cl_ext_cxx_for_opencl, which I don't have on this machine 
 local program = Program{context=ctx, devices=devices, code=code, buildOptions='-cl-std=CLC++'}
 --]]
+local clcppfn = 'cpptest.clcpp'
+local bcfn = 'cpptest.bc'
+local spvfn = 'cpptest.spv'
 -- [[ C++ via ILn
-file'cpptest.clcpp':write(code)
+file(clcppfn):write(code)
 		--[=[
 		https://github.com/KhronosGroup/SPIR/tree/spirv-1.1
 		how to compile 32-bit SPIR-V:
@@ -100,31 +120,58 @@ local function echo(cmd)
 end
 -- TODO the -I should be to a file opencl.h which is ... where?
 -- https://clang.llvm.org/docs/OpenCLSupport.html
-assert(echo(
-	table{
-		--[=[
-		'clang',
-		--'-cc1 -emit-spirv',
-		--'-triple spir-unknown-unknown',
-		'-target spir-unknown-unknown',
-		'-c -emit-llvm -Xclang',
-		-- '-cl-std=c++',
-		-- '-I <libclcxx dir>',
-		-- '-x cl',
-		--]=]
-		-- [=[
-		--'clang -cl-std=CL3.0 -cl-ext=+cl_khr_fp64,+__opencl_c_fp64',	-- cpptest.clcpp:(.text+0x16): undefined reference to `get_global_id(unsigned int)'
-		-- does that mean I need something extra?
-		'clang -c -cl-std=CL3.0 -cl-ext=+cl_khr_fp64,+__opencl_c_fp64',	-- clang: warning: argument unused during compilation: '-cl-ext=+cl_khr_fp64,+__opencl_c_fp64' [-Wunused-command-line-argument]
-		--'--spirv-max-version=1.0',	--https://community.khronos.org/t/clcreateprogramwithil-spir-v-failed-with-cl-invalid-value/109208 --clang: error: unsupported option '--spirv-max-version=1.0'
-		-- and building gives: clCreateProgramWithIL failed with error -42: CL_INVALID_BINARY
-		--]=]
-		'-o', '"cpptest.spv"',
-		'"cpptest.clcpp"',
-	}:concat' '
-))
-local IL = file'cpptest.spv':read()
-assert(IL, "failed to read file cpptest.spv")
+assert(echo(table{
+	'clang',
+	'-v',
+	--'-cc1','-emit-spirv',
+	--'-triple spir-unknown-unknown',
+	--'-target spir-unknown-unknown',
+	--'-c','-emit-llvm',
+	-- '-I <libclcxx dir>',
+	-- from here: https://community.khronos.org/t/clcreateprogramwithil-spir-v-failed-with-cl-invalid-value/109208
+	-- https://clang.llvm.org/docs/OpenCLSupport.html: says -Xclang or -cc1 is exclusive
+	'-Xclang','-finclude-default-header',	-- -X<where> = pass arg to 
+	--'-cc1','-finclude-default-header',	-- clang: error: unknown argument: '-cc1'
+	--'-target spir-unknown-unknown',
+	'--target=spirv64-unknown-unknown',	-- clang: error: unable to execute command: Executable "llvm-spirv" doesn't exist!
+	--'--target=spirv-unknown-unknown',	-- error: unknown target triple 'unknown-unknown-unknown-spirv-unknown-unknown', please use -triple or -arch
+	--'-triple spir-unknown-unknown',		-- (with --target=) clang: error: unknown argument: '-triple'
+	'-emit-llvm',	-- error: Opaque pointers are only supported in -opaque-pointers mode (Producer: 'LLVM15.0.2' Reader: 'LLVM 14.0.6')
+	--'-opaque-pointers',
+	'-D SPIR',
+	'-c',				-- without -c: clang: cpptest.cl:(.text+0x16): undefined reference to `get_global_id(unsigned int)' clang: error: linker command failed with exit code 1 (use -v to see invocation)
+	'-o0',
+	--'-x cl',	-- clang: error: no such file or directory: 'cl' 
+	--'-cl-std=c++',	-- clang: error: invalid value 'c++' in '-cl-std=c++'
+	-- does that mean I need something extra?
+	--'-cl-std=CL3.0',
+	--'-cl-ext=+cl_khr_fp64,+__opencl_c_fp64',
+	 -- (if you omit -Xclang SOMETHING what tho?) clang: warning: argument unused during compilation: '-cl-ext=+cl_khr_fp64,+__opencl_c_fp64' [-Wunused-command-line-argument]
+	--'--spirv-max-version=1.0',	-- clang: error: unsupported option '--spirv-max-version=1.0'
+	-- and building gives: clCreateProgramWithIL failed with error -42: CL_INVALID_BINARY
+	
+	-- https://clang.llvm.org/docs/OpenCLSupport.html:
+	--'-cl-kernel-arg-info',
+
+	--'-o', ('%q'):format(spvfn),
+	'-o', ('%q'):format(bcfn),
+	('%q'):format(clcppfn),
+}:concat' '))
+-- [[ if you use -c :
+-- according to the community.khronos.org post I should next run:
+--  llvm-spirv cpptest.bc -o test.spv
+assert(echo(table{
+	'llvm-spirv',
+	--'-Xclang','-finclude-default-header',
+	--'--target=spirv64-unknown-unknown',	-- clang: error: unable to execute command: Executable "llvm-spirv" doesn't exist!
+	--'-emit-llvm',	-- clang: error: -emit-llvm cannot be used when linking
+	('%q'):format(bcfn),
+	'-o', ('%q'):format(spvfn),
+}:concat' '))
+--]]
+-- ... but I don't have it installed right now
+local IL = file(spvfn):read()
+assert(IL, "failed to read file "..spvfn)
 local program = Program{context=ctx, devices=devices, IL=IL}
 --]]
 
