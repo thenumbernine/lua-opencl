@@ -107,17 +107,17 @@ local function fromhalf(x)
 	b32.mant = mant
 	b32.exp = exp
 	b32.sign = x.sign
-	
+
 	--[[
 	looks like tonumber(float32) doesn't work for all possible float binary representations ... like 0xfff80000
 	Lua print() and Lua tonumber() treat values as null, but printf() treats them like floats
-	
+
 	7f800000 = 0 : 111 1111 1000 0 : 000 0000 0000 0000 0000 = inf
 	ff800000 = 1 : 111 1111 1000 0 : 000 0000 0000 0000 0000 = -inf
 	ffc00000 = 1 : 111 1111 1100 0 : 000 0000 0000 0000 0000 = nan
-	
+
 	value doesn't convert with tonumber(float32):
-	
+
 	fff80000 = 1 : 111 1111 1111 1 : 000 0000 0000 0000 0000
 	--]]
 	local y = tonumber(b32.f)

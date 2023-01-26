@@ -30,7 +30,7 @@ kernel void <?=name?>(
 
 	//with accumulator values set to initial values
 	<?=ctype?> accumulator = <?=initValue?>;
-	
+
 	//loop sequentially over chunks of the input vector
 	// this grabs the first element as the global_index
 	// then reduces it with every next element + global_size
@@ -50,9 +50,9 @@ kernel void <?=name?>(
 	size_t const local_index = get_local_id(0);
 //printf("writing scratch[local_index=%ld] <= accumulator\n", local_index);
 	scratch[local_index] = accumulator;
-	
+
 	barrier(CLK_LOCAL_MEM_FENCE);
-	
+
 	for (int offset = get_local_size(0) >> 1; offset > 0; offset >>= 1) {
 		if (local_index < offset) {
 			<?=ctype?> const other = scratch[local_index + offset];
@@ -60,7 +60,7 @@ kernel void <?=name?>(
 //printf("scratch[local_index=%ld] <= scratch[local_index=%ld] + scratch[local_index+offset=%ld]\n", local_index, local_index, local_index + offset);
 			scratch[local_index] = <?=op('mine', 'other')?>;
 		}
-		
+
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 
@@ -92,7 +92,7 @@ args:
 		ctype (optional) default env.real or 'float'
 		initValue (optional) default 0
 		op (optional) default min(x,y).  provides a function(x,y) that returns a string of the code to be run.
-	
+
 	for making the kernel:
 		ctx = env.ctx or provided
 		devices = env.devices or provided
@@ -143,7 +143,7 @@ function Reduce:init(args)
 		devices = devices,
 		code = code,
 	}
-	
+
 	self.kernel = self.program:kernel(name)
 
 	-- how to handle multiple devices ...
@@ -151,12 +151,12 @@ function Reduce:init(args)
 
 assert(not args.size, "size is deprecated.  use 'count' instead.")
 	self.count = assert(args.count or (env and env.base.volume))
-	
+
 	local allocate = args.allocate
-		or (env and function(size, name)
-			return env:clalloc(size, name, self.ctype)
+		or (env and function(size, name_)
+			return env:clalloc(size, name_, self.ctype)
 		end)
-		or function(size, name)
+		or function(size, name_)
 			return ctx:buffer{rw=true, size=size}
 		end
 
@@ -166,7 +166,7 @@ assert(not args.size, "size is deprecated.  use 'count' instead.")
 	self.swapBufferSize = math.ceil(self.count / self.maxWorkGroupSize)
 	self.swapBuffer = args.swapBuffer
 		or allocate(self.swapBufferSize * self.ctypeSize, 'reduce.swapBuffer')
-	
+
 	self.kernel:setArg(0, self.buffer)
 	self.kernel:setArg(1, {ptr=nil, size=self.maxWorkGroupSize * self.ctypeSize})
 	self.kernel:setArg(2, ffi.new('int[1]', self.count))
@@ -214,7 +214,7 @@ function Reduce:__call(buffer, reduceSize)
 		local nextSize = math.ceil(reduceSize/self.maxWorkGroupSize)
 		local localSize = self.maxWorkGroupSize
 		local globalSize = localSize
-		
+
 		self.kernel:setArg(0, src)
 		self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
 		self.kernel:setArg(3, dst)
@@ -276,15 +276,15 @@ function Reduce:__call(buffer, reduceSize)
 				globalSize = nextSize * self.maxWorkGroupSize
 				localSize = self.maxWorkGroupSize
 			end
-			
+
 			self.kernel:setArg(0, src)
 			self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
 			self.kernel:setArg(3, dst)
 			self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=globalSize, localSize=localSize}
-			
+
 			-- only use buffer for reading the first iteration, so it doesn't destroy the buffer for multiple iterations
 			if src == buffer then src = self.buffer end
-		
+
 			-- swap buffers
 			src, dst = dst, src
 

@@ -33,14 +33,16 @@ function CLDomain:init(args)
 	if self.verbose then
 		print('maxWorkGroupSize',maxWorkGroupSize)
 	end
-	
+
 	-- for volumes
 	self.localSize1d = vec3sz(math.min(maxWorkGroupSize, self.volume), 1,1)
 
 	-- for boundaries
-	local localSizeX = math.min(tonumber(self.size.x), 2^math.ceil(math.log(maxWorkGroupSize,2)/2))
-	local localSizeY = maxWorkGroupSize / localSizeX
-	self.localSize2d = vec3sz(localSizeX, localSizeY, 1)
+	do
+		local localSizeX = math.min(tonumber(self.size.x), 2^math.ceil(math.log(maxWorkGroupSize,2)/2))
+		local localSizeY = maxWorkGroupSize / localSizeX
+		self.localSize2d = vec3sz(localSizeX, localSizeY, 1)
+	end
 
 	--	localSize3d = dim < 3 and vec3sz(16,16,16) or vec3sz(4,4,4)
 	-- TODO better than constraining by math.min(self.size),

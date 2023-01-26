@@ -43,8 +43,8 @@ function CLKernel:init(args)
 		this fixes the code gen
 		but still doesn't fix the argBuffers
 	so instead of fixing the argBuffers I'm going to detect :isa
-	I'm going to change the binding (which happens in cl.obj.program) 
-	
+	I'm going to change the binding (which happens in cl.obj.program)
+
 	Ugh I don't like having two separate paradigms.
 	since argBuffers is used for setArgs upon kernel setup,
 	add any extra cl.obj.buffer's via args.setArgObjs
@@ -54,15 +54,15 @@ function CLKernel:init(args)
 		:append(self.argsOut)
 		:append(self.argsIn)
 		:append(args.setArgObjs or {})
-		:mapi(function(arg) 
+		:mapi(function(arg)
 			return arg.obj
 		end)
 		:append(args.setArgs or {})
-	
+
 	self.domain = args.domain or self.env.base
 	self.event = args.event
 	self.wait = args.wait
-	
+
 	self.program = args.program
 
 	self.code = table{
@@ -70,7 +70,7 @@ function CLKernel:init(args)
 		args.body and template([[
 kernel void <?=self.name?>(<?
 local sep = ''
-for _,arg in ipairs(self.argsOut or {}) do 
+for _,arg in ipairs(self.argsOut or {}) do
 	local argType = arg.type or self.env.real
 	?><?=sep?>
 	<?
@@ -137,7 +137,7 @@ how to handle multiple command queues?
 honestly, time to move this function to obj/commandqueue
 --]]
 function CLKernel:__call(...)
-	-- if we get a call request when we have no kernel/program, make sure to get one 
+	-- if we get a call request when we have no kernel/program, make sure to get one
 	if not self.obj then
 		self:compile()
 	end
@@ -180,7 +180,7 @@ function CLKernel:setSizeProps()
 -- and that means no enqueueNDRange localSize/globalSize info can be calculated for it
 io.stderr:write('!!!! kernel has no domain -- skipping setSizeProps !!!!\n')
 	end
-	
+
 	self.maxWorkGroupSize = tonumber(self.obj:getWorkGroupInfo('CL_KERNEL_WORK_GROUP_SIZE', self.domain.device))
 
 	self.localSize1d = math.min(self.maxWorkGroupSize, tonumber(self.domain.size:volume()))
@@ -214,9 +214,9 @@ io.stderr:write('!!!! kernel has no domain -- skipping setSizeProps !!!!\n')
 		roundup(self.domain.size.x, self.localSize.x),
 		roundup(self.domain.size.y, self.localSize.y),
 		roundup(self.domain.size.z, self.localSize.z))
-	
+
 	self.volume = tonumber(self.domain.size:volume())
-	
+
 	if self.env.verbose then
 		print("kernel "..self.name..': '..require'ext.tolua'{
 			maxWorkGroupSize = self.maxWorkGroupSize,

@@ -29,7 +29,7 @@ function CLProgram:init(args)
 	self.env = assert(args.env)
 	self.kernels = table(args.kernels)
 	self.domain = args.domain
-	
+
 	-- strictly for forwarding:
 	self.showCodeOnError = args and args.showCodeOnError or nil
 
@@ -103,7 +103,7 @@ function CLProgram:kernel(args, ...)
 	if self.obj then
 		self:setupKernel(kernel)
 	end
-	
+
 	return kernel
 end
 
@@ -111,10 +111,10 @@ end
 function CLProgram:getCode()
 	return table{
 		self.env.code or '',
-		
+
 		-- size globals come from domain code
 		-- but is only included by env code
-		
+
 		self.code or '',
 	}:append(table.mapi(self.kernels, function(kernel)
 		return kernel.code
@@ -157,7 +157,7 @@ function CLProgram:compile(args)
 		}
 		return
 	end
-	
+
 	-- right now this is just for construction by binaries
 	-- if we are caching binaries then it doesn't save it in the object -- just to the cache file
 	if self.binaries then
@@ -296,7 +296,7 @@ end
 				local bins = self.obj:getBinaries()
 				-- how well does encoding binary files work ...
 				file(binfn):write(require 'ext.tolua'(bins))
-			
+
 				-- [[ double check for safety ...
 				local bindata = assert(file(binfn):read(), "failed to find opencl compiled program "..binfn)
 				local binsCheck = require 'ext.fromlua'(bindata)

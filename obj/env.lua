@@ -17,10 +17,10 @@ local table = require 'ext.table'
 local string = require 'ext.string'
 local getCmdline = require 'ext.cmdline'
 local template = require 'template'
-local half = require 'cl.obj.half'	-- has typedef for half
+require 'cl.obj.half'	-- has typedef for half
 
 -- boilerplate so OpenCL types will work with ffi types
--- TODO for support for multiple environments ... 
+-- TODO for support for multiple environments ...
 --  you could check for previous type declaration with pcall(ffi.sizeof,'real')
 for _,name in ipairs{'half', 'float', 'double', 'int'} do
 	ffi.cdef(template([[
@@ -34,7 +34,7 @@ typedef union {
 typedef union {
 	<?=name?> s[4];
 	struct { <?=name?> s0, s1, s2, s3; };
-	struct { <?=name?> x, y, z, w; };	
+	struct { <?=name?> x, y, z, w; };
 } <?=name?>4;
 
 typedef union {
@@ -45,7 +45,7 @@ typedef union {
 ]], {
 		name = name,
 	}))
-	
+
 	assert(ffi.sizeof(name..'2') == 2 * ffi.sizeof(name))
 	assert(ffi.sizeof(name..'4') == 4 * ffi.sizeof(name))
 	assert(ffi.sizeof(name..'8') == 8 * ffi.sizeof(name))
@@ -63,9 +63,8 @@ end
 
 local function getForPrecision(list, precision)
 	local all = list:mapi(function(item)
-		local exts = item:getExtensions():mapi(string.lower)
 		return {
-			item = item, 
+			item = item,
 			fp64 = isFP64(item),
 			fp16 = isFP16(item),
 		}
@@ -145,12 +144,12 @@ local deviceTypeValueForName = {
 function CLEnv.getDeviceTypeFromCmdLine(...)
 	local cmdline = getCmdline(...)
 	local deviceType = cmdline.deviceType
-	if type(deviceType) == 'string' then 
+	if type(deviceType) == 'string' then
 		deviceType = assert(deviceTypeValueForName[deviceType], "couldn't understand deviceType="..tostring(deviceType))
 	end
 	for k,v in pairs(deviceTypeValueForName) do
 		if cmdline[k] then
-			deviceType = bit.bor(deviceType or 0, v) 
+			deviceType = bit.bor(deviceType or 0, v)
 		end
 	end
 	return deviceType or cl.CL_DEVICE_TYPE_ALL
@@ -158,20 +157,20 @@ end
 
 --[[
 args for CLEnv:
-	precision = any | half | float | double 
+	precision = any | half | float | double
 		= precision type to support.  default 'any'.
 			honestly 'any' and 'float' are the same, because any device is going to have floating precision.
 			both of these also prefer devices with double precision.
 			but only 'double' will error out if it can't find double precision.
 	getPlatform = (optional) function(platforms) returns desired platform
 	getDevice = (optional) function(devices) returns table of desired devices
-	deviceType = (optional) function() returns CL_DEVICE_TYPE_*** 
+	deviceType = (optional) function() returns CL_DEVICE_TYPE_***
 	cpu = (optional) only use CL_DEVICE_TYPE_CPU
 	gpu = (optional, default) only use CL_DEVICE_TYPE_GPU
 	useGLSharing = (optional) set to false to disable GL sharing
 
 args passed to CLCommandQueue:
-	queue = (optional) command-queue arguments 
+	queue = (optional) command-queue arguments
 
 args passed along to CLDomain:
 	size
@@ -182,7 +181,7 @@ function CLEnv:init(args)
 	args = args or {}
 	self.verbose = args and args.verbose
 	local precision = args and args.precision or 'any'
-	
+
 	local platforms = require 'cl.platform'.getAll()
 	-- khr_fp16 isn't set on the platform, but it is on the device
 	local getter = args.getPlatform or getForPrecision
@@ -214,7 +213,7 @@ function CLEnv:init(args)
 
 	local fp64 = #self.devices:filter(isFP64) == #self.devices
 	local fp16 = #self.devices:filter(isFP16) == #self.devices
-	
+
 	-- don't use GL sharing if we're told not to
 	if not args or args.useGLSharing ~= false then
 		local numDevicesWithGLSharing = #self.devices:filter(function(device, deviceIndex)
@@ -237,7 +236,7 @@ function CLEnv:init(args)
 	end
 
 	self.ctx = require 'cl.context'{
-		platform = self.platform, 
+		platform = self.platform,
 		devices = self.devices,
 		glSharing = self.useGLSharing,
 		verbose = self.verbose,
@@ -253,14 +252,14 @@ function CLEnv:init(args)
 	end)
 
 	-- if no size/dim is provided then don't make a base
-	-- however, this will make constructing buffers and kernels difficult 
+	-- however, this will make constructing buffers and kernels difficult
 	-- (does that mean I shouldn't route those calls through domain -- though they are very domain-specific)
 	if args and (args.size or args.dim) then
 		self.base = self:domain{
 			size = args.size,
 			dim = args.dim,
 			verbose = args.verbose,
-			
+
 			-- default domain gets a default device
 			device = self.devices[1],
 		}
@@ -268,9 +267,9 @@ function CLEnv:init(args)
 	end
 
 	-- initialize types
-	
-	self.real = (precision ~= 'float' and precision ~= 'half') and fp64 and 'double' 
-		or (precision == 'half' and fp16 and 'half' 
+
+	self.real = (precision ~= 'float' and precision ~= 'half') and fp64 and 'double'
+		or (precision == 'half' and fp16 and 'half'
 			or 'float')
 	if precision == 'float' then self.real = 'float' end
 	if self.verbose then
@@ -279,7 +278,7 @@ function CLEnv:init(args)
 
 	-- typeCode goes to ffi.cdef and to the CL code header
 	local typeCode = self:getTypeCode()
-	
+
 	-- have luajit cdef the types so I can see the sizeof (I hope OpenCL agrees with padding)
 	ffi.cdef(typeCode)
 
@@ -321,7 +320,7 @@ constant const int4 stepsize = (int4)(1, <?=
 })}:concat'\n'
 
 	-- buffer allocation
-	
+
 	self.totalGPUMem = 0
 end
 

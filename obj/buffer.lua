@@ -1,7 +1,5 @@
 local class = require 'ext.class'
 local ffi = require 'ffi'
-local cl = require 'ffi.OpenCL'
-local classertparam = require 'cl.assertparam'
 local half = require 'cl.obj.half'
 
 local CLBuffer = class()
@@ -18,10 +16,10 @@ function CLBuffer:init(args)
 	self.readwrite = args.readwrite or 'rw'
 	self.constant = args.constant
 	self.obj = self.env:clalloc(self.count * ffi.sizeof(self.type), self.name, self.type, self.readwrite)
-	
+
 	-- TODO use hostptr of cl.buffer, which is hidden behind env:clalloc
 	if args.data then self:fromCPU(args.data) end
-	
+
 	-- TODO optionally keep track of data as self.data with self.keep flag
 end
 
@@ -90,7 +88,7 @@ end
 --[[
 args:
 	flags = read/write flags.
-	
+
 	TODO use origin and size, use bytes, instead of treating buffers like arrays
 	start = optional, default 0
 	count = optional, default self.count * sizeof(self.type)
