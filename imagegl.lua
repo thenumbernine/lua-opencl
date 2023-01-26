@@ -1,7 +1,5 @@
 local class = require 'ext.class'
 local cl = require 'ffi.OpenCL'
-local gl = require 'ffi.OpenGL'
-local ffi = require 'ffi'
 local bit = require 'bit'
 local classertparam = require 'cl.assertparam'
 local Memory = require 'cl.memory'

@@ -15,7 +15,7 @@ local MultiBuffer = class()
 function MultiBuffer:init(args)
 	local env = assert(args.env)
 	self.env = env
-		
+
 	self.buffers = env.blocks:mapi(function(block,i)
 		local blockArgs = table(args)
 		if blockArgs.data then
@@ -39,7 +39,7 @@ local MultiEnv = class(CLEnv)
 
 function MultiEnv:init(args)
 	MultiEnv.super.init(self, args)
-	
+
 	if args.size then
 		local size = args.size
 		local dim = self.dim
@@ -54,7 +54,7 @@ function MultiEnv:init(args)
 			-- so that memory is contiguous
 			blockmin[dim] = math.floor(i/n*size[dim])
 			blockmax[dim] = math.floor((i+1)/n*size[dim])
-			blocksize = table(size)
+			local blocksize = table(size)
 			blocksize[dim] = blockmax[dim] - blockmin[dim]
 			return {
 				min = blockmin,
@@ -84,7 +84,7 @@ for dim,size in ipairs(sizes) do
 		getDevices = CLEnv.getDevicesFromCmdLine(...),
 		size = size,
 	}
-	
+
 	print('#devices', #env.devices)
 
 	-- need one domain per device for multi devices
@@ -117,7 +117,7 @@ for dim,size in ipairs(sizes) do
 
 	print('test '..dim..'D reduce buffer subset')
 
-	local sum = env:reduce{
+	sum = env:reduce{
 		buffer = c.obj,
 		count = sizes[1][1]/2,
 		op = function(x,y) return x .. '+' .. y end,

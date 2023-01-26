@@ -29,7 +29,6 @@ local function quickstart(args)
 			device:printInfo()
 		end
 	end
-	local device = assert(devices[1], "failed to find a device")
 
 	local context = require 'cl.context'(table({platform=platform, devices=devices}, args.context))
 	if args.verbose then
@@ -38,10 +37,12 @@ local function quickstart(args)
 		context:printInfo()
 	end
 
-	local device = devices[1]
+	local device = assert(devices[1], "failed to find a device")
+	local queue
+	local program
 	if device then
-		local queue = require 'cl.commandqueue'(table({context=context, device=device}, args.queue))
-		local program = args.program and require 'cl.program'(table({context=context, devices=devices}, args.program)) or nil
+		queue = require 'cl.commandqueue'(table({context=context, device=device}, args.queue))
+		program = args.program and require 'cl.program'(table({context=context, devices=devices}, args.program)) or nil
 	end
 	return platform, devices, context, queue, program
 end

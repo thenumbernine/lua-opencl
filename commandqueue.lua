@@ -127,8 +127,8 @@ function CommandQueue:enqueueFillBuffer(args)
 		size,
 		0,
 		nil,
-		args.event and args.event.gc.ptr 
-		
+		args.event and args.event.gc.ptr
+
 		-- or nil
 --[[
 https://github.com/thenumbernine/HydrodynamicsGPU/blob/master/src/Solver/Solver.cpp
@@ -136,11 +136,11 @@ line 24:
 if you don't pass that &event pointer on my AMD Radeon then it writes garbage
 CL_DEVICE_NAME:	AMD Radeon R9 M370X Compute Engine
 CL_DEVICE_VENDOR:	AMD
-CL_DEVICE_VERSION:	OpenCL 1.2 
+CL_DEVICE_VERSION:	OpenCL 1.2
 CL_DRIVER_VERSION:	1.2 (Jan 11 2016 18:56:15)
 
 ...and here we are in 2021...
---]]	
+--]]
 		or defaultEvent.gc.ptr
 	))
 end
@@ -229,7 +229,7 @@ function CommandQueue:enqueueNDRangeKernel(args)
 			wait[i-1] = args.wait[i].id
 		end
 	end
-	
+
 	classert(cl.clEnqueueNDRangeKernel(
 		self.id,
 		assert(args.kernel, "expected kernel").id,
@@ -240,7 +240,7 @@ function CommandQueue:enqueueNDRangeKernel(args)
 		numWait,
 		wait,
 		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
-	
+
 	-- hmm should I even use 'id' if gc.ptr[0] will be holding the same information?
 	if args.event then
 		args.event.id = args.event.gc.ptr[0]

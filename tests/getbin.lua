@@ -1,6 +1,7 @@
 #!/usr/bin/env luajit
-local ffi = require 'ffi'
 require 'ext'
+local range = require 'ext.range'
+local tolua = require 'ext.tolua'
 local CLEnv = require 'cl.obj.env'
 
 local env = CLEnv{
@@ -21,13 +22,15 @@ local kernel = env:kernel{
 
 kernel()
 
-print'first pass:'
-local srcMem = src:toCPU()
-local dstMem = dst:toCPU()
-for i=0,env.base.volume-1 do
-	io.write(' '..srcMem[i]..'^2 = '..dstMem[i])
+do
+	print'first pass:'
+	local srcMem = src:toCPU()
+	local dstMem = dst:toCPU()
+	for i=0,env.base.volume-1 do
+		io.write(' '..srcMem[i]..'^2 = '..dstMem[i])
+	end
+	print()
 end
-print()
 
 local programObj = kernel.program.obj
 local binaries = programObj:getBinaries()
@@ -40,10 +43,12 @@ local kernel2 = program2:kernel'test'
 
 kernel2(src, dst)
 
-print'second pass:'
-local srcMem = dst:toCPU()
-local dstMem = src:toCPU()
-for i=0,env.base.volume-1 do
-	io.write(' '..srcMem[i]..'^2 = '..dstMem[i])
+do
+	print'second pass:'
+	local srcMem = dst:toCPU()
+	local dstMem = src:toCPU()
+	for i=0,env.base.volume-1 do
+		io.write(' '..srcMem[i]..'^2 = '..dstMem[i])
+	end
+	print()
 end
-print()

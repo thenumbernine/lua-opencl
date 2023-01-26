@@ -8,9 +8,9 @@ for i,platform in ipairs(platforms) do
 	platform:printInfo()
 
 	local devices = platform:getDevices()
-	for i,device in ipairs(devices) do
+	for j,device in ipairs(devices) do
 		print()
-		print('-device '..i)
+		print('-device '..j)
 		device:printInfo()
 	end
 

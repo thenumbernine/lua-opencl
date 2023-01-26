@@ -2,7 +2,6 @@ local class = require 'ext.class'
 local table = require 'ext.table'
 local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
-local classert = require 'cl.assert'
 local classertparam = require 'cl.assertparam'
 local clCheckError = require 'cl.checkerror'
 local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
@@ -25,7 +24,7 @@ args:
 function Kernel:init(args)
 	assert(args)
 	self.id = classertparam('clCreateKernel',
-		assert(args.program).id, 
+		assert(args.program).id,
 		assert(args.name))
 	Kernel.super.init(self, self.id)
 

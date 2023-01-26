@@ -35,7 +35,7 @@ function Context:init(args)
 	}
 	if args.glSharing then
 
-		for _,device in ipairs(args.devices) do
+		for _,device in ipairs(devices) do
 			if not device:getExtensions():mapi(string.lower):find(nil, function(s)
 				return s:match'_gl_sharing'
 			end) then
@@ -108,20 +108,20 @@ Display* glXGetCurrentDisplay();
 	end
 	properties = ffi_new_table('cl_context_properties', properties)
 
-	local devices = table.mapi(args.devices, function(device) return device.id end)
+	devices = table.mapi(devices, function(device) return device.id end)
 	local deviceIDs = ffi_new_table('cl_device_id', devices)
 
 	--[[
 	if you're on AMD and GL sharing won't work ...
 		TODO FIXME NOTICE READ THIS
-	it seems with AMD you will always fail unless you pick the device listed as current: 
+	it seems with AMD you will always fail unless you pick the device listed as current:
 	then, before any of that, let's see what's avaiable ...
 	--]]
 	if args.glSharing and verbose then
 		local CLDevice = require 'cl.device'
 		local classert = require 'cl.assert'
 		local clGetGLContextInfoKHR = ffi.cast('clGetGLContextInfoKHR_fn', cl.clGetExtensionFunctionAddressForPlatform(platform.id, 'clGetGLContextInfoKHR'))
-	
+
 		local numGLDevicesRef = ffi.new'size_t[1]'
 		classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, 0, nil, numGLDevicesRef))
 		local numGLDevices = tonumber(numGLDevicesRef[0]) / ffi.sizeof'cl_device_id'

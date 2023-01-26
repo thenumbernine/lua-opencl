@@ -2,7 +2,6 @@ local ffi = require 'ffi'
 local cl = require 'ffi.OpenCL'
 local class = require 'ext.class'
 local table = require 'ext.table'
-local string = require 'ext.string'
 local classert = require 'cl.assert'
 local classertparam = require 'cl.assertparam'
 local clCheckError = require 'cl.checkerror'
@@ -34,7 +33,7 @@ function Program:init(args)
 	local context = assert(args.context)
 	local code = args.code
 	local binaries = args.binaries
-	local IL = args.IL	-- intermediateLanguage 
+	local IL = args.IL	-- intermediateLanguage
 	local programs = args.programs
 	assert(code or binaries or IL or programs, "expected either code, binaries, IL, or programs")
 	if code then
@@ -66,7 +65,6 @@ function Program:init(args)
 		end
 	elseif IL then
 		assert(type(IL) == 'string')
-		local n = #IL
 		self.id = classertparam('clCreateProgramWithIL', context.id, ffi.cast('void const *', IL), #IL)
 	elseif programs then
 		assert(#programs > 0, "can't link an empty program")
@@ -86,7 +84,7 @@ function Program:init(args)
 		self.id = classertparam('clLinkProgram', context.id, #devices, deviceIDs, args.buildOptions, #programs, programIDs, nil, nil)
 	end
 	Program.super.init(self, self.id)
-	
+
 	if args.devices and not programs then
 		if args.dontLink then
 			local success, message = self:compile(args.devices, args.buildOptions)
@@ -108,7 +106,7 @@ end
 -- calls clCompileProgram, which just does source -> obj
 function Program:compile(devices, options)
 	-- notice, cl.hpp doesn't use devices
-	local devices = assert(devices, "binaries expects devices")
+	assert(devices, "binaries expects devices")
 	local deviceIDs = ffi.new('cl_device_id[?]', #devices)
 	for i=1,#devices do
 		deviceIDs[i-1] = devices[i].id

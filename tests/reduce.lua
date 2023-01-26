@@ -40,7 +40,7 @@ do
 			i = i + maxWorkGroupSize
 		end
 	end
-	
+
 	values = values:keys():sort()
 end
 
@@ -58,7 +58,7 @@ for _,size in ipairs(values) do
 		count = 2*size,
 		data = data,
 	}
-	local cpu = buf:toCPU()
+	--local cpu = buf:toCPU()
 	local reduce = env:reduce{
 		count = size,
 		buffer = buf.obj,

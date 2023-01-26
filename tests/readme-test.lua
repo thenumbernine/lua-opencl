@@ -2,7 +2,7 @@
 
 local range = require 'ext.range'
 
-local env = require 'cl.obj.env'{size=64} 
+local env = require 'cl.obj.env'{size=64}
 local a = env:buffer{name='a', type='real', data=range(env.base.volume)}
 local b = env:buffer{name='b', type='real', data=range(env.base.volume)}
 local c = env:buffer{name='c', type='real'}

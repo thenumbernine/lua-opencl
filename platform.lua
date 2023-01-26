@@ -11,7 +11,7 @@ local Platform = class(GetInfo())
 -- platform has no retain/release, so no need to wrap it
 -- hence the manual assignment of id here:
 function Platform:init(id)
-	self.id = id	
+	self.id = id
 end
 
 -- static method
@@ -50,7 +50,7 @@ args:
 	gpu = CL_DEVICE_TYPE_GPU
 	accelerator = CL_DEVICE_TYPE_ACCELERATOR
 	all = CL_DEVICE_TYPE_ALL
-	
+
 --]]
 function Platform:getDevices(args)
 	local Device = require 'cl.device'

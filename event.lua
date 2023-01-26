@@ -23,9 +23,9 @@ end
 -- static
 function Event.waitForEvents(...)
 	local n = select('#', ...)
-	local events 
+	local events
 	if n > 0 then
-		events = ffi.new('cl_event[?]', n) 
+		events = ffi.new('cl_event[?]', n)
 		for i=1,n do
 			events[i-1] = select(i).id
 		end

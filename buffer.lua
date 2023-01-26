@@ -11,19 +11,18 @@ local Buffer = class(Memory)
 --[[
 args:
 	context
-	
+
 	flags = buffer init flags
 		(flags are also inferred from the following):
 	readwrite (optional) = read | write | rw
 	hostptr (optional)
 	alloc (optional)
 	copy (optional)
-	
+
 	size
 --]]
 function Buffer:init(args)
 	assert(args)
-	local err = ffi.new('cl_int[1]',0)
 	local flags = args.flags or 0
 	self.readwrite = args.readwrite
 	if args.readwrite == 'read' then flags = bit.bor(flags, cl.CL_MEM_READ_ONLY) end
@@ -34,7 +33,7 @@ function Buffer:init(args)
 	if args.copy then flags = bit.bor(flags, cl.CL_MEM_COPY_HOST_PTR) end
 	self.size = assert(args.size)	-- in bytes
 	self.id = classertparam('clCreateBuffer',
-		assert(args.context).id, 
+		assert(args.context).id,
 		flags,
 		self.size,
 		args.hostptr)
@@ -60,11 +59,11 @@ function Buffer:createSubBuffer(args)
 		if self.readwrite == 'write' then flags = bit.bor(flags, cl.CL_MEM_WRITE_ONLY) end
 		if self.readwrite == 'rw' then flags = bit.bor(flags, cl.CL_MEM_READ_WRITE) end
 	end
-	
+
 	region[0].origin = args.origin or 0
 	region[0].size = args.size or self.size
 
-	local id = classertparam('clCreateSubBuffer', 
+	local id = classertparam('clCreateSubBuffer',
 		self.id,
 		flags,
 		cl.CL_BUFFER_CREATE_TYPE_REGION,

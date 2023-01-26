@@ -100,7 +100,7 @@ local bitflagNamesForType = {
 		'CL_MEM_SVM_FINE_GRAIN_BUFFER',
 		'CL_MEM_SVM_ATOMICS',
 		'CL_MEM_KERNEL_READ_AND_WRITE',
-	},		
+	},
 	cl_mem_migration_flags = {
 		'CL_MIGRATE_MEM_OBJECT_HOST',
 		'CL_MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED',
@@ -284,17 +284,17 @@ local valueNamesForType = {
 
 local function GetInfoBehavior(parent)
 	local template = class(parent)
-	
+
 	template.infoVarForName = template.infoVarForName and table(template.infoVarForName) or table()
 
 	-- accept extra args from the generated Lua getter
 	local function getInfo(self, getter, vars, name, ...)
 		local id = self.id
-		
+
 		local var = assert(self.infoVarForName[name], "tried to get an unknown name "..name)
 		assert(var.getter == getter)
 		local nameValue = assert(cl[name])
-		
+
 		if var.type == 'char[]' then 	-- convert to Lua string
 			local size = ffi.new('size_t[1]', 0)
 			classert(getter(id, nameValue, 0, nil, size, ...))
@@ -307,7 +307,7 @@ local function GetInfoBehavior(parent)
 			if var.separator then
 				return string.split(string.trim(s), var.separator)
 			end
-			return s 
+			return s
 		elseif var.type == 'cl_bool' then	-- convert to Lua bool
 			local result = ffi.new(var.type..'[1]')
 			classert(getter(id, nameValue, ffi.sizeof(var.type), result, nil, ...))
@@ -316,7 +316,7 @@ local function GetInfoBehavior(parent)
 			local baseType = var.type:sub(1,-3)
 			local size = ffi.new('size_t[1]', 0)
 			classert(getter(id, nameValue, 0, nil, size, ...))
-			local n = tonumber(size[0] / ffi.sizeof(baseType))	
+			local n = tonumber(size[0] / ffi.sizeof(baseType))
 			local result = ffi.new(baseType..'[?]', n)
 			classert(getter(id, nameValue, size[0], result, nil, ...))
 			return range(0,n-1):mapi(function(i) return result[i] end)
@@ -324,7 +324,7 @@ local function GetInfoBehavior(parent)
 if var.type == nil or var.type == '' then error("you haven't defined the type for name "..name) end
 			local result = ffi.new(var.type..'[1]')
 			classert(getter(id, nameValue, ffi.sizeof(var.type), result, nil, ...))
-			
+
 			local allBitflagNames = bitflagNamesForType[var.type]
 			if allBitflagNames then
 				local usedFlagNames = table()
@@ -336,7 +336,7 @@ if var.type == nil or var.type == '' then error("you haven't defined the type fo
 				end
 				return result[0], usedFlagNames
 			end
-			
+
 			local allValueNames = valueNamesForType[var.type]
 			if allValueNames then
 				local usedValueName
@@ -349,7 +349,7 @@ if var.type == nil or var.type == '' then error("you haven't defined the type fo
 				end
 				return result[0], usedValueName
 			end
-		
+
 			return result[0]
 		end
 	end
@@ -369,7 +369,7 @@ if var.type == nil or var.type == '' then error("you haven't defined the type fo
 
 		local getter = assert(args.getter)
 		local vars = assert(args.vars)
-		
+
 		for _,var in ipairs(vars) do
 			self.infoVarForName[var.name] = var
 			var.getter = getter

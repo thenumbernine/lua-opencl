@@ -16,7 +16,7 @@ for dim,size in ipairs(sizes) do
 		getDevices = CLEnv.getDevicesFromCmdLine(...),
 		deviceType = CLEnv.getDeviceTypeFromCmdLine(...),
 		size = size,
-	} 
+	}
 	local a = env:buffer{name='a', type='real', data=range(env.base.volume)}
 	local b = env:buffer{name='b', type='real', data=range(env.base.volume)}
 	local c = env:buffer{name='c', type='real'}
@@ -46,19 +46,19 @@ for dim,size in ipairs(sizes) do
 	print('sum 1..'..sizes[1][1]..' = '..val)
 	print('test '..dim..'D reduce buffer subset')
 
-	local sum = env:reduce{
+	sum = env:reduce{
 		buffer = c.obj,
 		count = sizes[1][1]/2,
 		op = function(x,y) return x .. '+' .. y end,
 	}
-	local val = sum()
+	val = sum()
 	print('sum 1..'..(sizes[1][1]/2)..' = '..val)
 
-	local sum = env:reduce{
+	sum = env:reduce{
 		buffer = c.obj,
 		op = function(x,y) return x .. '+' .. y end,
 	}
-	local val = sum(nil, sizes[1][1]/2)
+	val = sum(nil, sizes[1][1]/2)
 	print('sum 1..'..(sizes[1][1]/2)..' = '..val)
 	print('test '..dim..'D reduce buffer subset')
 	collectgarbage()	-- see if all the cl objs get freed here

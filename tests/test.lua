@@ -71,7 +71,7 @@ local cBuffer = ctx:buffer{rw=true, size=n*ffi.sizeof(real)}
 local aMem = ffi.new(real..'[?]', n)
 local bMem = ffi.new(real..'[?]', n)
 local cMem = ffi.new(real..'[?]', n)
-for i=0,n-1 do 
+for i=0,n-1 do
 	aMem[i] = i+1
 	bMem[i] = i+1
 end

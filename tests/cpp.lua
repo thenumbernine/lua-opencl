@@ -1,6 +1,7 @@
 #!/usr/bin/env luajit
 local ffi = require 'ffi'
 require 'ext'
+local file = require 'ext.file'
 
 local function matchExt(obj, pat)
 	local exts = obj:getExtensions():mapi(string.lower)
@@ -109,7 +110,7 @@ local Program = require 'cl.program'
 --[[ C version
 local program = Program{context=ctx, devices=devices, code=code}
 --]]
---[[ not working, because -cl-std=CLC++ reuqires cl_ext_cxx_for_opencl, which I don't have on this machine 
+--[[ not working, because -cl-std=CLC++ reuqires cl_ext_cxx_for_opencl, which I don't have on this machine
 local program = Program{context=ctx, devices=devices, code=code, buildOptions='-cl-std=CLC++'}
 --]]
 local clcppfn = 'cpptest.clcpp'
@@ -142,7 +143,7 @@ assert(echo(table{
 	--'-I <libclcxx dir>',
 	-- from here: https://community.khronos.org/t/clcreateprogramwithil-spir-v-failed-with-cl-invalid-value/109208
 	-- https://clang.llvm.org/docs/OpenCLSupport.html: says -Xclang or -cc1 is exclusive
-	'-Xclang','-finclude-default-header',	-- -X<where> = pass arg to 
+	'-Xclang','-finclude-default-header',	-- -X<where> = pass arg to
 	--'-cc1','-finclude-default-header',	-- clang: error: unknown argument: '-cc1'
 	--'-target spir-unknown-unknown',
 	'--target=spirv64-unknown-unknown',	-- clang: error: unable to execute command: Executable "llvm-spirv" doesn't exist!
@@ -153,7 +154,7 @@ assert(echo(table{
 	--'-D SPIR',
 	'-c',				-- without -c: clang: cpptest.cl:(.text+0x16): undefined reference to `get_global_id(unsigned int)' clang: error: linker command failed with exit code 1 (use -v to see invocation)
 	--'-o0',
-	--'-x cl',	-- clang: error: no such file or directory: 'cl' 
+	--'-x cl',	-- clang: error: no such file or directory: 'cl'
 	--'-cl-std=c++',	-- clang: error: invalid value 'c++' in '-cl-std=c++'
 	-- does that mean I need something extra?
 	--'-cl-std=CL3.0',
@@ -161,7 +162,7 @@ assert(echo(table{
 	 -- (if you omit -Xclang SOMETHING what tho?) clang: warning: argument unused during compilation: '-cl-ext=+cl_khr_fp64,+__opencl_c_fp64' [-Wunused-command-line-argument]
 	--'--spirv-max-version=1.0',	-- clang: error: unsupported option '--spirv-max-version=1.0'
 	-- and building gives: clCreateProgramWithIL failed with error -42: CL_INVALID_BINARY
-	
+
 	-- https://clang.llvm.org/docs/OpenCLSupport.html:
 	--'-cl-kernel-arg-info',
 
@@ -196,7 +197,7 @@ local cBuffer = ctx:buffer{rw=true, size=n*ffi.sizeof(real)}
 local aMem = ffi.new(real..'[?]', n)
 local bMem = ffi.new(real..'[?]', n)
 local cMem = ffi.new(real..'[?]', n)
-for i=0,n-1 do 
+for i=0,n-1 do
 	aMem[i] = i+1
 	bMem[i] = i+1
 end
