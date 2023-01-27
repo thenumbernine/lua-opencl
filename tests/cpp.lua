@@ -80,7 +80,7 @@ local code =
 #pragma OPENCL EXTENSION __cl_clang_variadic_functions : disable
 
 #if 0
-// C++ test:
+// libclcxx test:
 // ex from https://clang.llvm.org/docs/OpenCLSupport.html#c-libraries-for-opencl
 using sint_type = std::make_signed<unsigned int>::type;
 static_assert(!std::is_same<sint_type, unsigned int>::value);

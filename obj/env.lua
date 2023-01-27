@@ -287,7 +287,7 @@ function CLEnv:init(args)
 		typeCode,
 		[[
 //macro for the index
-#define globalInt4()	(int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0)
+#define globalInt4()	(int4)((int)get_global_id(0), (int)get_global_id(1), (int)get_global_id(2), 0)
 
 //macros for arbitrary sizes
 #define indexForInt4ForSize(i, sx, sy, sz) (i.x + sx * (i.y + sy * i.z))
