@@ -43,81 +43,18 @@ local cmds = devices:mapi(function(device)
 	return CommandQueue{context=ctx, device=device, properties=cl.CL_QUEUE_PROFILING_ENABLE}
 end)
 
-local code =
-'static const constexpr size_t arraySize = '..n..';\n'..
-'using real = '..real..';\n'..
-(fp64 and '#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n' or '')..
-[[
-#pragma OPENCL EXTENSION __cl_clang_function_pointers : enable
-#pragma OPENCL EXTENSION __cl_clang_variadic_functions : enable
-
-// https://clang.llvm.org/docs/OpenCLSupport.html#c-libraries-for-opencl
-//#include <algorithm>
-//#include <array>
-//#include <cassert>
-//#include <cmath>
-//#include <cstddef>
-//#include <exception>
-//#include <iterator>
-//#include <functional>
-//#include <map>
-//#include <numeric>
-//#include <optional>
-//#include <tuple>
-//#include <type_traits>
-//#include <utility>
-//#include <vector>
-//#include <regex>
-//#include <string>
-//#include <fstream>
-//#include <iostream>
-//#include <sstream>
-//#include <conditional_variable>
-//#include <mutex>
-//#include <thread>
-
-#pragma OPENCL EXTENSION __cl_clang_function_pointers : disable
-#pragma OPENCL EXTENSION __cl_clang_variadic_functions : disable
-
-#if 0
-// libclcxx test:
-// ex from https://clang.llvm.org/docs/OpenCLSupport.html#c-libraries-for-opencl
-using sint_type = std::make_signed<unsigned int>::type;
-static_assert(!std::is_same<sint_type, unsigned int>::value);
-#endif
-
-namespace N {
-
-class T {
-public:
-	real value;
-};
-static_assert(sizeof(T) == sizeof(real));
-};
-
-kernel void test(
-	global N::T* c,
-	const global N::T* a,
-	const global N::T* b
-) {
-	int i = get_global_id(0);
-	if (i >= arraySize) return;
-	c[i].value = a[i].value * b[i].value;
-}
-]]
-
-local Program = require 'cl.program'
---[[ C version
-local program = Program{context=ctx, devices=devices, code=code}
---]]
---[[ not working, because -cl-std=CLC++ reuqires cl_ext_cxx_for_opencl, which I don't have on this machine
-local program = Program{context=ctx, devices=devices, code=code, buildOptions='-cl-std=CLC++'}
---]]
 local clcppfn = 'cpptest.clcpp'
 local bcfn = 'cpptest.bc'
 local spvfn = 'cpptest.spv'
+
+local Program = require 'cl.program'
+--[[ C version
+local program = Program{context=ctx, devices=devices, code=file(clcppfn):read()}
+--]]
+--[[ not working, because -cl-std=CLC++ reuqires cl_ext_cxx_for_opencl, which I don't have on this machine
+local program = Program{context=ctx, devices=devices, code=file(clcppfn):read(), buildOptions='-cl-std=CLC++'}
+--]]
 -- [[ C++ via ILn
-file(clcppfn):write(code)
 		--[=[
 		https://github.com/KhronosGroup/SPIR/tree/spirv-1.1
 		how to compile 32-bit SPIR-V:
@@ -127,13 +64,16 @@ file(clcppfn):write(code)
 			clang -cc1 -emit-spirv -triple=spir-unknown-unknown -cl-std=c++ -I include kernel.cl -o kernel.spv 				#For OpenCL C++
 			clang -cc1 -emit-spirv -triple=spir-unknown-unknown -cl-std=CL2.0 -include opencl.h kernel.cl -o kernel.spv 	#For OpenCL C
 		--]=]
-local function echo(cmd)
-	print('>'..cmd)
-	return os.execute(cmd)
-end
+local exec = require 'make.exec'
+require 'make.targets'{
+	verbose = true,
+	{
+		srcs = {clcppfn},
+		dsts = {bcfn},
+		rule = function()
 -- TODO the -I should be to a file opencl.h which is ... where?
 -- https://clang.llvm.org/docs/OpenCLSupport.html
-assert(echo(table{
+assert(exec(table{
 	'clang',
 	'-v',
 	--'-cc1','-emit-spirv',
@@ -165,15 +105,22 @@ assert(echo(table{
 
 	-- https://clang.llvm.org/docs/OpenCLSupport.html:
 	--'-cl-kernel-arg-info',
-
+	'-DARRAY_SIZE='..n,
+	'-DREAL='..real,
+	fp64 and '-DUSE_FP64' or '',
 	--'-o', ('%q'):format(spvfn),
 	'-o', ('%q'):format(bcfn),
 	('%q'):format(clcppfn),
 }:concat' '))
+		end,
+	}, {
+		srcs = {bcfn},
+		dsts = {spvfn},
+		rule = function()
 -- [[ if you use -c :
 -- according to the community.khronos.org post I should next run:
 --  llvm-spirv cpptest.bc -o test.spv
-assert(echo(table{
+assert(exec(table{
 	'llvm-spirv',
 	--'-Xclang','-finclude-default-header',
 	--'--target=spirv64-unknown-unknown',	-- clang: error: unable to execute command: Executable "llvm-spirv" doesn't exist!
@@ -182,9 +129,11 @@ assert(echo(table{
 	'-o', ('%q'):format(spvfn),
 }:concat' '))
 --]]
+		end,
+	}
+}:run(spvfn)
 -- ... but I don't have it installed right now
-local IL = file(spvfn):read()
-assert(IL, "failed to read file "..spvfn)
+local IL = assert(file(spvfn):read(), "failed to read file "..spvfn)
 local program = Program{context=ctx, devices=devices, IL=IL}
 --]]
 

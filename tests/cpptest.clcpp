@@ -1,0 +1,63 @@
+#ifdef USE_FP64
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#endif
+
+#pragma OPENCL EXTENSION __cl_clang_function_pointers : enable
+#pragma OPENCL EXTENSION __cl_clang_variadic_functions : enable
+
+static const constexpr size_t arraySize = ARRAY_SIZE;
+using real = REAL;
+
+// https://clang.llvm.org/docs/OpenCLSupport.html#c-libraries-for-opencl
+//#include <algorithm>
+//#include <array>
+//#include <cassert>
+//#include <cmath>
+//#include <cstddef>
+//#include <exception>
+//#include <iterator>
+//#include <functional>
+//#include <map>
+//#include <numeric>
+//#include <optional>
+//#include <tuple>
+//#include <type_traits>
+//#include <utility>
+//#include <vector>
+//#include <regex>
+//#include <string>
+//#include <fstream>
+//#include <iostream>
+//#include <sstream>
+//#include <conditional_variable>
+//#include <mutex>
+//#include <thread>
+
+#pragma OPENCL EXTENSION __cl_clang_function_pointers : disable
+#pragma OPENCL EXTENSION __cl_clang_variadic_functions : disable
+
+#if 0
+// libclcxx test:
+// ex from https://clang.llvm.org/docs/OpenCLSupport.html#c-libraries-for-opencl
+using sint_type = std::make_signed<unsigned int>::type;
+static_assert(!std::is_same<sint_type, unsigned int>::value);
+#endif
+
+namespace N {
+
+class T {
+public:
+	real value;
+};
+static_assert(sizeof(T) == sizeof(real));
+};
+
+kernel void test(
+	global N::T* c,
+	const global N::T* a,
+	const global N::T* b
+) {
+	int i = get_global_id(0);
+	if (i >= arraySize) return;
+	c[i].value = a[i].value * b[i].value;
+}
