@@ -71,64 +71,64 @@ require 'make.targets'{
 		srcs = {clcppfn},
 		dsts = {bcfn},
 		rule = function()
--- TODO the -I should be to a file opencl.h which is ... where?
--- https://clang.llvm.org/docs/OpenCLSupport.html
-assert(exec(table{
-	'clang',
-	'-v',
-	--'-cc1','-emit-spirv',
-	--'-triple spir-unknown-unknown',
-	--'-target spir-unknown-unknown',
-	--'-c','-emit-llvm',
-	--'-I <libclcxx dir>',
-	-- from here: https://community.khronos.org/t/clcreateprogramwithil-spir-v-failed-with-cl-invalid-value/109208
-	-- https://clang.llvm.org/docs/OpenCLSupport.html: says -Xclang or -cc1 is exclusive
-	'-Xclang','-finclude-default-header',	-- -X<where> = pass arg to
-	--'-cc1','-finclude-default-header',	-- clang: error: unknown argument: '-cc1'
-	--'-target spir-unknown-unknown',
-	'--target=spirv64-unknown-unknown',	-- clang: error: unable to execute command: Executable "llvm-spirv" doesn't exist!
-	--'--target=spirv-unknown-unknown',	-- error: unknown target triple 'unknown-unknown-unknown-spirv-unknown-unknown', please use -triple or -arch
-	--'-triple spir-unknown-unknown',		-- (with --target=) clang: error: unknown argument: '-triple'
-	'-emit-llvm',	-- error: Opaque pointers are only supported in -opaque-pointers mode (Producer: 'LLVM15.0.2' Reader: 'LLVM 14.0.6')
-	--'-opaque-pointers',
-	--'-D SPIR',
-	'-c',				-- without -c: clang: cpptest.cl:(.text+0x16): undefined reference to `get_global_id(unsigned int)' clang: error: linker command failed with exit code 1 (use -v to see invocation)
-	--'-o0',
-	--'-x cl',	-- clang: error: no such file or directory: 'cl'
-	--'-cl-std=c++',	-- clang: error: invalid value 'c++' in '-cl-std=c++'
-	-- does that mean I need something extra?
-	--'-cl-std=CL3.0',
-	--'-cl-ext=+cl_khr_fp64,+__opencl_c_fp64',
-	 -- (if you omit -Xclang SOMETHING what tho?) clang: warning: argument unused during compilation: '-cl-ext=+cl_khr_fp64,+__opencl_c_fp64' [-Wunused-command-line-argument]
-	--'--spirv-max-version=1.0',	-- clang: error: unsupported option '--spirv-max-version=1.0'
-	-- and building gives: clCreateProgramWithIL failed with error -42: CL_INVALID_BINARY
+			-- TODO the -I should be to a file opencl.h which is ... where?
+			-- https://clang.llvm.org/docs/OpenCLSupport.html
+			exec(table{
+				'clang',
+				'-v',
+				--'-cc1','-emit-spirv',
+				--'-triple spir-unknown-unknown',
+				--'-target spir-unknown-unknown',
+				--'-c','-emit-llvm',
+				--'-I <libclcxx dir>',
+				-- from here: https://community.khronos.org/t/clcreateprogramwithil-spir-v-failed-with-cl-invalid-value/109208
+				-- https://clang.llvm.org/docs/OpenCLSupport.html: says -Xclang or -cc1 is exclusive
+				'-Xclang','-finclude-default-header',	-- -X<where> = pass arg to
+				--'-cc1','-finclude-default-header',	-- clang: error: unknown argument: '-cc1'
+				--'-target spir-unknown-unknown',
+				'--target=spirv64-unknown-unknown',	-- clang: error: unable to execute command: Executable "llvm-spirv" doesn't exist!
+				--'--target=spirv-unknown-unknown',	-- error: unknown target triple 'unknown-unknown-unknown-spirv-unknown-unknown', please use -triple or -arch
+				--'-triple spir-unknown-unknown',		-- (with --target=) clang: error: unknown argument: '-triple'
+				'-emit-llvm',	-- error: Opaque pointers are only supported in -opaque-pointers mode (Producer: 'LLVM15.0.2' Reader: 'LLVM 14.0.6')
+				--'-opaque-pointers',
+				--'-D SPIR',
+				'-c',				-- without -c: clang: cpptest.cl:(.text+0x16): undefined reference to `get_global_id(unsigned int)' clang: error: linker command failed with exit code 1 (use -v to see invocation)
+				--'-o0',
+				--'-x cl',	-- clang: error: no such file or directory: 'cl'
+				--'-cl-std=c++',	-- clang: error: invalid value 'c++' in '-cl-std=c++'
+				-- does that mean I need something extra?
+				--'-cl-std=CL3.0',
+				--'-cl-ext=+cl_khr_fp64,+__opencl_c_fp64',
+				 -- (if you omit -Xclang SOMETHING what tho?) clang: warning: argument unused during compilation: '-cl-ext=+cl_khr_fp64,+__opencl_c_fp64' [-Wunused-command-line-argument]
+				--'--spirv-max-version=1.0',	-- clang: error: unsupported option '--spirv-max-version=1.0'
+				-- and building gives: clCreateProgramWithIL failed with error -42: CL_INVALID_BINARY
 
-	-- https://clang.llvm.org/docs/OpenCLSupport.html:
-	--'-cl-kernel-arg-info',
-	'-DARRAY_SIZE='..n,
-	'-DREAL='..real,
-	fp64 and '-DUSE_FP64' or '',
-	--'-o', ('%q'):format(spvfn),
-	'-o', ('%q'):format(bcfn),
-	('%q'):format(clcppfn),
-}:concat' '))
+				-- https://clang.llvm.org/docs/OpenCLSupport.html:
+				--'-cl-kernel-arg-info',
+				'-DARRAY_SIZE='..n,
+				'-DREAL='..real,
+				fp64 and '-DUSE_FP64' or '',
+				--'-o', ('%q'):format(spvfn),
+				'-o', ('%q'):format(bcfn),
+				('%q'):format(clcppfn),
+			}:concat' ')
 		end,
 	}, {
 		srcs = {bcfn},
 		dsts = {spvfn},
 		rule = function()
--- [[ if you use -c :
--- according to the community.khronos.org post I should next run:
---  llvm-spirv cpptest.bc -o test.spv
-assert(exec(table{
-	'llvm-spirv',
-	--'-Xclang','-finclude-default-header',
-	--'--target=spirv64-unknown-unknown',	-- clang: error: unable to execute command: Executable "llvm-spirv" doesn't exist!
-	--'-emit-llvm',	-- clang: error: -emit-llvm cannot be used when linking
-	('%q'):format(bcfn),
-	'-o', ('%q'):format(spvfn),
-}:concat' '))
---]]
+			-- [[ if you use -c :
+			-- according to the community.khronos.org post I should next run:
+			--  llvm-spirv cpptest.bc -o test.spv
+			exec(table{
+				'llvm-spirv',
+				--'-Xclang','-finclude-default-header',
+				--'--target=spirv64-unknown-unknown',	-- clang: error: unable to execute command: Executable "llvm-spirv" doesn't exist!
+				--'-emit-llvm',	-- clang: error: -emit-llvm cannot be used when linking
+				('%q'):format(bcfn),
+				'-o', ('%q'):format(spvfn),
+			}:concat' ')
+			--]]
 		end,
 	}
 }:run(spvfn)
