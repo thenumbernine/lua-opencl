@@ -51,7 +51,7 @@ local Program = require 'cl.program'
 --[[ C version
 local program = Program{context=ctx, devices=devices, code=file(clcppfn):read()}
 --]]
---[[ not working, because -cl-std=CLC++ reuqires cl_ext_cxx_for_opencl, which I don't have on this machine
+--[[ not working, because -cl-std=CLC++ requires cl_ext_cxx_for_opencl, which I don't have on this machine
 local program = Program{context=ctx, devices=devices, code=file(clcppfn):read(), buildOptions='-cl-std=CLC++'}
 --]]
 -- [[ C++ via ILn
