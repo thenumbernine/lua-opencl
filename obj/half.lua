@@ -9,7 +9,7 @@ local ffi = require 'ffi'
 local math = require 'ext.math'
 
 ffi.cdef[[
-typedef union {
+typedef union float16bits_t {
 	unsigned short i;
 	unsigned char ptr[2];
 	struct {
@@ -23,7 +23,7 @@ typedef float16bits_t half;
 assert(ffi.sizeof'float16bits_t' == 2)
 
 ffi.cdef[[
-typedef union {
+typedef union float32bits_t {
 	unsigned int i;
 	float f;
 	unsigned char ptr[4];

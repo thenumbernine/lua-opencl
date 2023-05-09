@@ -24,20 +24,20 @@ require 'cl.obj.half'	-- has typedef for half
 --  you could check for previous type declaration with pcall(ffi.sizeof,'real')
 for _,name in ipairs{'half', 'float', 'double', 'int'} do
 	ffi.cdef(template([[
-typedef union {
+typedef union <?=name?>2 {
 	<?=name?> s[2];
 	struct { <?=name?> s0, s1; };
 	struct { <?=name?> x, y; };
 } <?=name?>2;
 
 //for real4 I'm using x,y,z,w to match OpenCL
-typedef union {
+typedef union <?=name?>4 {
 	<?=name?> s[4];
 	struct { <?=name?> s0, s1, s2, s3; };
 	struct { <?=name?> x, y, z, w; };
 } <?=name?>4;
 
-typedef union {
+typedef union <?=name?>8 {
 	<?=name?> s[8];
 	struct { <?=name?> s0, s1, s2, s3, s4, s5, s6, s7; };
 } <?=name?>8;
