@@ -1,6 +1,6 @@
 local class = require 'ext.class'
 local table = require 'ext.table'
-local file = require 'ext.file'
+local path = require 'ext.path'
 local Memory = require 'cl.memory'
 local Program = require 'cl.program'
 
@@ -196,11 +196,11 @@ function CLProgram:compile(args)
 		-- if the code matches what is cached then use the cached binary
 		local cacheMatches
 		if usingCache then
-			if code == file(clfn):read() then
+			if code == path(clfn):read() then
 if verbose then
 	print("*** CL CACHE *** 111 *** CL FILE MATCHES CACHED CL FILE: "..clfn)
 end
-				if file(binfn):exists() then
+				if path(binfn):exists() then
 if verbose then
 	print("*** CL CACHE *** 222 *** AND BINARY FILE EXISTS -- USING CACHED BINARY FOR: "..clfn)
 end
@@ -218,12 +218,12 @@ if verbose then
 	print("*** CL CACHE *** ### *** CL FILE DOES NOT MATCH CACHED CL FILE -- REBUILDING BINARY FOR "..clfn)
 end
 --[[ want to see the diffs?
-file(tmp_compare_cl_cache):write(code)
+path(tmp_compare_cl_cache):write(code)
 os.execute(('diff %q %q'):format(clfn, 'tmp_compare_cl_cache'))
-file(tmp_compare_cl_cache):remove()
+path(tmp_compare_cl_cache):remove()
 --]]
 -- [[ want to save the old, for manually diffing later?
-				file(clfn..'.old'):write(file(clfn):read())
+				path(clfn..'.old'):write(path(clfn):read())
 --]]
 			end
 		else
@@ -235,8 +235,8 @@ end
 		--[[ should we verify that the source file was not modified?
 		-- this is starting to get out of the scope of the cl library ...
 		if cacheMatches then
-			local clattr = file(clfn):attr()
-			local binattr = file(binfn):attr()
+			local clattr = path(clfn):attr()
+			local binattr = path(binfn):attr()
 			if clattr and binattr then
 				if clattr.change > binattr.change then
 					cacheMatches = false
@@ -251,7 +251,7 @@ end
 
 		if cacheMatches then
 			-- load cached binary
-			local bindata = assert(file(binfn):read(), "failed to find opencl compiled program "..binfn)
+			local bindata = assert(path(binfn):read(), "failed to find opencl compiled program "..binfn)
 			local bins = require 'ext.fromlua'(bindata)
 if verbose then
 	print("*** CL CACHE *** 333 *** BUILDING PROGRAM FROM CACHED BINARY: "..clfn)
@@ -272,14 +272,14 @@ end
 			-- also delete the cached bin so that the two don't go out of sync
 			if usingCache then
 if verbose then
-	if file(binfn):exists() then
+	if path(binfn):exists() then
 		print("*** CL CACHE *** ### *** DELETING OLD CL BINARY: "..clfn)
 	else
 		print("*** CL CACHE *** ### *** BUILDING FULLY NEW CL BINARY: "..clfn)
 	end
 end
-				file(clfn):write(code)
-				file(binfn):remove()
+				path(clfn):write(code)
+				path(binfn):remove()
 			end
 
 			self.obj = Program{
@@ -295,10 +295,10 @@ end
 				-- save binary
 				local bins = self.obj:getBinaries()
 				-- how well does encoding binary files work ...
-				file(binfn):write(require 'ext.tolua'(bins))
+				path(binfn):write(require 'ext.tolua'(bins))
 
 				-- [[ double check for safety ...
-				local bindata = assert(file(binfn):read(), "failed to find opencl compiled program "..binfn)
+				local bindata = assert(path(binfn):read(), "failed to find opencl compiled program "..binfn)
 				local binsCheck = require 'ext.fromlua'(bindata)
 				assert(#binsCheck == #bins, 'somehow you encoded a different number of binary blobs than you were given.')
 				for i=1,#bins do

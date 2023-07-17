@@ -1,7 +1,6 @@
 #!/usr/bin/env luajit
 local ffi = require 'ffi'
 require 'ext'
-local file = require 'ext.file'
 
 local function matchExt(obj, pat)
 	local exts = obj:getExtensions():mapi(string.lower)
@@ -49,10 +48,10 @@ local spvfn = 'cpptest.spv'
 
 local Program = require 'cl.program'
 --[[ C version
-local program = Program{context=ctx, devices=devices, code=file(clcppfn):read()}
+local program = Program{context=ctx, devices=devices, code=path(clcppfn):read()}
 --]]
 --[[ not working, because -cl-std=CLC++ requires cl_ext_cxx_for_opencl, which I don't have on this machine
-local program = Program{context=ctx, devices=devices, code=file(clcppfn):read(), buildOptions='-cl-std=CLC++'}
+local program = Program{context=ctx, devices=devices, code=path(clcppfn):read(), buildOptions='-cl-std=CLC++'}
 --]]
 -- [[ C++ via ILn
 		--[=[
@@ -133,7 +132,7 @@ require 'make.targets'{
 	}
 }:run(spvfn)
 -- ... but I don't have it installed right now
-local IL = assert(file(spvfn):read(), "failed to read file "..spvfn)
+local IL = assert(path(spvfn):read(), "failed to read file "..spvfn)
 local program = Program{context=ctx, devices=devices, IL=IL}
 --]]
 
