@@ -1,5 +1,5 @@
 local class = require 'ext.class'
-local cl = require 'ffi.OpenCL'
+local cl = require 'ffi.req' 'OpenCL'
 local bit = require 'bit'
 local classertparam = require 'cl.assertparam'
 local Memory = require 'cl.memory'

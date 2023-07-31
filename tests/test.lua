@@ -37,7 +37,7 @@ print('using real',real)
 
 local ctx = require 'cl.context'{platform=platform, devices=devices}
 
-local cl = require 'ffi.OpenCL'
+local cl = require 'ffi.req' 'OpenCL'
 local CommandQueue = require 'cl.commandqueue'
 local cmds = devices:mapi(function(device)
 	return CommandQueue{context=ctx, device=device, properties=cl.CL_QUEUE_PROFILING_ENABLE}

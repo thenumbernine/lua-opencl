@@ -1,7 +1,7 @@
 local class = require 'ext.class'
 local table = require 'ext.table'
 local ffi = require 'ffi'
-local cl = require 'ffi.OpenCL'
+local cl = require 'ffi.req' 'OpenCL'
 local classertparam = require 'cl.assertparam'
 local clCheckError = require 'cl.checkerror'
 local GCWrapper = require 'ffi.gcwrapper.gcwrapper'

@@ -1,7 +1,7 @@
 local class = require 'ext.class'
 local table = require 'ext.table'
 local ffi = require 'ffi'
-local cl = require 'ffi.OpenCL'
+local cl = require 'ffi.req' 'OpenCL'
 local classertparam = require 'cl.assertparam'
 local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
 local GetInfo = require 'cl.getinfo'
@@ -68,7 +68,6 @@ typedef intptr_t HDC;
 HGLRC wglGetCurrentContext();
 HDC wglGetCurrentDC();
 ]]
-			--local gl = require 'ffi.OpenGL'
 			local gl = require 'gl'
 			local ctx = gl.wglGetCurrentContext()
 			local dc = gl.wglGetCurrentDC()
@@ -93,7 +92,7 @@ typedef intptr_t GLXContext;
 GLXContext glXGetCurrentContext();
 Display* glXGetCurrentDisplay();
 ]]
-			local gl = require 'ffi.OpenGL'
+			local gl = require 'gl'
 			properties:append{
 				cl.CL_GL_CONTEXT_KHR,
 				ffi.cast('cl_context_properties', gl.glXGetCurrentContext()),

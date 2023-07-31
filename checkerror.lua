@@ -1,4 +1,4 @@
-local cl = require 'ffi.OpenCL'
+local cl = require 'ffi.req' 'OpenCL'
 
 local errors = {
 	'CL_SUCCESS',
