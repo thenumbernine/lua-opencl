@@ -381,4 +381,88 @@ function CLEnv:reduce(args)
 	return require 'cl.obj.reduce'(table(args or {}, {env=self}))
 end
 
+-- similar to hydro-cl/hydro/solver/solverbase.lua
+-- but not exact, since hydro-cl has its own struct
+function CLEnv:checkStructSizes(typenames)
+	local struct = require 'struct'
+
+	local varcount = 0
+	for _,typename in ipairs(typenames) do
+		varcount = varcount + 1
+		if struct:isa(typename) then
+			local ctype = ffi.typeof(typename)
+			varcount = varcount + #ctype.fields
+		end
+	end
+	local cmd = self.cmds
+	local _1x1_domain = self:domain{size={1}, dim=1}
+	local resultPtr = ffi.new('size_t[?]', varcount)
+	local resultBuf = self:buffer{name='result', type='size_t', count=varcount, data=resultPtr}
+
+	local code = template([[
+#define offsetof __builtin_offsetof
+
+<?
+local index = 0
+for i,typename in ipairs(typenames) do
+	local ctype = ffi.typeof(typename)
+	if not struct:isa(ctype) then
+?>	result[<?=index?>] = sizeof(<?=typename?>);
+<?
+		index = index + 1
+	else
+?>	result[<?=index?>] = sizeof(<?=ctype.name?>);
+<?
+		index = index + 1
+		for _,field in ipairs(ctype.fields) do
+			local fieldname, fieldtype = next(field)
+?>	result[<?=index?>] = offsetof(<?=typename?>, <?=fieldname?>);
+<?
+			index = index + 1
+		end
+	end
+end
+?>
+]], {
+		struct = struct,
+		ffi = ffi,
+		typenames = typenames,
+	})
+--print(code)
+	require 'cl.obj.kernel'{
+		env = self,
+		domain = _1x1_domain,
+		argsOut = {resultBuf},
+		header = codePrefix,
+		showCodeOnError = true,
+		body = code,
+	}()
+	ffi.fill(resultPtr, 0)
+	resultBuf:toCPU(resultPtr)
+	local index = 0
+	for i,typename in ipairs(typenames) do
+		local ctype = ffi.typeof(typename)
+		if not struct:isa(ctype) then
+			local clsize = tostring(resultPtr[index]):match'^(%d+)ULL$'
+			index = index + 1
+			local ffisize = tostring(ffi.sizeof(typename))
+			print('sizeof('..typename..'): OpenCL='..clsize..', ffi='..ffisize..(clsize == ffisize and '' or ' -- !!!DANGER!!!'))
+		else
+			local clsize = tostring(resultPtr[index]):match'^(%d+)ULL$'
+			index = index + 1
+			local ffisize = tostring(ffi.sizeof(ctype.name))
+			print('sizeof('..ctype.name..'): OpenCL='..clsize..', ffi='..ffisize..(clsize == ffisize and '' or ' -- !!!DANGER!!!'))
+
+			for _,field in ipairs(ctype.fields) do
+				local fieldname, fieldtype = next(field)
+				local cloffset = tostring(resultPtr[index]):match'^(%d+)ULL$'
+				index = index + 1
+				local ffioffset = tostring(ffi.offsetof(ctype.name, fieldname))
+				print('offsetof('..ctype.name..', '..fieldname..'): OpenCL='..cloffset..', ffi='..ffioffset..(cloffset == ffioffset and '' or ' -- !!!DANGER!!!'))
+			end
+		end
+	end
+	print('done')
+end
+
 return CLEnv
