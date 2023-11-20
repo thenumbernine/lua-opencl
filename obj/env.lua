@@ -334,6 +334,10 @@ function CLEnv:getTypeCode()
 <? end ?>
 
 typedef <?=real?> real;
+
+// TODO with these we don't get array access ...
+// ... unless we do something like union them with both a <?=real?>[<?=n?>] and <?=real..n?>
+
 typedef <?=real?>2 real2;
 typedef <?=real?>4 real4;
 typedef <?=real?>8 real8;
