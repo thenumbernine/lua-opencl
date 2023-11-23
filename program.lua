@@ -81,7 +81,21 @@ function Program:init(args)
 			if type(p) == 'table' and p.obj then p = p.obj end
 			programIDs[i-1] = p.id
 		end
+		--[[
 		self.id = classertparam('clLinkProgram', context.id, #devices, deviceIDs, args.buildOptions, #programs, programIDs, nil, nil)
+		--]]
+		-- [[
+		local err = ffi.new'cl_int[1]'
+		self.id = cl.clLinkProgram(context.id, #devices, deviceIDs, args.buildOptions, #programs, programIDs, nil, nil, err)
+		if err[0] ~= cl.CL_SUCCESS then
+			local message = table{'clLinkProgram failed with error '..tostring(err[0])}
+			for i,device in ipairs(devices) do
+				message:insert('device #'..i..' log:\n'..tostring(self:getLog(device)))
+			end
+			message = message:concat'\n'
+			clCheckError(err[0], message)
+		end
+		--]]
 	end
 	Program.super.init(self, self.id)
 
@@ -115,7 +129,7 @@ function Program:compile(devices, options)
 	local success = err == cl.CL_SUCCESS
 	local message
 	if not success then
-		message = table{'failed to compile with error '..tostring(err)}
+		message = table{'clCompileProgram failed with error '..tostring(err)}
 		for _,device in ipairs(devices) do
 			message:insert(self:getLog(device))
 		end
@@ -134,7 +148,7 @@ function Program:build(devices, options)
 	local success = err == cl.CL_SUCCESS
 	local message
 	if not success then
-		message = table{'failed to build with error '..tostring(err)}
+		message = table{'clBuildProgram failed with error '..tostring(err)}
 		for _,device in ipairs(devices) do
 			message:insert(self:getLog(device))
 		end
