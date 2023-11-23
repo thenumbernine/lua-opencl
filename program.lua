@@ -81,10 +81,6 @@ function Program:init(args)
 			if type(p) == 'table' and p.obj then p = p.obj end
 			programIDs[i-1] = p.id
 		end
-		--[[
-		self.id = classertparam('clLinkProgram', context.id, #devices, deviceIDs, args.buildOptions, #programs, programIDs, nil, nil)
-		--]]
-		-- [[
 		local err = ffi.new'cl_int[1]'
 		self.id = cl.clLinkProgram(context.id, #devices, deviceIDs, args.buildOptions, #programs, programIDs, nil, nil, err)
 		if err[0] ~= cl.CL_SUCCESS then
@@ -95,7 +91,6 @@ function Program:init(args)
 			message = message:concat'\n'
 			clCheckError(err[0], message)
 		end
-		--]]
 	end
 	Program.super.init(self, self.id)
 
