@@ -131,10 +131,22 @@ args:
 function CLProgram:compile(args)
 	local verbose = args and args.verbose
 
+-- [[
 	-- this is also being fudged in
 	-- I need to straighten this all out
 	-- TODO make this compat with caching?
-	if args and args.dontLink then
+	-- though tbh I'm not sure OpenCL itself supports unlinked object binaries
+	-- https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clCreateProgramWithBinary.html
+	-- "These executables can now be queried and cached by the application" 
+	-- ... sounds like it is only caching the linked executable, not the objects.
+	-- ... but on the other hand ...
+	-- https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clLinkProgram.html
+	-- "If the program was created using clCreateProgramWithBinary and options is a NULL pointer, the program will be linked as if options were the same as when the program binary was originally built."
+	-- that sounds like clLinkProgram should run on program-objects created from clCreateProgramWithBinary
+	if args
+	and args.dontLink
+	--and (self.binaries or self.IL)	-- only skip this pathway when self.code exists
+	then
 		local code
 		local binaries
 		local IL
@@ -157,6 +169,7 @@ function CLProgram:compile(args)
 		}
 		return
 	end
+--]]
 
 	-- right now this is just for construction by binaries
 	-- if we are caching binaries then it doesn't save it in the object -- just to the cache file
@@ -223,7 +236,10 @@ os.execute(('diff %q %q'):format(clfn, 'tmp_compare_cl_cache'))
 path(tmp_compare_cl_cache):remove()
 --]]
 -- [[ want to save the old, for manually diffing later?
-				path(clfn..'.old'):write(path(clfn):read())
+				local oldcl = path(clfn):read()
+				if oldcl then
+					path(clfn..'.old'):write(oldcl)
+				end
 --]]
 			end
 		else
@@ -254,7 +270,7 @@ end
 			local bindata = assert(path(binfn):read(), "failed to find opencl compiled program "..binfn)
 			local bins = require 'ext.fromlua'(bindata)
 if verbose then
-	print("*** CL CACHE *** 333 *** BUILDING PROGRAM FROM CACHED BINARY: "..clfn)
+	print("*** CL CACHE *** 333 *** BUILDING PROGRAM FROM CACHED BINARY: "..binfn)
 end
 			self.obj = Program{
 				context = self.env.ctx,
@@ -302,6 +318,8 @@ end
 				local binsCheck = require 'ext.fromlua'(bindata)
 				assert(#binsCheck == #bins, 'somehow you encoded a different number of binary blobs than you were given.')
 				for i=1,#bins do
+					assert(type(bins[i]) == 'string')
+					assert(type(binsCheck[i]) == 'string')
 					assert(bins[i] == binsCheck[i], 'error in encoding a binary blob!')
 				end
 				--]]
