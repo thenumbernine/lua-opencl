@@ -19,12 +19,6 @@ local getCmdline = require 'ext.cmdline'
 local template = require 'template'
 require 'cl.obj.half'	-- has typedef for half
 
-CLEnv.Buffer = require 'cl.obj.buffer'
-CLEnv.Program = require 'cl.obj.program'
-CLEnv.Domain = require 'cl.obj.domain'
-CLEnv.Reduce = require 'cl.obj.reduce'
-CLEnv.Kernel = require 'cl.obj.kernel'
-
 
 -- boilerplate so OpenCL types will work with ffi types
 -- TODO for support for multiple environments ...
@@ -59,6 +53,13 @@ typedef union <?=name?>8 {
 end
 
 local CLEnv = class()
+
+-- subclasses can override these
+CLEnv.Buffer = require 'cl.obj.buffer'
+CLEnv.Program = require 'cl.obj.program'
+CLEnv.Domain = require 'cl.obj.domain'
+CLEnv.Reduce = require 'cl.obj.reduce'
+CLEnv.Kernel = require 'cl.obj.kernel'
 
 local function isFP64(obj)
 	return not not obj:getExtensions():mapi(string.lower):find(nil, function(ext) return ext:match'cl_.*_fp64' end)
