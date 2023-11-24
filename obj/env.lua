@@ -19,6 +19,13 @@ local getCmdline = require 'ext.cmdline'
 local template = require 'template'
 require 'cl.obj.half'	-- has typedef for half
 
+CLEnv.Buffer = require 'cl.obj.buffer'
+CLEnv.Program = require 'cl.obj.program'
+CLEnv.Domain = require 'cl.obj.domain'
+CLEnv.Reduce = require 'cl.obj.reduce'
+CLEnv.Kernel = require 'cl.obj.kernel'
+
+
 -- boilerplate so OpenCL types will work with ffi types
 -- TODO for support for multiple environments ...
 --  you could check for previous type declaration with pcall(ffi.sizeof,'real')
@@ -349,7 +356,7 @@ end
 function CLEnv:buffer(args)
 	-- if args.count is specified then we don't need to assume things from the domain
 	if args and args.count then
-		return require 'cl.obj.buffer'(table(args, {env=self}))
+		return self.Buffer(table(args, {env=self}))
 	end
 	-- otherwise depend on the domain (or env's domain)'s size
 	return (args and args.domain or self.base):buffer(args)
@@ -369,7 +376,7 @@ function CLEnv:clalloc(size, name, ctype, readwrite)
 end
 
 function CLEnv:program(args)
-	return require 'cl.obj.program'(table(args or {}, {env=self}))
+	return self.Program(table(args or {}, {env=self}))
 end
 
 function CLEnv:kernel(...)
@@ -378,11 +385,11 @@ function CLEnv:kernel(...)
 end
 
 function CLEnv:domain(args)
-	return require 'cl.obj.domain'(table(args or {}, {env=self}))
+	return self.Domain(table(args or {}, {env=self}))
 end
 
 function CLEnv:reduce(args)
-	return require 'cl.obj.reduce'(table(args or {}, {env=self}))
+	return self.Reduce(table(args or {}, {env=self}))
 end
 
 -- similar to hydro-cl/hydro/solver/solverbase.lua
@@ -433,7 +440,7 @@ end
 		typenames = typenames,
 	})
 --print(code)
-	require 'cl.obj.kernel'{
+	self.Kernel{
 		env = self,
 		domain = _1x1_domain,
 		argsOut = {resultBuf},
