@@ -22,6 +22,7 @@ require 'cl.obj.half'	-- has typedef for half
 
 -- boilerplate so OpenCL types will work with ffi types
 -- TODO for support for multiple environments ...
+-- also TODO eventually merge with vec-ffi-lua and struct-lua (for use with checkStructSizes)
 --  you could check for previous type declaration with pcall(ffi.sizeof,'real')
 for _,name in ipairs{'half', 'float', 'double', 'int'} do
 	ffi.cdef(template([[
