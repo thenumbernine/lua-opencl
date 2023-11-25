@@ -46,6 +46,7 @@ args:
 
 		--- used for binary caching / reusing: ---
 	cacheFile = optional, set this to cache the binary (.bin) and source (.cl), and only rebuild the program if the source doesn't match the cache file contents
+		TODO maybe rename this to binaryFile / binaryFileCL / binaryFileBin, to distinguish it as the clCreateProgramWithBinary caching pathway (versus the clCreateProgramWithIL caching pathway)
 		cacheFileCL = optional.  uses args.cacheFile..'.cl' otherwise.
 		cacheFileBin = optional.  uses args.cacheFile..'.bin' otherwise.
 	binaries = optional binaries to construct the program from.
@@ -71,9 +72,9 @@ function CLProgram:init(args)
 		self.spirvToolchainFileCL = args.spirvToolchainFileCL or self.spirvToolchainFile..'.cl'
 		self.spirvToolchainFileBC = args.spirvToolchainFileBC or self.spirvToolchainFile..'.bc'
 		self.spirvToolchainFileSPV = args.spirvToolchainFileSPV or self.spirvToolchainFile..'.spv'
-		path(self.spirvToolchainFileCL):getdir():mkdir()
-		path(self.spirvToolchainFileBC):getdir():mkdir()
-		path(self.spirvToolchainFileSPV):getdir():mkdir()
+		path(self.spirvToolchainFileCL):getdir():mkdir(true)
+		path(self.spirvToolchainFileBC):getdir():mkdir(true)
+		path(self.spirvToolchainFileSPV):getdir():mkdir(true)
 
 		-- If we specify multiple programs as input then we link immediately and return.
 		-- Same behavior as with Binaries.
@@ -368,6 +369,10 @@ function CLProgram:compile(args)
 		-- if the code matches what is cached then use the cached binary
 		local cacheMatches
 		if usingCache then
+
+			path(clfn):getdir():mkdir(true)
+			path(binfn):getdir():mkdir(true)
+
 			if code == path(clfn):read() then
 if verbose then
 	print("*** CL CACHE *** 111 *** CL FILE MATCHES CACHED CL FILE: "..clfn)
