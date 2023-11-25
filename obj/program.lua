@@ -1,8 +1,34 @@
 local class = require 'ext.class'
+local string = require 'ext.string'
 local table = require 'ext.table'
 local path = require 'ext.path'
 local Memory = require 'cl.memory'
 local Program = require 'cl.program'
+
+local makeTargets = require 'make.targets'
+local writeChanged = require 'make.writechanged'
+local exec = require 'make.exec'
+
+local function clangCompile(dst, src, buildOptions)
+	exec(table{
+		'clang',
+		buildOptions or '',
+		'-v',
+		-- residual and numerical gravity giving nans ...
+		-- problem starts from GammaULLs getting nans.
+		-- that comes from partial_xU_of_gLL getting nans
+		-- that comes from return-struct-by-value producing corrupted values
+		--'--target=spirv64-unknown-unknown',
+		--'--target=spirv',	--unsupported
+		'--target=spir-unknown-unknown',
+		'-emit-llvm',
+		'-c',
+		--'-O0',	-- -O0 makes some code break ... smh
+		--'-O3',
+		'-o', ('%q'):format(path(dst):fixpathsep()),
+		('%q'):format(path(src):fixpathsep()),
+	}:concat' ')
+end
 
 local CLProgram = class()
 
@@ -17,11 +43,16 @@ args:
 		kernels with code is incorporated into the compile
 		upon compile, all kernels objects are assigned and args are bound
 	domain = optional, domain passed to kernels, default results in kernels getting env.base
+
+		--- used for binary caching / reusing: ---
 	cacheFile = optional, set this to cache the binary (.bin) and source (.cl), and only rebuild the program if the source doesn't match the cache file contents
 		cacheFileCL = optional.  uses args.cacheFile..'.cl' otherwise.
 		cacheFileBin = optional.  uses args.cacheFile..'.bin' otherwise.
 	binaries = optional binaries to construct the program from.
-	IL = optional intermediate-language string of binary data to construct program from.
+		--- used for spirv toolchain caching / reusing: ---
+	spirvToolchainFile = optional, set this to use clang & llvm-spirv for saving the .cl and building the .bc and .spv files, then loading the IL
+	IL = optional, intermediate-language string of binary data to construct program from.
+
 	programs = optional list of programs.  provide this to immediately link these programs and create an executable program.
 	code, binaries, and programs are exclusive
 --]]
@@ -33,8 +64,74 @@ function CLProgram:init(args)
 	-- strictly for forwarding:
 	self.showCodeOnError = args and args.showCodeOnError or nil
 
-	if args.code then
+	-- handle .spirvToolchainFile before .code
+	if args.spirvToolchainFile then
+		-- save for later
+		self.spirvToolchainFile = args.spirvToolchainFile
+		self.spirvToolchainFileCL = args.spirvToolchainFileCL or self.spirvToolchainFile..'.cl'
+		self.spirvToolchainFileBC = args.spirvToolchainFileBC or self.spirvToolchainFile..'.bc'
+		self.spirvToolchainFileSPV = args.spirvToolchainFileSPV or self.spirvToolchainFile..'.spv'
+		path(self.spirvToolchainFileCL):getdir():mkdir()
+		path(self.spirvToolchainFileBC):getdir():mkdir()
+		path(self.spirvToolchainFileSPV):getdir():mkdir()
+
+		-- If we specify multiple programs as input then we link immediately and return.
+		-- Same behavior as with Binaries.
+		if args.programs then
+			assert(not args.code, "either .programs for linking or .code for building, but not both")
+			local programs = args.programs
+			args.programs = nil	-- dont do the .programs in super / dont make a .obj yet
+			assert(#programs > 0, "can't link from programs if no programs are provided")
+			-- assert all our input programs have .bc files
+			local srcs = table.mapi(programs, function(program)
+				return (assert(program.spirvToolchainFileBC, "CLProgram constructed with .programs, expected all those programs to have .spirvToolchainFileBC's, but one didn't: "..tostring(program.spirvToolchainFile)))
+			end)
+			makeTargets{
+				{
+					srcs = srcs,
+					dsts = {self.spirvToolchainFileBC},
+					rule = function()
+						-- other .bc' => our .bc
+						exec(table{
+							'llvm-link',
+							srcs:mapi(function(src)
+								return ('%q'):format(src)
+							end):concat' ',
+							'-o', ('%q'):format(self.spirvToolchainFileBC),
+						}:concat' ')
+					end,
+				},
+			-- TODO this is the same rule as in :compile() for building from .cl ...
+				{
+					srcs = {self.spirvToolchainFileBC},
+					dsts = {self.spirvToolchainFileSPV},
+					rule = function()
+						exec(table{
+							'llvm-spirv',
+							('%q'):format(self.spirvToolchainFileBC),
+							'-o',
+							('%q'):format(self.spirvToolchainFileSPV),
+						}:concat' ')
+					end,
+				},
+			}:run(self.spirvToolchainFileSPV)
+			-- TODO the rest of this is just like the spirvToolchain :compile() pathway too...
+			self.IL = assert(path(self.spirvToolchainFileSPV):read())
+			local results = self:compile()
+			-- TODO make an always-print-logs function? or use cl.program?
+			do--if self.obj then	-- did compile
+				print((self.spirvToolchainFile and self.spirvToolchainFile..' ' or '')..'log:')
+				-- TODO log per device ...
+				print(string.trim(self.obj:getLog(self.env.devices[1])))
+			end
+		else
+			-- save code for later, when :compile is called
+			self.code = assert(args.code)
+			args.code = nil
+		end
+	elseif args.code then
 		self.code = args.code
+		-- save for the :compile() call
 		self.cacheFile = args.cacheFile
 		self.cacheFileCL = args.cacheFileCL
 		self.cacheFileBin = args.cacheFileBin
@@ -131,13 +228,75 @@ args:
 function CLProgram:compile(args)
 	local verbose = args and args.verbose
 
+	-- handle spirv toolchain first:
+	-- if we're using the spirv toolchain...
+	if self.spirvToolchainFileCL
+	or self.spirvToolchainFileBC
+	or self.spirvToolchainFileSPV
+	then
+		-- technicality: if dontLink is used then the .spv file will not be used also, but can still be set to the default name...
+		assert(self.spirvToolchainFileCL and self.spirvToolchainFileBC and self.spirvToolchainFileSPV)
+		local buildTargets = makeTargets{
+			verbose = true,
+			{
+				srcs = {self.spirvToolchainFileCL},
+				dsts = {self.spirvToolchainFileBC},
+				rule = function(rule)
+					assert(#rule.dsts == 1)
+					assert(#rule.srcs == 1)
+					clangCompile(rule.dsts[1], rule.srcs[1], args and arg.buildOption or nil)
+				end,
+			},
+			{
+				srcs = {self.spirvToolchainFileBC},
+				dsts = {self.spirvToolchainFileSPV},
+				rule = function()
+					exec(table{
+						'llvm-spirv',
+						args and args.linkOptions or '',
+						('%q'):format(self.spirvToolchainFileBC),
+						'-o', ('%q'):format(self.spirvToolchainFileSPV),
+					}:concat' ')
+				end,
+			},
+		}
+
+		-- cl -> bc
+		-- only write (and invalidate) when necessary
+		local code = self:getCode()
+		writeChanged(self.spirvToolchainFileCL, code)
+		buildTargets:run(self.spirvToolchainFileBC)
+
+		-- if 'dontLink' then just leave the .bc file for another Program to use ... or not?
+		if args and args.dontLink then return end
+
+		-- cl -> bc -> spv
+		buildTargets:run(self.spirvToolchainFileSPV)
+		self.IL = assert(path(self.spirvToolchainFileSPV):read())
+
+		args = table(args):setmetatable(nil)
+		args.verbose = true
+
+		-- TODO print all logs regardless?
+		--[[
+		local results = CLProgram.super.compile(self, args)
+		assert(self.obj, "there must have been an error in your error handler")	-- otherwise it would have thrown an error
+		do--if self.obj then	-- did compile
+			print((self.spirvToolchainFile and self.spirvToolchainFile..' ' or '')..'log:')
+			-- TODO log per device ...
+			print(string.trim(self.obj:getLog(self.env.devices[1])))
+		end
+		return results
+		--]]
+	end
+
 -- [[
 	-- this is also being fudged in
 	-- I need to straighten this all out
 	-- TODO make this compat with caching?
 	-- though tbh I'm not sure OpenCL itself supports unlinked object binaries
 	-- https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clCreateProgramWithBinary.html
-	-- "These executables can now be queried and cached by the application" 
+	-- "These executables can now be queried and cached by the application"
 	-- ... sounds like it is only caching the linked executable, not the objects.
 	-- ... but on the other hand ...
 	-- https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clLinkProgram.html
