@@ -117,14 +117,21 @@ function CLProgram:init(args)
 				},
 			}:run(self.spirvToolchainFileSPV)
 			-- TODO the rest of this is just like the spirvToolchain :compile() pathway too...
-			self.IL = assert(path(self.spirvToolchainFileSPV):read())
-			local results = self:compile()
+			local IL = assert(path(self.spirvToolchainFileSPV):read())
+			self.obj = Program{
+				context = self.env.ctx,
+				devices = self.env.devices,
+				IL = IL,
+				buildOptions = args and args.buildOptions,
+				showCodeOnError = self.showCodeOnError,
+			}
 			-- TODO make an always-print-logs function? or use cl.program?
 			do--if self.obj then	-- did compile
 				print((self.spirvToolchainFile and self.spirvToolchainFile..' ' or '')..'log:')
 				-- TODO log per device ...
 				print(string.trim(self.obj:getLog(self.env.devices[1])))
 			end
+			assert(self.code == nil)
 		else
 			-- save code for later, when :compile is called
 			self.code = assert(args.code)
@@ -227,6 +234,9 @@ args:
 	buildOptions
 --]]
 function CLProgram:compile(args)
+	if self.obj then
+		error("tried to compile a program that was already compiled...")
+	end
 	local verbose = args and args.verbose
 
 	-- handle spirv toolchain first:
