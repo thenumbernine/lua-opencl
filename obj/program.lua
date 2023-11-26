@@ -9,27 +9,6 @@ local makeTargets = require 'make.targets'
 local writeChanged = require 'make.writechanged'
 local exec = require 'make.exec'
 
-local function clangCompile(dst, src, buildOptions)
-	exec(table{
-		'clang',
-		buildOptions or '',
-		'-v',
-		-- residual and numerical gravity giving nans ...
-		-- problem starts from GammaULLs getting nans.
-		-- that comes from partial_xU_of_gLL getting nans
-		-- that comes from return-struct-by-value producing corrupted values
-		--'--target=spirv64-unknown-unknown',
-		--'--target=spirv',	--unsupported
-		'--target=spir-unknown-unknown',
-		'-emit-llvm',
-		'-c',
-		--'-O0',	-- -O0 makes some code break ... smh
-		--'-O3',
-		'-o', ('%q'):format(path(dst):fixpathsep()),
-		('%q'):format(path(src):fixpathsep()),
-	}:concat' ')
-end
-
 local CLProgram = class()
 
 -- kernel class to allocate upon CLProgram:kernel
@@ -226,6 +205,27 @@ function CLProgram:getCode()
 	end)):concat'\n'
 end
 
+function CLProgram:clangCompile(dst, src, buildOptions)
+	exec(table{
+		'clang',
+		buildOptions or '',
+		'-v',
+		-- residual and numerical gravity giving nans ...
+		-- problem starts from GammaULLs getting nans.
+		-- that comes from partial_xU_of_gLL getting nans
+		-- that comes from return-struct-by-value producing corrupted values
+		--'--target=spirv64-unknown-unknown',
+		--'--target=spirv',	--unsupported
+		'--target=spir-unknown-unknown',
+		'-emit-llvm',
+		'-c',
+		--'-O0',	-- -O0 makes some code break ... smh
+		--'-O3',
+		'-o', ('%q'):format(path(dst):fixpathsep()),
+		('%q'):format(path(src):fixpathsep()),
+	}:concat' ')
+end
+
 --[[
 TODO rename to :build
 args:
@@ -255,7 +255,7 @@ function CLProgram:compile(args)
 				rule = function(rule)
 					assert(#rule.dsts == 1)
 					assert(#rule.srcs == 1)
-					clangCompile(rule.dsts[1], rule.srcs[1], args and arg.buildOption or nil)
+					self:clangCompile(rule.dsts[1], rule.srcs[1], args and arg.buildOption or nil)
 				end,
 			},
 			{
