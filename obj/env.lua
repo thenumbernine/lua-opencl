@@ -446,7 +446,6 @@ end
 		env = self,
 		domain = _1x1_domain,
 		argsOut = {resultBuf},
-		header = codePrefix,
 		showCodeOnError = true,
 		body = code,
 	}()
