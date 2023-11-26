@@ -210,16 +210,11 @@ function CLProgram:clangCompile(dst, src, buildOptions)
 		'clang',
 		buildOptions or '',
 		'-v',
-		-- residual and numerical gravity giving nans ...
-		-- problem starts from GammaULLs getting nans.
-		-- that comes from partial_xU_of_gLL getting nans
-		-- that comes from return-struct-by-value producing corrupted values
-		--'--target=spirv64-unknown-unknown',
-		--'--target=spirv',	--unsupported
-		'--target=spir-unknown-unknown',
+		'-Xclang -finclude-default-header',
+		'--target=spirv64-unknown-unknown',
 		'-emit-llvm',
 		'-c',
-		--'-O0',	-- -O0 makes some code break ... smh
+		--'-O0',
 		--'-O3',
 		'-o', ('%q'):format(path(dst):fixpathsep()),
 		('%q'):format(path(src):fixpathsep()),
