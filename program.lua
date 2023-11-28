@@ -86,7 +86,19 @@ function Program:init(args)
 		if err[0] ~= cl.CL_SUCCESS then
 			local message = table{'clLinkProgram failed with error '..tostring(err[0])}
 			for i,device in ipairs(devices) do
-				message:insert('device #'..i..' log:\n'..tostring(self:getLog(device)))
+				message:insert('device #'..i..' log:\n'
+					..tostring(
+						-- ok what if the program didn't create / such that getLog() isn't valid?
+						-- then my API is set up to throw an exception...
+						(select(2,
+							xpcall(function()
+								return self:getLog(device)
+							end, function(err)
+								return "(can't get log ... "..err..")"
+							end)
+						))
+					)
+				)
 			end
 			message = message:concat'\n'
 			clCheckError(err[0], message)
