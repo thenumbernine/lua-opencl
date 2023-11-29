@@ -137,8 +137,8 @@ function Program:compile(devices, options)
 	local message
 	if not success then
 		message = table{'clCompileProgram failed with error '..tostring(err)}
-		for _,device in ipairs(devices) do
-			message:insert(self:getLog(device))
+		for i,device in ipairs(devices) do
+			message:insert('device #'..i..' log:\n'..tostring(self:getLog(device)))
 		end
 		message = message:concat'\n'
 	end
