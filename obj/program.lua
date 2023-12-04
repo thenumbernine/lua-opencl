@@ -45,12 +45,16 @@ function CLProgram:init(args)
 	self.showCodeOnError = args and args.showCodeOnError or nil
 
 	-- handle .spirvToolchainFile before .code
-	if args.spirvToolchainFile then
+	if args.spirvToolchainFile
+	or args.spirvToolchainFileCL
+	or args.spirvToolchainFileBC
+	or args.spirvToolchainFileSPV
+	then
 		-- save for later
 		self.spirvToolchainFile = args.spirvToolchainFile
-		self.spirvToolchainFileCL = args.spirvToolchainFileCL or self.spirvToolchainFile..'.cl'
-		self.spirvToolchainFileBC = args.spirvToolchainFileBC or self.spirvToolchainFile..'.bc'
-		self.spirvToolchainFileSPV = args.spirvToolchainFileSPV or self.spirvToolchainFile..'.spv'
+		self.spirvToolchainFileCL = args.spirvToolchainFileCL or self.spirvToolchainFile..'.cl' or error("you must either provide .spirvToolchainFile or .spirvToolchainFileCL")
+		self.spirvToolchainFileBC = args.spirvToolchainFileBC or self.spirvToolchainFile..'.bc' or error("you must either provide .spirvToolchainFile or .spirvToolchainFileBC")
+		self.spirvToolchainFileSPV = args.spirvToolchainFileSPV or self.spirvToolchainFile..'.spv' or error("you must either provide .spirvToolchainFile or .spirvToolchainFileSPV")
 		path(self.spirvToolchainFileCL):getdir():mkdir(true)
 		path(self.spirvToolchainFileBC):getdir():mkdir(true)
 		path(self.spirvToolchainFileSPV):getdir():mkdir(true)
