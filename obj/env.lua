@@ -404,7 +404,9 @@ function CLEnv:checkStructSizes(typenames)
 		varcount = varcount + 1
 		if struct:isa(typename) then
 			local ctype = ffi.typeof(typename)
-			varcount = varcount + #ctype.fields
+			for _ in ctype:fielditer() do
+				varcount = varcount + 1
+			end
 		end
 	end
 	local cmd = self.cmds
@@ -427,8 +429,7 @@ for i,typename in ipairs(typenames) do
 ?>	result[<?=index?>] = sizeof(<?=ctype.name?>);
 <?
 		index = index + 1
-		for _,field in ipairs(ctype.fields) do
-			local fieldname, fieldtype = next(field)
+		for fieldname,fieldtype,field in ctype:fielditer() do
 ?>	result[<?=index?>] = offsetof(<?=typename?>, <?=fieldname?>);
 <?
 			index = index + 1
@@ -465,8 +466,7 @@ end
 			local ffisize = tostring(ffi.sizeof(ctype.name))
 			print('sizeof('..ctype.name..'): OpenCL='..clsize..', ffi='..ffisize..(clsize == ffisize and '' or ' -- !!!DANGER!!!'))
 
-			for _,field in ipairs(ctype.fields) do
-				local fieldname, fieldtype = next(field)
+			for fieldname,fieldtype,field in ctype:fielditer() do
 				local cloffset = tostring(resultPtr[index]):match'^(%d+)ULL$'
 				index = index + 1
 				local ffioffset = tostring(ffi.offsetof(ctype.name, fieldname))
