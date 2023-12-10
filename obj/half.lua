@@ -7,33 +7,46 @@ since neither of these are really specific to the OOP wrappers to the Lua wrappe
 local bit = require 'bit'
 local ffi = require 'ffi'
 local math = require 'ext.math'
+local struct = require 'struct'
 
+local float16bits_t = struct{
+	name = 'float16bits_t',	-- in OpenCL, 'float8' means 8x 4-byte-float ... in some languages 'float16' means 2-byte float ...
+	union = true,
+	fields = {
+		{name='i', type='unsigned short'},
+		{name='ptr', type='unsigned char[2]'},
+		{type=struct{
+			anonymous = true,
+			fields = {
+				{name = 'mant', type='unsigned short:10'},
+				{name = 'exp', type='unsigned short:5'},
+				{name = 'sign', type='unsigned short:1'},
+			},
+		}},
+	}
+}
 ffi.cdef[[
-typedef union float16bits_t {
-	unsigned short i;
-	unsigned char ptr[2];
-	struct {
-		unsigned short mant : 10;
-		unsigned short exp : 5;
-		unsigned short sign : 1;
-	};
-} float16bits_t;	//in OpenCL, 'float8' means 8x 4-byte-float ... in some languages 'float16' means 2-byte float ...
 typedef float16bits_t half;
 ]]
 assert(ffi.sizeof'float16bits_t' == 2)
 
-ffi.cdef[[
-typedef union float32bits_t {
-	unsigned int i;
-	float f;
-	unsigned char ptr[4];
-	struct {
-		unsigned int mant : 23;
-		unsigned int exp : 8;
-		unsigned int sign : 1;
-	};
-} float32bits_t;
-]]
+local float32bits_t = struct{
+	name = 'float32bits_t',
+	union = true,
+	fields = {
+		{name='i', type='unsigned int'},
+		{name='f', type='float'},
+		{name='ptr', type='unsigned char[4]'},
+		{type=struct{
+			anonymous = true,
+			fields = {
+				{name = 'mant', type='unsigned int:23'},
+				{name = 'exp', type='unsigned int:8'},
+				{name = 'sign', type='unsigned int:1'},
+			},
+		}},
+	},
+}
 assert(ffi.sizeof'float32bits_t' == 4)
 
 local b32 = ffi.new'float32bits_t'
@@ -183,4 +196,7 @@ return {
 
 	toreal = toreal,
 	fromreal = fromreal,
+
+	float16bits_t = float16bits_t,
+	float32bits_t = float32bits_t,
 }
