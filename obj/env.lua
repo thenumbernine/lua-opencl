@@ -19,35 +19,37 @@ local getCmdline = require 'ext.cmdline'
 local template = require 'template'
 require 'cl.obj.half'	-- has typedef for half
 
+-- boilerplate so OpenCL types will work with ffi types:
+--  TODO you could check for previous type declaration with pcall(ffi.sizeof,'real')
+-- or you can just rely on package.loaded and only use require vec-ffi
 
--- boilerplate so OpenCL types will work with ffi types
--- TODO for support for multiple environments ...
--- also TODO eventually merge with vec-ffi-lua and struct-lua (for use with checkStructSizes)
---  you could check for previous type declaration with pcall(ffi.sizeof,'real')
+-- already exist in vec-ffi:
+--  my (old) naming convention ... vec<dim><type-letter>_t
+require 'vec-ffi.vec2f'
+require 'vec-ffi.vec2d'
+require 'vec-ffi.vec2i'
+require 'vec-ffi.vec4f'
+require 'vec-ffi.vec4d'
+require 'vec-ffi.vec4i'
+-- OpenCL naming convention: <type><dim>
+ffi.cdef[[
+typedef vec2f_t float2;
+typedef vec2d_t double2;
+typedef vec2i_t int2;
+typedef vec4f_t float4;
+typedef vec4d_t double4;
+typedef vec4i_t int4;
+]]
+
+--  types still needed to be instanciated:
+require 'vec-ffi.create_vec'{ctype='float', dim=8, vectype='float8'}
+require 'vec-ffi.create_vec'{ctype='double', dim=8, vectype='double8'}
+require 'vec-ffi.create_vec'{ctype='int', dim=8, vectype='int8'}
+require 'vec-ffi.create_vec'{ctype='half', dim=2, vectype='half2'}
+require 'vec-ffi.create_vec'{ctype='half', dim=4, vectype='half4'}
+require 'vec-ffi.create_vec'{ctype='half', dim=8, vectype='half8'}
+
 for _,name in ipairs{'half', 'float', 'double', 'int'} do
-	ffi.cdef(template([[
-typedef union <?=name?>2 {
-	<?=name?> s[2];
-	struct { <?=name?> s0, s1; };
-	struct { <?=name?> x, y; };
-} <?=name?>2;
-
-//for real4 I'm using x,y,z,w to match OpenCL
-typedef union <?=name?>4 {
-	<?=name?> s[4];
-	struct { <?=name?> s0, s1, s2, s3; };
-	struct { <?=name?> x, y, z, w; };
-} <?=name?>4;
-
-typedef union <?=name?>8 {
-	<?=name?> s[8];
-	struct { <?=name?> s0, s1, s2, s3, s4, s5, s6, s7; };
-} <?=name?>8;
-
-]], {
-		name = name,
-	}))
-
 	assert(ffi.sizeof(name..'2') == 2 * ffi.sizeof(name))
 	assert(ffi.sizeof(name..'4') == 4 * ffi.sizeof(name))
 	assert(ffi.sizeof(name..'8') == 8 * ffi.sizeof(name))
