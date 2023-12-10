@@ -428,7 +428,10 @@ for i,typename in ipairs(typenames) do
 <?
 		index = index + 1
 	else
-?>	result[<?=index?>] = sizeof(<?=ctype.name?>);
+		-- use 'typename' instead of 'ctype.name' for the sake of typedefs (since OpenCL structs are typedef'd in ffi.cdef)
+		-- actually nevermind that, you can't use offsetof() on OpenCL vector types anyways.
+		-- smh who made that horrible decision.
+?>	result[<?=index?>] = sizeof(<?=typename?>);
 <?
 		index = index + 1
 		for fieldname,fieldtype,field in ctype:fielditer() do
