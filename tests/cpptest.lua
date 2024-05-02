@@ -2,45 +2,52 @@
 local ffi = require 'ffi'
 require 'ext'
 
-local function matchExt(obj, pat)
-	local exts = obj:getExtensions():mapi(string.lower)
-	return not not exts:find(nil, function(s) return s:match(pat) end)
-end
-
-local function isFP64(obj)
-	return matchExt(obj, 'cl_%w+_fp64')
-end
-
-local function get64bit(list)
-	local best = list:mapi(function(item)
-		return {item=item, fp64=isFP64(item)}
-	end):sort(function(a,b)
-		return (a.fp64 and 1 or 0) > (b.fp64 and 1 or 0)
-	end)[1]
-	return best.item, best.fp64
-end
-
-local platform = get64bit(require 'cl.platform'.getAll())
-local devices = platform:getDevices{gpu=true}:mapi(function(device)
-	return isFP64(device) and device
-end)
-for i,device in ipairs(devices) do
-	print('device '..i..': '..tostring(device:getName()))
-end
-
-local fp64 = #devices:filter(isFP64) == #devices
-
 local n = 64
-local real = fp64 and 'double' or 'float'
-print('using real',real)
+local real = 'double'
 
-local ctx = require 'cl.context'{platform=platform, devices=devices}
+local devices, fp64, ctx, cl, cmds
+if not cmdline.nocl then -- [[ initialize CL first to tell what kind of real we can use
+	local function matchExt(obj, pat)
+		local exts = obj:getExtensions():mapi(string.lower)
+		return not not exts:find(nil, function(s) return s:match(pat) end)
+	end
 
-local cl = require 'ffi.req' 'OpenCL'
-local CommandQueue = require 'cl.commandqueue'
-local cmds = devices:mapi(function(device)
-	return CommandQueue{context=ctx, device=device, properties=cl.CL_QUEUE_PROFILING_ENABLE}
-end)
+	local function isFP64(obj)
+		return matchExt(obj, 'cl_%w+_fp64')
+	end
+
+	local function get64bit(list)
+		local best = list:mapi(function(item)
+			return {item=item, fp64=isFP64(item)}
+		end):sort(function(a,b)
+			return (a.fp64 and 1 or 0) > (b.fp64 and 1 or 0)
+		end)[1]
+		return best.item, best.fp64
+	end
+
+	local platform = get64bit(require 'cl.platform'.getAll())
+	devices = platform:getDevices{gpu=true}:mapi(function(device)
+		return isFP64(device) and device
+	end)
+	for i,device in ipairs(devices) do
+		print('device '..i..': '..tostring(device:getName()))
+	end
+
+	fp64 = #devices:filter(isFP64) == #devices
+
+	real = fp64 and 'double' or 'float'
+	print('using real',real)
+
+	ctx = require 'cl.context'{platform=platform, devices=devices}
+
+	cl = require 'ffi.req' 'OpenCL'
+	local CommandQueue = require 'cl.commandqueue'
+	cmds = devices:mapi(function(device)
+		return CommandQueue{context=ctx, device=device, properties=cl.CL_QUEUE_PROFILING_ENABLE}
+	end)
+end
+--]]
+
 
 local clcppfn = 'cpptest.clcpp'
 local bcfn = 'cpptest.bc'
@@ -120,10 +127,22 @@ require 'make.targets'{
 			-- according to the community.khronos.org post I should next run:
 			--  llvm-spirv cpptest.bc -o test.spv
 			exec(table{
-				'llvm-spirv',
+				--'llvm-spirv',
+				'llvm-spirv-18',	-- how come no symlink in the package to llvm-spirv?
 				--'-Xclang','-finclude-default-header',
 				--'--target=spirv64-unknown-unknown',	-- clang: error: unable to execute command: Executable "llvm-spirv" doesn't exist!
 				--'-emit-llvm',	-- clang: error: -emit-llvm cannot be used when linking
+				('%q'):format(bcfn),
+				'-o', ('%q'):format(spvfn),
+			}:concat' ')
+			--]]
+			--[[ from https://llvm.org/docs/SPIRVUsage.html ... not working
+			exec(table{
+				'llc',
+				'-O0',
+				--'-mtriple=spirv64-unknown-unknown',
+				--'--target=spirv64-unknown-unknown',
+				'-filetype=obj',
 				('%q'):format(bcfn),
 				'-o', ('%q'):format(spvfn),
 			}:concat' ')
