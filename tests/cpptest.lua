@@ -127,8 +127,7 @@ require 'make.targets'{
 			-- according to the community.khronos.org post I should next run:
 			--  llvm-spirv cpptest.bc -o test.spv
 			exec(table{
-				--'llvm-spirv',
-				'llvm-spirv-18',	-- how come no symlink in the package to llvm-spirv?
+				'llvm-spirv',
 				--'-Xclang','-finclude-default-header',
 				--'--target=spirv64-unknown-unknown',	-- clang: error: unable to execute command: Executable "llvm-spirv" doesn't exist!
 				--'-emit-llvm',	-- clang: error: -emit-llvm cannot be used when linking
