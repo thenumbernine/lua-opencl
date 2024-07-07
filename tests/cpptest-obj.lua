@@ -60,6 +60,8 @@ local program = env:program{
 	spirvToolchainFileBC = bcfn,
 	spirvToolchainFileSPV = spvfn,
 }
+
+-- has to be separate eh?
 program:compile{
 	buildOptions = table{
 		'-O0',	-- sometimes amd chokes on this
@@ -74,12 +76,11 @@ local a = env:buffer{name='a', type='real', data=range(n)}
 local b = env:buffer{name='b', type='real', data=range(n)}
 local c = env:buffer{name='c', type='real', data=range(n)}
 
-
 local testKernel = program:kernel('test', c.obj, a.obj, b.obj)
-local maxWorkGroupSize = tonumber(testKernel.obj:getWorkGroupInfo('CL_KERNEL_WORK_GROUP_SIZE', env.devices[1]))
 
 local event = require 'cl.event'()
-env.cmds[1]:enqueueNDRangeKernel{kernel=testKernel.obj, globalSize=n, localSize=math.min(16, maxWorkGroupSize), event=event}
+testKernel.event = event
+testKernel()
 env.cmds[1]:finish()
 local start = event:getProfilingInfo'CL_PROFILING_COMMAND_START'
 local fin = event:getProfilingInfo'CL_PROFILING_COMMAND_END'
