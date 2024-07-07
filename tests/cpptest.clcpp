@@ -1,6 +1,7 @@
-#ifdef USE_FP64
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#endif
+// not needed anymore on amd?
+//#ifdef USE_FP64
+//#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+//#endif
 
 static const constexpr size_t arraySize = ARRAY_SIZE;
 using real = REAL;

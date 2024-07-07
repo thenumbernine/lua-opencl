@@ -1,5 +1,37 @@
 #!/usr/bin/env luajit
 -- cl-cpp test by invoking clang here in the script file
+--[[ output:
+
+>>
+	clang
+	-O0
+	-DARRAY_SIZE=64
+	-DREAL=double
+	-DUSE_FP64
+	-c
+	-cl-std=clc++
+	-v
+	--target=spirv64-unknown-unknown
+	-emit-llvm
+	-o
+	"cpptest.bc"
+	"cpptest.clcpp"
+Ubuntu clang version 18.1.3 (1ubuntu1)
+Target: spirv64-unknown-unknown
+Thread model: posix
+InstalledDir: /usr/bin
+ (in-process)
+ "/usr/lib/llvm-18/bin/clang" -cc1 -triple spirv64-unknown-unknown -Wspir-compat -emit-llvm-bc -emit-llvm-uselists -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name cpptest.clcpp -mrelocation-model static -mframe-pointer=all -ffp-contract=on -fno-rounding-math -mconstructor-aliases -debugger-tuning=gdb -fdebug-compilation-dir=/home/chris/Projects/lua/cl/tests -v -fcoverage-compilation-dir=/home/chris/Projects/lua/cl/tests -resource-dir /usr/lib/llvm-18/lib/clang/18 -D ARRAY_SIZE=64 -D REAL=double -D USE_FP64 -O0 -ferror-limit 19 -cl-std=clc++ -finclude-default-header -fdeclare-opencl-builtins -fgnuc-version=4.2.1 -fno-threadsafe-statics -fskip-odr-check-in-gmf -fcolor-diagnostics -o cpptest.bc -x clcpp cpptest.clcpp
+clang -cc1 version 18.1.3 based upon LLVM 18.1.3 default target x86_64-pc-linux-gnu
+#include "..." search starts here:
+#include <...> search starts here:
+ /usr/local/include
+ /usr/lib/llvm-18/lib/clang/18/include
+ /usr/include
+End of search list.
+>> llvm-spirv "cpptest.bc" -o "cpptest.spv"
+
+--]]
 local ffi = require 'ffi'
 require 'ext'
 
@@ -82,6 +114,14 @@ require 'make.targets'{
 			-- https://clang.llvm.org/docs/OpenCLSupport.html
 			exec(table{
 				'clang',
+
+				'-O0',
+				'-DARRAY_SIZE='..n,
+				'-DREAL='..real,
+				fp64 and '-DUSE_FP64' or '',
+
+				'-c',				-- without -c: clang: cpptest.cl:(.text+0x16): undefined reference to `get_global_id(unsigned int)' clang: error: linker command failed with exit code 1 (use -v to see invocation)
+				'-cl-std=clc++',
 				'-v',
 				--'-cc1','-emit-spirv',
 				--'-triple spir-unknown-unknown',
@@ -90,7 +130,7 @@ require 'make.targets'{
 				--'-I <libclcxx dir>',
 				-- from here: https://community.khronos.org/t/clcreateprogramwithil-spir-v-failed-with-cl-invalid-value/109208
 				-- https://clang.llvm.org/docs/OpenCLSupport.html: says -Xclang or -cc1 is exclusive
-				'-Xclang','-finclude-default-header',	-- -X<where> = pass arg to
+				--'-Xclang','-finclude-default-header',	-- -X<where> = pass arg to
 				--'-cc1','-finclude-default-header',	-- clang: error: unknown argument: '-cc1'
 				--'-target spir-unknown-unknown',
 				'--target=spirv64-unknown-unknown',	-- clang: error: unable to execute command: Executable "llvm-spirv" doesn't exist!
@@ -99,22 +139,18 @@ require 'make.targets'{
 				'-emit-llvm',	-- error: Opaque pointers are only supported in -opaque-pointers mode (Producer: 'LLVM15.0.2' Reader: 'LLVM 14.0.6')
 				--'-opaque-pointers',
 				--'-D SPIR',
-				'-c',				-- without -c: clang: cpptest.cl:(.text+0x16): undefined reference to `get_global_id(unsigned int)' clang: error: linker command failed with exit code 1 (use -v to see invocation)
 				--'-o0',
 				--'-x cl',	-- clang: error: no such file or directory: 'cl'
 				--'-cl-std=c++',	-- clang: error: invalid value 'c++' in '-cl-std=c++'
 				-- does that mean I need something extra?
 				--'-cl-std=CL3.0',
 				--'-cl-ext=+cl_khr_fp64,+__opencl_c_fp64',
-				 -- (if you omit -Xclang SOMETHING what tho?) clang: warning: argument unused during compilation: '-cl-ext=+cl_khr_fp64,+__opencl_c_fp64' [-Wunused-command-line-argument]
+				-- (if you omit -Xclang SOMETHING what tho?) clang: warning: argument unused during compilation: '-cl-ext=+cl_khr_fp64,+__opencl_c_fp64' [-Wunused-command-line-argument]
 				--'--spirv-max-version=1.0',	-- clang: error: unsupported option '--spirv-max-version=1.0'
 				-- and building gives: clCreateProgramWithIL failed with error -42: CL_INVALID_BINARY
 
 				-- https://clang.llvm.org/docs/OpenCLSupport.html:
 				--'-cl-kernel-arg-info',
-				'-DARRAY_SIZE='..n,
-				'-DREAL='..real,
-				fp64 and '-DUSE_FP64' or '',
 				--'-o', ('%q'):format(spvfn),
 				'-o', ('%q'):format(bcfn),
 				('%q'):format(clcppfn),
