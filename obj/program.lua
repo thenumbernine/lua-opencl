@@ -92,6 +92,7 @@ function CLProgram:init(args)
 					rule = function()
 						exec(table{
 							'llvm-spirv',
+							--'--spirv-max-version=1.0',
 							('%q'):format(self.spirvToolchainFileBC),
 							'-o',
 							('%q'):format(self.spirvToolchainFileSPV),
@@ -213,13 +214,17 @@ function CLProgram:clangCompile(dst, src, buildOptions)
 	exec(table{
 		'clang',
 		buildOptions or '',
-		'-v',
-		'-Xclang -finclude-default-header',
-		'--target=spirv64-unknown-unknown',
-		'-emit-llvm',
 		'-c',
+		'-cl-std=clc++',
+		'-v',
+		--'-Xclang -finclude-default-header',	-- required for clang<13.0 according to https://www.khronos.org/blog/offline-compilation-of-opencl-kernels-into-spir-v-using-open-source-tooling
+		'--target=spirv64-unknown-unknown',	--compiling works but linking complains
+		--'--target=spirv64',	--compiling works but linking complains
+		--'--target=spir64',	--compiling works but linking complains
+		--'-std=c++2a',
 		--'-O0',
 		--'-O3',
+		'-emit-llvm',
 		'-o', ('%q'):format(path(dst):fixpathsep()),
 		('%q'):format(path(src):fixpathsep()),
 	}:concat' ')

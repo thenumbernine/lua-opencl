@@ -1,4 +1,5 @@
 #!/usr/bin/env luajit
+-- cl-cpp test by invoking clang here in the script file
 local ffi = require 'ffi'
 require 'ext'
 
