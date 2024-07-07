@@ -14,6 +14,9 @@ local CLProgram = class()
 -- kernel class to allocate upon CLProgram:kernel
 CLProgram.Kernel = require 'cl.obj.kernel'
 
+local ccname = 'clang'
+local ldname = 'llvm-spirv'
+
 --[[
 args:
 	env = required, cl.obj.env
@@ -91,7 +94,7 @@ function CLProgram:init(args)
 					dsts = {self.spirvToolchainFileSPV},
 					rule = function()
 						exec(table{
-							'llvm-spirv',
+							ldname,
 							--'--spirv-max-version=1.0',
 							('%q'):format(self.spirvToolchainFileBC),
 							'-o',
@@ -212,7 +215,7 @@ end
 
 function CLProgram:clangCompile(dst, src, buildOptions)
 	exec(table{
-		'clang',
+		ccname,
 		buildOptions or '',
 		'-c',
 		'-cl-std=clc++',
@@ -267,7 +270,7 @@ function CLProgram:compile(args)
 				dsts = {self.spirvToolchainFileSPV},
 				rule = function()
 					exec(table{
-						'llvm-spirv',
+						ldname,
 						args and args.linkOptions or '',
 						('%q'):format(self.spirvToolchainFileBC),
 						'-o', ('%q'):format(self.spirvToolchainFileSPV),
