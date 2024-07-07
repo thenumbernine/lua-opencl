@@ -278,8 +278,10 @@ function CLProgram:compile(args)
 
 		-- cl -> bc
 		-- only write (and invalidate) when necessary
-		local code = self:getCode()
-		writeChanged(self.spirvToolchainFileCL, code)
+		if not (args and args.useCachedCode) then
+			local code = self:getCode()
+			writeChanged(self.spirvToolchainFileCL, code)
+		end
 		buildTargets:run(self.spirvToolchainFileBC)
 
 		-- if 'dontLink' then just leave the .bc file for another Program to use ... or not?
