@@ -254,7 +254,7 @@ function CLProgram:compile(args)
 				rule = function(rule)
 					assert(#rule.dsts == 1)
 					assert(#rule.srcs == 1)
-					self:clangCompile(rule.dsts[1], rule.srcs[1], args and arg.buildOption or nil)
+					self:clangCompile(rule.dsts[1], rule.srcs[1], args and args.buildOptions or nil)
 				end,
 			},
 			{
