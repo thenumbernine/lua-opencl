@@ -13,15 +13,50 @@
 	-v
 	--target=spirv64-unknown-unknown
 	-emit-llvm
-	-o
-	"cpptest.bc"
+	-o "cpptest.bc"
 	"cpptest.clcpp"
 Ubuntu clang version 18.1.3 (1ubuntu1)
 Target: spirv64-unknown-unknown
 Thread model: posix
 InstalledDir: /usr/bin
  (in-process)
- "/usr/lib/llvm-18/bin/clang" -cc1 -triple spirv64-unknown-unknown -Wspir-compat -emit-llvm-bc -emit-llvm-uselists -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name cpptest.clcpp -mrelocation-model static -mframe-pointer=all -ffp-contract=on -fno-rounding-math -mconstructor-aliases -debugger-tuning=gdb -fdebug-compilation-dir=/home/chris/Projects/lua/cl/tests -v -fcoverage-compilation-dir=/home/chris/Projects/lua/cl/tests -resource-dir /usr/lib/llvm-18/lib/clang/18 -D ARRAY_SIZE=64 -D REAL=double -D USE_FP64 -O0 -ferror-limit 19 -cl-std=clc++ -finclude-default-header -fdeclare-opencl-builtins -fgnuc-version=4.2.1 -fno-threadsafe-statics -fskip-odr-check-in-gmf -fcolor-diagnostics -o cpptest.bc -x clcpp cpptest.clcpp
+ "/usr/lib/llvm-18/bin/clang"
+	-cc1
+	-triple spirv64-unknown-unknown
+	-Wspir-compat
+	-emit-llvm-bc
+	-emit-llvm-uselists
+	-disable-free
+	-clear-ast-before-backend
+	-disable-llvm-verifier
+	-discard-value-names
+	-main-file-name cpptest.clcpp
+	-mrelocation-model
+	static
+	-mframe-pointer=all
+	-ffp-contract=on
+	-fno-rounding-math
+	-mconstructor-aliases
+	-debugger-tuning=gdb
+	-fdebug-compilation-dir=/home/chris/Projects/lua/cl/tests
+	-v
+	-fcoverage-compilation-dir=/home/chris/Projects/lua/cl/tests
+	-resource-dir /usr/lib/llvm-18/lib/clang/18
+	-D ARRAY_SIZE=64
+	-D REAL=double
+	-D USE_FP64
+	-O0
+	-ferror-limit 19
+	-cl-std=clc++
+	-finclude-default-header
+	-fdeclare-opencl-builtins
+	-fgnuc-version=4.2.1
+	-fno-threadsafe-statics
+	-fskip-odr-check-in-gmf
+	-fcolor-diagnostics
+	-o cpptest.bc
+	-x clcpp
+	cpptest.clcpp
 clang -cc1 version 18.1.3 based upon LLVM 18.1.3 default target x86_64-pc-linux-gnu
 #include "..." search starts here:
 #include <...> search starts here:
@@ -29,7 +64,8 @@ clang -cc1 version 18.1.3 based upon LLVM 18.1.3 default target x86_64-pc-linux-
  /usr/lib/llvm-18/lib/clang/18/include
  /usr/include
 End of search list.
->> llvm-spirv "cpptest.bc" -o "cpptest.spv"
+>> llvm-spirv
+	"cpptest.bc" -o "cpptest.spv"
 
 --]]
 local ffi = require 'ffi'
