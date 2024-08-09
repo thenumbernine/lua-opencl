@@ -1,4 +1,3 @@
-local class = require 'ext.class'
 local table = require 'ext.table'
 local ffi = require 'ffi'
 local bit = require 'bit'
@@ -6,7 +5,7 @@ local cl = require 'ffi.req' 'OpenCL'
 local classert = require 'cl.assert'
 local GetInfo = require 'cl.getinfo'
 
-local Platform = class(GetInfo())
+local Platform = GetInfo():subclass()
 
 -- platform has no retain/release, so no need to wrap it
 -- hence the manual assignment of id here:

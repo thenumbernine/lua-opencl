@@ -1,11 +1,10 @@
-local class = require 'ext.class'
 local cl = require 'ffi.req' 'OpenCL'
 local bit = require 'bit'
 local classertparam = require 'cl.assertparam'
 local Memory = require 'cl.memory'
 local GetInfo = require 'cl.getinfo'
 
-local Image = class(GetInfo(Memory))
+local Image = GetInfo(Memory):subclass()
 
 -- TODO verify that this goes with the clCreateFromGLTexture function below
 Image.getInfo = Image:makeGetter{
@@ -25,7 +24,7 @@ Image.getInfo = Image:makeGetter{
 	},
 }
 
-local ImageGL = class(Image)
+local ImageGL = Image:subclass()
 
 --[[
 args

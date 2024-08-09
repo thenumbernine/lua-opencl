@@ -1,9 +1,8 @@
-local class = require 'ext.class'
 local table = require 'ext.table'
 local ffi = require 'ffi'
 local cl = require 'ffi.req' 'OpenCL'
 local classertparam = require 'cl.assertparam'
-local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
+local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
 -- here and commandqueue.lua
@@ -11,11 +10,11 @@ local function ffi_new_table(T, src)
 	return ffi.new(T..'['..#src..']', src)
 end
 
-local Context = class(GetInfo(GCWrapper{
+local Context = GetInfo(GCWrapper{
 	ctype = 'cl_context',
-	retain = function(ptr) return cl.clRetainContext(ptr[0]) end,
-	release = function(ptr) return cl.clReleaseContext(ptr[0]) end,
-}))
+	retain = function(self) return cl.clRetainContext(self.id) end,
+	release = function(self) return cl.clReleaseContext(self.id) end,
+}):subclass()
 
 --[[
 args:
@@ -150,8 +149,6 @@ Display* glXGetCurrentDisplay();
 	Otherwise here you will get an error -1000: CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR
 	--]]
 	self.id = classertparam('clCreateContext', properties, #devices, deviceIDs, nil, nil)
-
-	Context.super.init(self, self.id)
 end
 
 function Context:buffer(args)

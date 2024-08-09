@@ -1,13 +1,12 @@
 local cl = require 'ffi.req' 'OpenCL'
-local class = require 'ext.class'
-local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
+local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
-local Device = class(GetInfo(GCWrapper{
+local Device = GetInfo(GCWrapper{
 	ctype = 'cl_device_id',
-	retain = function(ptr) return cl.clRetainDevice(ptr[0]) end,
-	release = function(ptr) return cl.clReleaseDevice(ptr[0]) end,
-}))
+	retain = function(self) return cl.clRetainDevice(self.id) end,
+	release = function(self) return cl.clReleaseDevice(self.id) end,
+}):subclass()
 
 Device.getInfo = Device:makeGetter{
 	getter = cl.clGetDeviceInfo,
@@ -110,8 +109,7 @@ Device.getInfo = Device:makeGetter{
 }
 
 function Device:init(...)
-	Device.super.init(self, ...)
-	self.id = self.gc.ptr[0]
+	self.id = ffi.new(self.ctype)
 end
 
 function Device:getName() return self:getInfo'CL_DEVICE_NAME' end

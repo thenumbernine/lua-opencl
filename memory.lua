@@ -1,13 +1,12 @@
 local cl = require 'ffi.req' 'OpenCL'
-local class = require 'ext.class'
-local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
+local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
-local Memory = class(GetInfo(GCWrapper{
+local Memory = GetInfo(GCWrapper{
 	ctype = 'cl_mem',
-	retain = function(ptr) return cl.clRetainMemObject(ptr[0]) end,
-	release = function(ptr) return cl.clReleaseMemObject(ptr[0]) end,
-}))
+	retain = function(self) return cl.clRetainMemObject(self.id) end,
+	release = function(self) return cl.clReleaseMemObject(self.id) end,
+}):subclass()
 
 Memory.getInfo = Memory:makeGetter{
 	getter = cl.clGetMemObjectInfo,
@@ -26,8 +25,7 @@ Memory.getInfo = Memory:makeGetter{
 }
 
 function Memory:init(...)
-	Memory.super.init(self, ...)
-	self.id = self.gc.ptr[0]
+	self.id = ffi.new(self.ctype)
 end
 
 return Memory

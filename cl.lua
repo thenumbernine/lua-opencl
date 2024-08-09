@@ -8,6 +8,9 @@ args:
 	queue = CommandQueue() arguments
 	program (optional) Program() arguments (which is built upon creation)
 	verbose (optional) print info of things as you go
+
+TODO new require naming scheme would be to have this file the lookup for the lib to `return require 'ffi.req' 'cl'`
+besides nobody uses this file ...
 --]]
 local function quickstart(args)
 	local table = require 'ext.table'

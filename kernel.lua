@@ -1,19 +1,18 @@
-local class = require 'ext.class'
 local table = require 'ext.table'
 local ffi = require 'ffi'
 local cl = require 'ffi.req' 'OpenCL'
 local classertparam = require 'cl.assertparam'
 local clCheckError = require 'cl.checkerror'
-local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
+local GCWrapper = require 'cl.gcwrapper'
 local CLMemory = require 'cl.memory'
 local CLBufferObj = require 'cl.obj.buffer'
 local GetInfo = require 'cl.getinfo'
 
-local Kernel = class(GetInfo(GCWrapper{
+local Kernel = GetInfo(GCWrapper{
 	ctype = 'cl_kernel',
-	retain = function(ptr) return cl.clRetainKernel(ptr[0]) end,
-	release = function(ptr) return cl.clReleaseKernel(ptr[0]) end,
-}))
+	retain = function(self) return cl.clRetainKernel(self.id) end,
+	release = function(self) return cl.clReleaseKernel(self.id) end,
+}):subclass()
 
 --[[
 args:
@@ -26,7 +25,6 @@ function Kernel:init(args)
 	self.id = classertparam('clCreateKernel',
 		assert(args.program).id,
 		assert(args.name))
-	Kernel.super.init(self, self.id)
 
 	if args.args then
 		self:setArgs(table.unpack(args.args))

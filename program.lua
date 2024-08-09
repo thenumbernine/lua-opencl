@@ -1,18 +1,17 @@
 local ffi = require 'ffi'
 local cl = require 'ffi.req' 'OpenCL'
-local class = require 'ext.class'
 local table = require 'ext.table'
 local classert = require 'cl.assert'
 local classertparam = require 'cl.assertparam'
 local clCheckError = require 'cl.checkerror'
-local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
+local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
-local Program = class(GetInfo(GCWrapper{
+local Program = GetInfo(GCWrapper{
 	ctype = 'cl_program',
-	retain = function(ptr) return cl.clRetainProgram(ptr[0]) end,
-	release = function(ptr) return cl.clReleaseProgram(ptr[0]) end,
-}))
+	retain = function(self) return cl.clRetainProgram(self.id) end,
+	release = function(self) return cl.clReleaseProgram(self.id) end,
+}):subclass()
 
 Program.showCodeOnError = true
 
@@ -104,7 +103,6 @@ function Program:init(args)
 			clCheckError(err[0], message)
 		end
 	end
-	Program.super.init(self, self.id)
 
 	if args.devices and not programs then
 		if args.dontLink then

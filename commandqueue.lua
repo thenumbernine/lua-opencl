@@ -1,10 +1,9 @@
-local class = require 'ext.class'
 local table = require 'ext.table'
 local ffi = require 'ffi'
 local cl = require 'ffi.req' 'OpenCL'
 local classert = require 'cl.assert'
 local classertparam = require 'cl.assertparam'
-local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
+local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
 local defaultEvent
@@ -14,11 +13,11 @@ local function ffi_new_table(T, src)
 	return ffi.new(T..'['..#src..']', src)
 end
 
-local CommandQueue = class(GetInfo(GCWrapper{
+local CommandQueue = GetInfo(GCWrapper{
 	ctype = 'cl_command_queue',
-	retain = function(ptr) return cl.clRetainCommandQueue(ptr[0]) end,
-	release = function(ptr) return cl.clReleaseCommandQueue(ptr[0]) end,
-}))
+	retain = function(self) return cl.clRetainCommandQueue(self.id) end,
+	release = function(self) return cl.clReleaseCommandQueue(self.id) end,
+}):subclass()
 
 --[[
 args
@@ -32,7 +31,6 @@ function CommandQueue:init(args)
 		assert(args.context, "expected context").id,
 		assert(args.device, "expected device").id,
 		args.properties or 0)
-	CommandQueue.super.init(self, self.id)
 end
 
 --[[
@@ -55,7 +53,7 @@ function CommandQueue:enqueueReadBuffer(args)
 		assert(args.ptr, "expected ptr"),
 		0,
 		nil,
-		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
+		args.event and args.event.ptr or defaultEvent.ptr))
 end
 
 --[[
@@ -77,7 +75,7 @@ function CommandQueue:enqueueWriteBuffer(args)
 		assert(args.ptr, "expected ptr"),
 		0,
 		nil,
-		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
+		args.event and args.event.ptr or defaultEvent.ptr))
 end
 
 --[[
@@ -127,7 +125,7 @@ function CommandQueue:enqueueFillBuffer(args)
 		size,
 		0,
 		nil,
-		args.event and args.event.gc.ptr
+		args.event and args.event.ptr
 
 		-- or nil
 --[[
@@ -141,7 +139,7 @@ CL_DRIVER_VERSION:	1.2 (Jan 11 2016 18:56:15)
 
 ...and here we are in 2021...
 --]]
-		or defaultEvent.gc.ptr
+		or defaultEvent.ptr
 	))
 end
 
@@ -164,7 +162,7 @@ function CommandQueue:enqueueCopyBuffer(args)
 		assert(args.size, "expected size"),
 		0,
 		nil,
-		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
+		args.event and args.event.ptr or defaultEvent.ptr))
 end
 
 --[[
@@ -239,11 +237,11 @@ function CommandQueue:enqueueNDRangeKernel(args)
 		localSize,
 		numWait,
 		wait,
-		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
+		args.event and args.event.ptr or defaultEvent.ptr))
 
-	-- hmm should I even use 'id' if gc.ptr[0] will be holding the same information?
+	-- hmm should I even use 'id' if ptr[0] will be holding the same information?
 	if args.event then
-		args.event.id = args.event.gc.ptr[0]
+		args.event.id = args.event.ptr[0]
 	end
 end
 
@@ -260,7 +258,7 @@ function CommandQueue:enqueueAcquireGLObjects(args)
 		ffi_new_table('cl_mem', table.mapi(objs, function(obj) return obj.id end)),
 		0,
 		nil,
-		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
+		args.event and args.event.ptr or defaultEvent.ptr))
 end
 
 --[[
@@ -276,7 +274,7 @@ function CommandQueue:enqueueReleaseGLObjects(args)
 		ffi_new_table('cl_mem', table.mapi(objs, function(obj) return obj.id end)),
 		0,
 		nil,
-		args.event and args.event.gc.ptr or defaultEvent.gc.ptr))
+		args.event and args.event.ptr or defaultEvent.ptr))
 end
 
 function CommandQueue:flush()

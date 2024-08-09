@@ -1,23 +1,22 @@
 local ffi = require 'ffi'
 local cl = require 'ffi.req' 'OpenCL'
-local class = require 'ext.class'
 local classert = require 'cl.assert'
-local GCWrapper = require 'ffi.gcwrapper.gcwrapper'
+local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
-local Event = class(GetInfo(GCWrapper{
+local Event = GetInfo(GCWrapper{
 	ctype = 'cl_event',
-	retain = function(ptr) return cl.clRetainEvent(ptr[0]) end,
-	release = function(ptr) return cl.clReleaseEvent(ptr[0]) end,
-}))
+	retain = function(self) return cl.clRetainEvent(self.id) end,
+	release = function(self) return cl.clReleaseEvent(self.id) end,
+}):subclass()
 
 function Event:init(...)
-	Event.super.init(self, ...)
-	self.id = self.gc.ptr[0]
+	self.ptr = ffi.new(self.ctype..'[1]')	-- here cuz in commandqueue it is used so often
+	self.id = self.ptr[0]	-- erm does it matter?
 end
 
 function Event:wait()
-	classert(cl.clWaitForEvents(1, self.gc.ptr))
+	classert(cl.clWaitForEvents(1, self.id))
 end
 
 -- static

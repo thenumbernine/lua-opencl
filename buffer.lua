@@ -1,12 +1,11 @@
 local ffi = require 'ffi'
 local bit = require 'bit'
 local cl = require 'ffi.req' 'OpenCL'
-local class = require 'ext.class'
 local classertparam = require 'cl.assertparam'
 
 local Memory = require 'cl.memory'
 
-local Buffer = class(Memory)
+local Buffer = Memory:subclass()
 
 --[[
 args:
