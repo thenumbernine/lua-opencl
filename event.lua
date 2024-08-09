@@ -10,9 +10,10 @@ local Event = GetInfo(GCWrapper{
 	release = function(self) return cl.clReleaseEvent(self.id) end,
 }):subclass()
 
-function Event:init(...)
+function Event:init(id)
+	self.id = id
 	self.ptr = ffi.new(self.ctype..'[1]')	-- here cuz in commandqueue it is used so often
-	self.id = self.ptr[0]	-- erm does it matter?
+	self.ptr[0] = id
 end
 
 function Event:wait()

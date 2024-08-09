@@ -1,3 +1,4 @@
+local ffi = require 'ffi'
 local cl = require 'ffi.req' 'OpenCL'
 local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
@@ -108,8 +109,8 @@ Device.getInfo = Device:makeGetter{
 	},
 }
 
-function Device:init(...)
-	self.id = ffi.new(self.ctype)
+function Device:init(id)
+	self.id = id
 end
 
 function Device:getName() return self:getInfo'CL_DEVICE_NAME' end

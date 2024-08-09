@@ -24,8 +24,8 @@ Memory.getInfo = Memory:makeGetter{
 	},
 }
 
-function Memory:init(...)
-	self.id = ffi.new(self.ctype)
+function Memory:init(id)
+	self.id = id
 end
 
 return Memory

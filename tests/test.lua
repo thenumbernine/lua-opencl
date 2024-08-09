@@ -1,6 +1,5 @@
 #!/usr/bin/env luajit
 local ffi = require 'ffi'
-require 'ext'
 
 local function matchExt(obj, pat)
 	local exts = obj:getExtensions():mapi(string.lower)
