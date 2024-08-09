@@ -109,10 +109,6 @@ Device.getInfo = Device:makeGetter{
 	},
 }
 
-function Device:init(id)
-	self.id = id
-end
-
 function Device:getName() return self:getInfo'CL_DEVICE_NAME' end
 function Device:getVendor() return self:getInfo'CL_DEVICE_VENDOR' end
 function Device:getDriverVersion() return self:getInfo'CL_DRIVER_VERSION' end

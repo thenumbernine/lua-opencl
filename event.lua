@@ -11,8 +11,9 @@ local Event = GetInfo(GCWrapper{
 }):subclass()
 
 function Event:init(id)
-	self.id = id
-	self.ptr = ffi.new(self.ctype..'[1]')	-- here cuz in commandqueue it is used so often
+	Event.super.init(self, id)
+	-- and keep it in an array cuz in commandqueue it is used so often
+	self.ptr = ffi.new(self.ctype..'[1]')
 	self.ptr[0] = id
 end
 
