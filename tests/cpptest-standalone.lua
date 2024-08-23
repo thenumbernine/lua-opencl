@@ -27,9 +27,7 @@ if not cmdline.nocl then -- [[ initialize CL first to tell what kind of real we 
 	end
 
 	local platform = get64bit(require 'cl.platform'.getAll())
-	devices = platform:getDevices{gpu=true}:mapi(function(device)
-		return isFP64(device) and device
-	end)
+	devices = platform:getDevices{gpu=true}:filter(isFP64)
 	for i,device in ipairs(devices) do
 		print('device '..i..': '..tostring(device:getName()))
 	end
