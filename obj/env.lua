@@ -102,12 +102,13 @@ end
 
 -- predefined getPlatform and getDevice
 
-local function getterForIdent(ident, identType)
+function CLEnv.getterForIdent(ident, identType)
 	return function(objs)
+		if ident == nil then return objs end	-- use all
+		-- use a specific device
+		-- TODO how to specify using multiple devices? comma-separator? guarantee that the name string won't have a comma?  do name prefix matching?  name pattern matching?
 		for i,obj in ipairs(objs) do
-			if type(ident) == 'nil' then
-				return {obj}
-			elseif type(ident) == 'number' then
+			if type(ident) == 'number' then
 				if ident == i then return {obj} end
 			elseif type(ident) == 'string' then
 				if ident == obj:getName() then return {obj} end
@@ -121,7 +122,7 @@ end
 -- () -> ( (platform list, precision) -> platform )
 function CLEnv.getPlatformFromCmdLine(...)
 	local cmdline = getCmdline(...)
-	return getterForIdent(cmdline.platform, 'platform')
+	return CLEnv.getterForIdent(cmdline.platform, 'platform')
 end
 
 -- Predefined option for args.getDevices
@@ -131,7 +132,7 @@ end
 function CLEnv.getDevicesFromCmdLine(devices, ...)
 	local cmdline = getCmdline(...)
 	if cmdline.device then
-		return getterForIdent(cmdline.device, 'device')
+		return CLEnv.getterForIdent(cmdline.device, 'device')
 	end
 	return function(...) return ... end
 end
