@@ -1,5 +1,6 @@
 #!/usr/bin/env luajit
 local ffi = require 'ffi'
+local assert = require 'ext.assert'
 local table = require 'ext.table'
 local cmdline = require 'ext.cmdline'(...)
 local half = require 'cl.obj.half'	-- for when we are using a half precision
@@ -67,5 +68,5 @@ for _,size in ipairs(values) do
 	}
 	local reduceResult = half.fromreal(reduce())
 	print('size',size,'reduce',reduceResult)
-	assert(reduceResult == 1, "expected 1 but found "..reduceResult)
+	assert.eq(reduceResult, 1)
 end

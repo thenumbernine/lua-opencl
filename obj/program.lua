@@ -1,3 +1,4 @@
+local assert = require 'ext.assert'
 local class = require 'ext.class'
 local string = require 'ext.string'
 local table = require 'ext.table'
@@ -40,7 +41,7 @@ args:
 	code, binaries, and programs are exclusive
 --]]
 function CLProgram:init(args)
-	self.env = assert(args.env)
+	self.env = assert.index(args, 'env')
 	self.kernels = table(args.kernels)
 	self.domain = args.domain
 
@@ -68,10 +69,10 @@ function CLProgram:init(args)
 			assert(not args.code, "either .programs for linking or .code for building, but not both")
 			local programs = args.programs
 			args.programs = nil	-- dont do the .programs in super / dont make a .obj yet
-			assert(#programs > 0, "can't link from programs if no programs are provided")
+			assert.gt(#programs, 0, "can't link from programs if no programs are provided")
 			-- assert all our input programs have .bc files
 			local srcs = table.mapi(programs, function(program)
-				return (assert(program.spirvToolchainFileBC, "CLProgram constructed with .programs, expected all those programs to have .spirvToolchainFileBC's, but one didn't: "..tostring(program.spirvToolchainFile)))
+				return (assert.index(program, 'spirvToolchainFileBC', "CLProgram constructed with .programs, expected all those programs to have .spirvToolchainFileBC's, but one didn't: "..tostring(program.spirvToolchainFile)))
 			end)
 			makeTargets{
 				{
@@ -118,10 +119,10 @@ function CLProgram:init(args)
 				-- TODO log per device ...
 				print(string.trim(self.obj:getLog(self.env.devices[1])))
 			end
-			assert(self.code == nil)
+			assert.eq(self.code, nil)
 		else
 			-- save code for later, when :compile is called
-			self.code = assert(args.code)
+			self.code = assert.index(args, 'code')
 			args.code = nil
 		end
 	elseif args.code then
@@ -260,8 +261,8 @@ function CLProgram:compile(args)
 				srcs = {self.spirvToolchainFileCL},
 				dsts = {self.spirvToolchainFileBC},
 				rule = function(rule)
-					assert(#rule.dsts == 1)
-					assert(#rule.srcs == 1)
+					assert.len(rule.dsts, 1)
+					assert.len(rule.srcs, 1)
 					self:clangCompile(rule.dsts[1], rule.srcs[1], args and args.buildOptions or nil)
 				end,
 			},
@@ -380,8 +381,8 @@ function CLProgram:compile(args)
 			binfn = self.cacheFile..'.bin'
 			usingCache = true
 		elseif self.cacheFileCL or self.cacheFileBin then
-			clfn = assert(self.cacheFileCL, "you defined cacheFileBin but not cacheFileCL")
-			binfn = assert(self.cacheFileBin, "you defined cacheFileCL but not cacheFileBin")
+			clfn = assert.index(self, 'cacheFileCL', "you defined cacheFileBin but not cacheFileCL")
+			binfn = assert.index(self, 'cacheFileBin', "you defined cacheFileCL but not cacheFileBin")
 			usingCache = true
 		end
 
@@ -499,11 +500,11 @@ end
 				-- [[ double check for safety ...
 				local bindata = assert(path(binfn):read(), "failed to find opencl compiled program "..binfn)
 				local binsCheck = require 'ext.fromlua'(bindata)
-				assert(#binsCheck == #bins, 'somehow you encoded a different number of binary blobs than you were given.')
+				assert.eq(#binsCheck, #bins, 'somehow you encoded a different number of binary blobs than you were given.')
 				for i=1,#bins do
-					assert(type(bins[i]) == 'string')
-					assert(type(binsCheck[i]) == 'string')
-					assert(bins[i] == binsCheck[i], 'error in encoding a binary blob!')
+					assert.type(bins[i], 'string')
+					assert.type(binsCheck[i], 'string')
+					assert.eq(bins[i], binsCheck[i], 'error in encoding a binary blob!')
 				end
 				--]]
 			end

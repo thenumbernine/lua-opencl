@@ -1,4 +1,5 @@
 local class = require 'ext.class'
+local assert = require 'ext.assert'
 local ffi = require 'ffi'
 local half = require 'cl.obj.half'
 
@@ -9,7 +10,7 @@ readwrite = rw|read|write. default rw.  used in allocation
 constant = used in kernel parameter generation
 --]]
 function CLBuffer:init(args)
-	self.env = assert(args.env)
+	self.env = assert.index(args, 'env')
 	self.name = args.name or 'buffer_'..tostring(self):sub(10)
 	self.type = args.type or args.env.real
 	self.count = args.count or args.env.base.volume
@@ -43,7 +44,7 @@ function CLBuffer:fromCPU(ptr, cmd)
 		--]]
 		ptr = cptr
 	end
-	assert(type(ptr) == 'cdata')
+	assert.eq(type(ptr), 'cdata')
 	cmd:enqueueWriteBuffer{buffer=self.obj, block=true, size=ffi.sizeof(self.type) * self.count, ptr=ptr}
 end
 

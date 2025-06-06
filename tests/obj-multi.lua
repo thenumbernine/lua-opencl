@@ -1,5 +1,6 @@
 #!/usr/bin/env luajit
 local range = require 'ext.range'
+local assert = require 'ext.assert'
 local class = require 'ext.class'
 local table = require 'ext.table'
 local CLEnv = require 'cl.obj.env'
@@ -13,14 +14,14 @@ local sizes = {{64}}
 local MultiBuffer = class()
 
 function MultiBuffer:init(args)
-	local env = assert(args.env)
+	local env = assert.index(args, 'env')
 	self.env = env
 
 	self.buffers = env.blocks:mapi(function(block,i)
 		local blockArgs = table(args)
 		if blockArgs.data then
 			if type(blockArgs.data) == 'table' then
-				assert(#blockArgs.data == block.domain.volume)
+				assert.len(blockArgs.data, block.domain.volume)
 				local startindex = math.floor(block.domain.volume * (i-1) / #env.blocks)
 				local endindex = math.floor(block.domain.volume * i / #env.blocks)
 				blockArgs.data = table.sub(blockArgs.data, startindex+1, endindex+1)

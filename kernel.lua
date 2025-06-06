@@ -1,3 +1,4 @@
+local assert = require 'ext.assert'
 local table = require 'ext.table'
 local ffi = require 'ffi'
 local cl = require 'ffi.req' 'OpenCL'
@@ -23,8 +24,8 @@ args:
 function Kernel:init(args)
 	assert(args)
 	self.id = classertparam('clCreateKernel',
-		assert(args.program).id,
-		assert(args.name))
+		assert.index(args, 'program').id,
+		(assert.index(args, 'name')))
 
 	if args.args then
 		self:setArgs(table.unpack(args.args))
@@ -48,7 +49,7 @@ function Kernel:setArg(index, value)
 			value = value.obj	-- get the cl.memory
 		end
 		if CLMemory:isa(value) then
-			assert(value.id)
+			assert.index(value, 'id')
 			ptr = ffi.new('cl_mem[1]', value.id)
 			size = ffi.sizeof'cl_mem'
 		elseif value.size then

@@ -1,3 +1,4 @@
+local assert = require 'ext.assert'
 local ffi = require 'ffi'
 local bit = require 'bit'
 local cl = require 'ffi.req' 'OpenCL'
@@ -30,9 +31,9 @@ function Buffer:init(args)
 	if args.hostptr then flags = bit.bor(flags, cl.CL_MEM_USE_HOST_PTR) end
 	if args.alloc then flags = bit.bor(flags, cl.CL_MEM_ALLOC_HOST_PTR) end
 	if args.copy then flags = bit.bor(flags, cl.CL_MEM_COPY_HOST_PTR) end
-	self.size = assert(args.size)	-- in bytes
+	self.size = assert.index(args, 'size')	-- in bytes
 	self.id = classertparam('clCreateBuffer',
-		assert(args.context).id,
+		assert.index(args, 'context').id,
 		flags,
 		self.size,
 		args.hostptr)

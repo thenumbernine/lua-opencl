@@ -13,6 +13,7 @@ and ffi typedefs to match the OpenCL types
 local ffi = require 'ffi'
 local cl = require 'ffi.req' 'OpenCL'
 local class = require 'ext.class'
+local assert = require 'ext.assert'
 local table = require 'ext.table'
 local string = require 'ext.string'
 local getCmdline = require 'ext.cmdline'
@@ -50,9 +51,9 @@ require 'vec-ffi.create_vec'{ctype='half', dim=4, vectype='half4'}
 require 'vec-ffi.create_vec'{ctype='half', dim=8, vectype='half8'}
 
 for _,name in ipairs{'half', 'float', 'double', 'int'} do
-	assert(ffi.sizeof(name..'2') == 2 * ffi.sizeof(name))
-	assert(ffi.sizeof(name..'4') == 4 * ffi.sizeof(name))
-	assert(ffi.sizeof(name..'8') == 8 * ffi.sizeof(name))
+	assert.eq(ffi.sizeof(name..'2'), 2 * ffi.sizeof(name))
+	assert.eq(ffi.sizeof(name..'4'), 4 * ffi.sizeof(name))
+	assert.eq(ffi.sizeof(name..'8'), 8 * ffi.sizeof(name))
 end
 
 local CLEnv = class()
@@ -83,13 +84,13 @@ local function getForPrecision(list, precision)
 	-- choose double if we must
 	if precision == 'double' then
 		all = all:filter(function(a) return a.fp64 end)
-		assert(#all > 0, "couldn't find anything with 64 bit precision")
+		assert.gt(#all, 0, "couldn't find anything with 64 bit precision")
 	-- otherwise prioritize it
 	-- TODO what if the user wants gl sharing too?
 	-- should I prioritize a search for that extension as well?
 	elseif precision == 'half' then
 		all = all:filter(function(a) return a.fp16 end)
-		assert(#all > 0, "couldn't find anything with 16 bit precision")
+		assert.gt(#all, 0, "couldn't find anything with 16 bit precision")
 	else
 		all:sort(function(a,b)
 			return (a.fp64 and 1 or 0) > (b.fp64 and 1 or 0)
@@ -157,7 +158,7 @@ function CLEnv.getDeviceTypeFromCmdLine(...)
 	local cmdline = getCmdline(...)
 	local deviceType = cmdline.deviceType
 	if type(deviceType) == 'string' then
-		deviceType = assert(deviceTypeValueForName[deviceType], "couldn't understand deviceType="..tostring(deviceType))
+		deviceType = assert.index(deviceTypeValueForName, 'deviceType')
 	end
 	for k,v in pairs(deviceTypeValueForName) do
 		if cmdline[k] then

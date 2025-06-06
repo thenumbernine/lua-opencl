@@ -6,6 +6,7 @@ since neither of these are really specific to the OOP wrappers to the Lua wrappe
 
 local bit = require 'bit'
 local ffi = require 'ffi'
+local assert = require 'ext.assert'
 local math = require 'ext.math'
 local struct = require 'struct'
 
@@ -28,7 +29,7 @@ local float16bits_t = struct{
 ffi.cdef[[
 typedef float16bits_t half;
 ]]
-assert(ffi.sizeof'float16bits_t' == 2)
+assert.eq(ffi.sizeof'float16bits_t', 2)
 
 local float32bits_t = struct{
 	name = 'float32bits_t',
@@ -47,7 +48,7 @@ local float32bits_t = struct{
 		}},
 	},
 }
-assert(ffi.sizeof'float32bits_t' == 4)
+assert.eq(ffi.sizeof'float32bits_t', 4)
 
 local b32 = ffi.new'float32bits_t'
 local function tohalf(x)	-- converts to 'half' type defined in cl/obj/env.lua
@@ -179,7 +180,7 @@ for i=0,65536 do
 	local h = ffi.new'half'
 	h.i = i
 	local x = half.from(h)
-	assert(type(x) == 'number')
+	assert.type(x, 'number')
 	b32.f = x
 	local h2 = half.to(x)
 	if i ~= h2.i then

@@ -1,3 +1,4 @@
+local assert = require 'ext.assert'
 local table = require 'ext.table'
 local ffi = require 'ffi'
 local cl = require 'ffi.req' 'OpenCL'
@@ -24,8 +25,8 @@ args:
 --]]
 function Context:init(args)
 	assert(args)
-	local platform = assert(args.platform)
-	local devices = assert(args.devices)
+	local platform = assert.index(args, 'platform')
+	local devices = assert.index(args, 'devices')
 	local verbose = args.verbose
 
 	local properties = table{

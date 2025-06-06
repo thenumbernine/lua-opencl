@@ -1,3 +1,4 @@
+local assert = require 'ext.assert'
 local class = require 'ext.class'
 local range = require 'ext.range'
 local tolua = require 'ext.tolua'
@@ -291,9 +292,9 @@ local function GetInfoBehavior(parent)
 	local function getInfo(self, getter, vars, name, ...)
 		local id = self.id
 
-		local var = assert(self.infoVarForName[name], "tried to get an unknown name "..name)
-		assert(var.getter == getter)
-		local nameValue = assert(cl[name])
+		local var = assert.index(self.infoVarForName, name, "tried to get an unknown name")
+		assert.eq(var.getter, getter)
+		local nameValue = assert.index(cl, name)
 
 		if var.type == 'char[]' then 	-- convert to Lua string
 			local size = ffi.new('size_t[1]', 0)
@@ -329,7 +330,7 @@ if var.type == nil or var.type == '' then error("you haven't defined the type fo
 			if allBitflagNames then
 				local usedFlagNames = table()
 				for _,bitflagName in ipairs(allBitflagNames) do
-					local bitflagValue = assert(cl[bitflagName])
+					local bitflagValue = assert.index(cl, bitflagName)
 					if band(result[0], bitflagValue) ~= 0 then
 						usedFlagNames:insert(bitflagName)
 					end
@@ -341,7 +342,7 @@ if var.type == nil or var.type == '' then error("you haven't defined the type fo
 			if allValueNames then
 				local usedValueName
 				for _,valueName in ipairs(allValueNames) do
-					local value = assert(cl[valueName])
+					local value = assert.index(cl, valueName)
 					if value == result[0] then
 						usedValueName = valueName
 						break
@@ -367,8 +368,8 @@ if var.type == nil or var.type == '' then error("you haven't defined the type fo
 		-- TODO this is a hack.  it assumes the first getter uses a default getter signature and requires no extra args
 		if not self.printVars then self.printVars = args.vars end
 
-		local getter = assert(args.getter)
-		local vars = assert(args.vars)
+		local getter = assert.index(args, 'getter')
+		local vars = assert.index(args, 'vars')
 
 		for _,var in ipairs(vars) do
 			self.infoVarForName[var.name] = var

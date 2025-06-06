@@ -1,3 +1,4 @@
+local assert = require 'ext.assert'
 local class = require 'ext.class'
 local ffi = require 'ffi'
 local template = require 'template'
@@ -149,7 +150,6 @@ function Reduce:init(args)
 	-- how to handle multiple devices ...
 	self.maxWorkGroupSize = tonumber(self.kernel:getWorkGroupInfo('CL_KERNEL_WORK_GROUP_SIZE', devices[1]))
 
-assert(not args.size, "size is deprecated.  use 'count' instead.")
 	self.count = assert(args.count or (env and env.base.volume))
 
 	local allocate = args.allocate
@@ -205,7 +205,7 @@ function Reduce:__call(buffer, reduceSize)
 	if not reduceSize then
 		reduceSize = self.count
 	else
-		assert(reduceSize <= self.count, "reduceSize parameter "..reduceSize.." is not <= reduce.count "..self.count)
+		assert.le(reduceSize, self.count, "reduceSize parameter is not <= reduce.count")
 	end
 
 	-- ok this is a bad idea because now we need the operators and initial value in both CL and Lua ...
@@ -231,7 +231,7 @@ function Reduce:__call(buffer, reduceSize)
 
 --print('initValue', self.initValue)
 		if not self.cpuAccumInitValue then
-			self.cpuAccumInitValue = assert(loadstring('return '..
+			self.cpuAccumInitValue = assert(load('return '..
 				(
 					self.initValue
 					:gsub('INFINITY', 'math.huge')
@@ -241,7 +241,7 @@ function Reduce:__call(buffer, reduceSize)
 		local accumValue = self.cpuAccumInitValue
 --print('accumValue', accumValue)
 		if not self.cpuAccumFunc then
-			self.cpuAccumFunc = assert(loadstring('local a,b = ... return '..
+			self.cpuAccumFunc = assert(load('local a,b = ... return '..
 				(
 					self.op('a', 'b')
 					-- TODO ... bleh, I don't like this.  why not just do it all on the GPU?

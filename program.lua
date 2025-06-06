@@ -1,6 +1,7 @@
 local ffi = require 'ffi'
 local cl = require 'ffi.req' 'OpenCL'
 local table = require 'ext.table'
+local assert = require 'ext.assert'
 local classert = require 'cl.assert'
 local classertparam = require 'cl.assertparam'
 local clCheckError = require 'cl.checkerror'
@@ -29,7 +30,7 @@ args:
 --]]
 function Program:init(args)
 	assert(args)
-	local context = assert(args.context)
+	local context = assert.index(args, 'context')
 	local code = args.code
 	local binaries = args.binaries
 	local IL = args.IL	-- intermediateLanguage
@@ -43,7 +44,7 @@ function Program:init(args)
 		self.id = classertparam('clCreateProgramWithSource', context.id, 1, strings, lengths)
 	-- create from binary
 	elseif binaries then
-		local devices = assert(args.devices, "binaries expects devices")
+		local devices = assert.index(args, 'devices', "binaries expects devices")
 		local numDevices = #devices
 		local deviceIDs = ffi.new('cl_device_id[?]', numDevices)
 		for i=1,numDevices do
@@ -63,12 +64,12 @@ function Program:init(args)
 			clCheckError(binary_status[i-1], 'clCreateProgramWithBinary failed on binary #'..i)
 		end
 	elseif IL then
-		assert(type(IL) == 'string')
+		assert.type(IL, 'string')
 		self.id = classertparam('clCreateProgramWithIL', context.id, ffi.cast('void const *', IL), #IL)
 	elseif programs then
-		assert(#programs > 0, "can't link an empty program")
+		assert.gt(#programs, 0, "can't link an empty program")
 		-- cl.hpp doesn't pass devices
-		local devices = assert(args.devices, "binaries expects devices")
+		local devices = assert.index(args, 'devices', "programs expects devices")
 		local deviceIDs = ffi.new('cl_device_id[?]', #devices)
 		for i=1,#devices do
 			deviceIDs[i-1] = devices[i].id
@@ -125,7 +126,7 @@ end
 -- calls clCompileProgram, which just does source -> obj
 function Program:compile(devices, options)
 	-- notice, cl.hpp doesn't use devices
-	assert(devices, "binaries expects devices")
+	assert(devices, "compile expects devices")
 	local deviceIDs = ffi.new('cl_device_id[?]', #devices)
 	for i=1,#devices do
 		deviceIDs[i-1] = devices[i].id

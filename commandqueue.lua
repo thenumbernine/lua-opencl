@@ -1,3 +1,4 @@
+local assert = require 'ext.assert'
 local table = require 'ext.table'
 local ffi = require 'ffi'
 local cl = require 'ffi.req' 'OpenCL'
@@ -28,8 +29,8 @@ args
 function CommandQueue:init(args)
 	assert(args, "expected args")
 	self.id = classertparam('clCreateCommandQueue',
-		assert(args.context, "expected context").id,
-		assert(args.device, "expected device").id,
+		assert.index(args, 'context').id,
+		assert.index(args, 'device').id,
 		args.properties or 0)
 end
 
@@ -46,11 +47,11 @@ function CommandQueue:enqueueReadBuffer(args)
 	defaultEvent = defaultEvent or require 'cl.event'()
 	classert(cl.clEnqueueReadBuffer(
 		self.id,
-		assert(args.buffer, "expected buffer").id,
+		assert.index(args, 'buffer').id,
 		args.block,
 		args.offset or 0,
-		assert(args.size, "expected size"),
-		assert(args.ptr, "expected ptr"),
+		assert.index(args, 'size'),
+		assert.index(args, 'ptr'),
 		0,
 		nil,
 		args.event and args.event.ptr or defaultEvent.ptr))
@@ -68,11 +69,11 @@ function CommandQueue:enqueueWriteBuffer(args)
 	defaultEvent = defaultEvent or require 'cl.event'()
 	classert(cl.clEnqueueWriteBuffer(
 		self.id,
-		assert(args.buffer, "expected buffer").id,
+		assert.index(args, 'buffer').id,
 		args.block,
 		args.offset or 0,
-		assert(args.size, "expected size"),
-		assert(args.ptr, "expected ptr"),
+		assert.index(args, 'size'),
+		assert.index(args, 'ptr'),
 		0,
 		nil,
 		args.event and args.event.ptr or defaultEvent.ptr))
@@ -90,7 +91,7 @@ args:
 local defaultPattern = ffi.new('int32_t[128/4]', 0)		-- TODO query largest vector possible on the hardware
 function CommandQueue:enqueueFillBuffer(args)
 	defaultEvent = defaultEvent or require 'cl.event'()
-	local size = assert(args.size, "expected size")
+	local size = assert.index(args, 'size')
 	local pattern = args.pattern
 	local patternSize = args.patternSize
 	--  https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html
@@ -118,7 +119,7 @@ function CommandQueue:enqueueFillBuffer(args)
 	end
 	classert(cl.clEnqueueFillBuffer(
 		self.id,
-		assert(args.buffer, "expected buffer").id,
+		assert.index(args, 'buffer').id,
 		pattern,
 		patternSize,
 		args.offset or 0,
@@ -155,11 +156,11 @@ function CommandQueue:enqueueCopyBuffer(args)
 	defaultEvent = defaultEvent or require 'cl.event'()
 	classert(cl.clEnqueueCopyBuffer(
 		self.id,
-		assert(args.src, "expected src").id,
-		assert(args.dst, "expected dst").id,
+		assert.index(args, 'src').id,
+		assert.index(args, 'dst').id,
 		args.srcOffset or 0,
 		args.dstOffset or 0,
-		assert(args.size, "expected size"),
+		assert.index(args, 'size'),
 		0,
 		nil,
 		args.event and args.event.ptr or defaultEvent.ptr))
@@ -182,14 +183,14 @@ local function fillParam(dim, src, dst)
 		if not dim then
 			dim = 1
 		else
-			assert(dim == 1)
+			assert.eq(dim, 1)
 		end
 		dst[0] = src
 	elseif type(src) == 'table' then
 		if not dim then
 			dim = #src
 		else
-			assert(dim == #src)
+			assert.len(src, dim)
 		end
 		for i=1,dim do
 			dst[i-1] = src[i]
@@ -230,7 +231,7 @@ function CommandQueue:enqueueNDRangeKernel(args)
 
 	classert(cl.clEnqueueNDRangeKernel(
 		self.id,
-		assert(args.kernel, "expected kernel").id,
+		assert.index(args, 'kernel').id,
 		dim,
 		offset,
 		globalSize,
@@ -251,7 +252,7 @@ args:
 --]]
 function CommandQueue:enqueueAcquireGLObjects(args)
 	defaultEvent = defaultEvent or require 'cl.event'()
-	local objs = assert(args.objs, "expected objs")
+	local objs = assert.index(args, 'objs')
 	classert(cl.clEnqueueAcquireGLObjects(
 		self.id,
 		#objs,
@@ -267,7 +268,7 @@ args:
 --]]
 function CommandQueue:enqueueReleaseGLObjects(args)
 	defaultEvent = defaultEvent or require 'cl.event'()
-	local objs = assert(args.objs, "expected objs")
+	local objs = assert.index(args, 'objs')
 	classert(cl.clEnqueueReleaseGLObjects(
 		self.id,
 		#objs,

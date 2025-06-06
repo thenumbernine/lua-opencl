@@ -1,5 +1,6 @@
-local cl = require 'ffi.req' 'OpenCL'
 local bit = require 'bit'
+local assert = require 'ext.assert'
+local cl = require 'ffi.req' 'OpenCL'
 local classertparam = require 'cl.assertparam'
 local Memory = require 'cl.memory'
 local GetInfo = require 'cl.getinfo'
@@ -42,13 +43,13 @@ args
 	level (optional, default 0)
 --]]
 function ImageGL:init(args)
-	local tex = assert(args.tex)
+	local tex = assert.index(args, 'tex')
 	local flags = args.flags or 0
 	if args.read then flags = bit.bor(flags, cl.CL_MEM_READ_ONLY) end
 	if args.write then flags = bit.bor(flags, cl.CL_MEM_WRITE_ONLY) end
 	if args.rw then flags = bit.bor(flags, cl.CL_MEM_READ_WRITE) end
 	self.id = classertparam('clCreateFromGLTexture',
-		assert(args.context).id,
+		assert.index(args, 'context').id,
 		flags,
 		args.target or tex.target,
 		args.level or 0,
