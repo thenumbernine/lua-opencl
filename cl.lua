@@ -7,7 +7,6 @@ args:
 	context = Context() arguments
 	queue = CommandQueue() arguments
 	program (optional) Program() arguments (which is built upon creation)
-	verbose (optional) print info of things as you go
 
 TODO new require naming scheme would be to have this file the lookup for the lib to `return require 'ffi.req' 'cl'`
 besides nobody uses this file ...
@@ -15,30 +14,24 @@ besides nobody uses this file ...
 local function quickstart(args)
 	local table = require 'ext.table'
 	local platforms = require 'cl.platform'.getAll()
-	if args.verbose then
-		for i,platform in ipairs(platforms) do
-			print()
-			print('platform '..i)
-			platform:printInfo()
-		end
-	end
+--DEBUG:for i,platform in ipairs(platforms) do
+--DEBUG:	print()
+--DEBUG:	print('platform '..i)
+--DEBUG:	platform:printInfo()
+--DEBUG:end
 	local platform = assert(platforms[1], "failed to find a platform")
 
 	local devices = platform:getDevices(args.device)
-	if args.verbose then
-		for i,device in ipairs(devices) do
-			print()
-			print('device '..i)
-			device:printInfo()
-		end
-	end
+--DEBUG:for i,device in ipairs(devices) do
+--DEBUG:	print()
+--DEBUG:	print('device '..i)
+--DEBUG:	device:printInfo()
+--DEBUG:end
 
 	local context = require 'cl.context'(table({platform=platform, devices=devices}, args.context))
-	if args.verbose then
-		print()
-		print'context'
-		context:printInfo()
-	end
+--DEBUG:print()
+--DEBUG:print'context'
+--DEBUG:context:printInfo()
 
 	local device = assert(devices[1], "failed to find a device")
 	local queue

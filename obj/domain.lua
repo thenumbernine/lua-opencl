@@ -13,7 +13,6 @@ args:
 --]]
 function CLDomain:init(args)
 
-	self.verbose = args.verbose
 	self.env = assert(args.env)
 	self.device = args.device or self.env.devices[1]
 
@@ -30,9 +29,7 @@ function CLDomain:init(args)
 	-- https://stackoverflow.com/questions/15912668/ideal-global-local-work-group-sizes-opencl
 	-- product of all local sizes must be <= max workgroup size
 	local maxWorkGroupSize = tonumber(self.device:getInfo'CL_DEVICE_MAX_WORK_GROUP_SIZE')
-	if self.verbose then
-		print('maxWorkGroupSize',maxWorkGroupSize)
-	end
+--DEBUG:print('maxWorkGroupSize',maxWorkGroupSize)
 
 	-- for volumes
 	self.localSize1d = vec3sz(math.min(maxWorkGroupSize, self.volume), 1,1)
@@ -62,11 +59,9 @@ function CLDomain:init(args)
 		end
 	end
 
-	if self.verbose then
-		print('localSize1d',self.localSize1d)
-		print('localSize2d',self.localSize2d:unpack())
-		print('localSize3d',self.localSize3d:unpack())
-	end
+--DEBUG:print('localSize1d',self.localSize1d)
+--DEBUG:print('localSize2d',self.localSize2d:unpack())
+--DEBUG:print('localSize3d',self.localSize3d:unpack())
 	self.localSize = ({self.localSize1d, self.localSize2d, self.localSize3d})[self.dim]
 
 	-- round up to next localSize factor
@@ -77,9 +72,7 @@ function CLDomain:init(args)
 			self.globalSize.s[i] = self.globalSize.s[i] + self.localSize.s[i]
 		end
 	end
-	if self.verbose then
-		print('globalSize',self.globalSize)
-	end
+--DEBUG:print('globalSize',self.globalSize)
 end
 
 function CLDomain:buffer(args)

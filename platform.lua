@@ -41,7 +41,6 @@ end
 
 --[[
 args:
-	verbose
 	one of the following:
 	deviceType = explicitly state the CL_DEVICE_TYPE_*, either as a constant or as a string, otherwise...
 	default = CL_DEVICE_TYPE_DEFAULT
@@ -63,9 +62,7 @@ function Platform:getDevices(args)
 	end
 	deviceType = deviceType or cl.CL_DEVICE_TYPE_ALL
 	local n = ffi.new('cl_uint[1]',0)
-	if self.verbose then
-		print('getting device type '..('0x%x'):format(deviceType))
-	end
+--DEBUG:print('getting device type '..('0x%x'):format(deviceType))
 	classert(cl.clGetDeviceIDs(self.id, deviceType, 0, nil, n))
 	local ids = ffi.new('cl_device_id[?]', n[0])
 	classert(cl.clGetDeviceIDs(self.id, deviceType, n[0], ids, nil))

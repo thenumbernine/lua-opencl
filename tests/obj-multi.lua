@@ -63,7 +63,6 @@ function MultiEnv:init(args)
 				domain = self:domain{
 					size = blocksize,
 					dim = dim,
-					verbose = args.verbose,
 					device = device,
 				}
 			}
@@ -80,7 +79,6 @@ for dim,size in ipairs(sizes) do
 	print('test '..dim..'D kernel')
 
 	local env = MultiEnv{
-		verbose = true,
 		getPlatform = CLEnv.getPlatformFromCmdLine(...),
 		getDevices = CLEnv.getDevicesFromCmdLine(...),
 		size = size,

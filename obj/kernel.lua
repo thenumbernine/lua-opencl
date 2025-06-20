@@ -217,15 +217,13 @@ io.stderr:write('!!!! kernel has no domain -- skipping setSizeProps !!!!\n')
 
 	self.volume = tonumber(self.domain.size:volume())
 
-	if self.env.verbose then
-		print("kernel "..self.name..': '..require'ext.tolua'{
-			maxWorkGroupSize = self.maxWorkGroupSize,
-			localSize1d = self.localSize1d,
-			localSize = self.localSize,
-			globalSize = self.globalSize,
-			volume = self.volume,
-		})
-	end
+--DEBUG:print("kernel "..self.name..': '..require'ext.tolua'{
+--DEBUG:	maxWorkGroupSize = self.maxWorkGroupSize,
+--DEBUG:	localSize1d = self.localSize1d,
+--DEBUG:	localSize = self.localSize,
+--DEBUG:	globalSize = self.globalSize,
+--DEBUG:	volume = self.volume,
+--DEBUG:})
 end
 
 return CLKernel

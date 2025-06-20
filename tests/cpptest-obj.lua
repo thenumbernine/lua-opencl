@@ -7,7 +7,6 @@ local n = 64
 
 local CLEnv = require 'cl.obj.env'
 local env = CLEnv{
-	verbose = true,
 	useGLSharing = false,
 	getPlatform = CLEnv.getPlatformFromCmdLine(...),
 	getDevices = CLEnv.getDevicesFromCmdLine(...),

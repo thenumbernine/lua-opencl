@@ -27,7 +27,6 @@ function Context:init(args)
 	assert(args)
 	local platform = assert.index(args, 'platform')
 	local devices = assert.index(args, 'devices')
-	local verbose = args.verbose
 
 	local properties = table{
 		cl.CL_CONTEXT_PLATFORM,
@@ -71,10 +70,8 @@ HDC wglGetCurrentDC();
 			local gl = require 'gl'
 			local ctx = gl.wglGetCurrentContext()
 			local dc = gl.wglGetCurrentDC()
-			if verbose then
-				print('wglGetCurrentContext()', ctx)
-				print('wglGetCurrentDC()', dc)
-			end
+--DEBUG:print('wglGetCurrentContext()', ctx)
+--DEBUG:print('wglGetCurrentDC()', dc)
 			if ctx == 0 or dc == 0 then
 				io.stderr:write("No GL context or DC found.  GL sharing will not be enabled.\n")
 			else
@@ -102,9 +99,7 @@ Display* glXGetCurrentDisplay();
 		end
 	end
 	properties:insert(0)
-	if verbose then
-		print('properties: '..require 'ext.tolua'(properties))
-	end
+--DEBUG:print('properties: '..require 'ext.tolua'(properties))
 	properties = ffi_new_table('cl_context_properties', properties)
 
 	devices = table.mapi(devices, function(device) return device.id end)
@@ -116,31 +111,31 @@ Display* glXGetCurrentDisplay();
 	it seems with AMD you will always fail unless you pick the device listed as current:
 	then, before any of that, let's see what's avaiable ...
 	--]]
-	if args.glSharing and verbose then
-		local CLDevice = require 'cl.device'
-		local classert = require 'cl.assert'
-		local clGetGLContextInfoKHR = ffi.cast('clGetGLContextInfoKHR_fn', cl.clGetExtensionFunctionAddressForPlatform(platform.id, 'clGetGLContextInfoKHR'))
-
-		local numGLDevicesRef = ffi.new'size_t[1]'
-		classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, 0, nil, numGLDevicesRef))
-		local numGLDevices = tonumber(numGLDevicesRef[0]) / ffi.sizeof'cl_device_id'
-		print('clGetGLContextInfoKHR: '..numGLDevices..' devices that have GL sharing')
-		local allGLDeviceIDs = ffi.new('cl_device_id[?]', numGLDevices)
-		classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id' * numGLDevices, allGLDeviceIDs, nil))
-		print'clGetGLContextInfoKHR: all devices with GL sharing:'
-		local allGLDevices = table()
-		for i=0,tonumber(numGLDevices)-1 do
-			local device = CLDevice(allGLDeviceIDs[i])
-			allGLDevices:insert(device)
-			print('', device:getName())
-		end
-
-		local currentGLDeviceIDRef = ffi.new'cl_device_id[1]'
-		classert(clGetGLContextInfoKHR(properties, cl.CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id', currentGLDeviceIDRef, nil))
-		local gldeviceid = currentGLDeviceIDRef[0]
-		local gldevice = CLDevice(gldeviceid)
-		print('clGetGLContextInfoKHR: current GL device:', gldevice:getName())
-	end
+--DEBUG:if args.glSharing then
+--DEBUG:	local CLDevice = require 'cl.device'
+--DEBUG:	local classert = require 'cl.assert'
+--DEBUG:	local clGetGLContextInfoKHR = ffi.cast('clGetGLContextInfoKHR_fn', cl.clGetExtensionFunctionAddressForPlatform(platform.id, 'clGetGLContextInfoKHR'))
+--DEBUG:
+--DEBUG:	local numGLDevicesRef = ffi.new'size_t[1]'
+--DEBUG:	classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, 0, nil, numGLDevicesRef))
+--DEBUG:	local numGLDevices = tonumber(numGLDevicesRef[0]) / ffi.sizeof'cl_device_id'
+--DEBUG:	print('clGetGLContextInfoKHR: '..numGLDevices..' devices that have GL sharing')
+--DEBUG:	local allGLDeviceIDs = ffi.new('cl_device_id[?]', numGLDevices)
+--DEBUG:	classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id' * numGLDevices, allGLDeviceIDs, nil))
+--DEBUG:	print'clGetGLContextInfoKHR: all devices with GL sharing:'
+--DEBUG:	local allGLDevices = table()
+--DEBUG:	for i=0,tonumber(numGLDevices)-1 do
+--DEBUG:		local device = CLDevice(allGLDeviceIDs[i])
+--DEBUG:		allGLDevices:insert(device)
+--DEBUG:		print('', device:getName())
+--DEBUG:	end
+--DEBUG:
+--DEBUG:	local currentGLDeviceIDRef = ffi.new'cl_device_id[1]'
+--DEBUG:	classert(clGetGLContextInfoKHR(properties, cl.CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id', currentGLDeviceIDRef, nil))
+--DEBUG:	local gldeviceid = currentGLDeviceIDRef[0]
+--DEBUG:	local gldevice = CLDevice(gldeviceid)
+--DEBUG:	print('clGetGLContextInfoKHR: current GL device:', gldevice:getName())
+--DEBUG:end
 
 	--[[
 	With AMD, if you just use any device that says it has cl_khr_gl_sharing, this will probably fail.

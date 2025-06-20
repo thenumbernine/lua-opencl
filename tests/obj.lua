@@ -10,7 +10,6 @@ for dim,size in ipairs(sizes) do
 	print('test '..dim..'D kernel')
 
 	local env = CLEnv{
-		verbose = true,
 		useGLSharing = false,
 		getPlatform = CLEnv.getPlatformFromCmdLine(...),
 		getDevices = CLEnv.getDevicesFromCmdLine(...),

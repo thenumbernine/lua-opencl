@@ -237,7 +237,6 @@ end
 --[[
 TODO rename to :build
 args:
-	verbose = for now just debugging whether the cached file is used or not
 	dontLink = just build an object, for linking later
 	buildOptions
 --]]
@@ -245,7 +244,6 @@ function CLProgram:compile(args)
 	if self.obj then
 		error("tried to compile a program that was already compiled...")
 	end
-	local verbose = args and args.verbose
 
 	-- handle spirv toolchain first:
 	-- if we're using the spirv toolchain...
@@ -296,7 +294,6 @@ function CLProgram:compile(args)
 		self.IL = assert(path(self.spirvToolchainFileSPV):read())
 
 		args = table(args):setmetatable(nil)
-		args.verbose = true
 
 		-- TODO print all logs regardless?
 		--[[
@@ -394,26 +391,18 @@ function CLProgram:compile(args)
 			path(binfn):getdir():mkdir(true)
 
 			if code == path(clfn):read() then
-if verbose then
-	print("*** CL CACHE *** 111 *** CL FILE MATCHES CACHED CL FILE: "..clfn)
-end
+--DEBUG:print("*** CL CACHE *** 111 *** CL FILE MATCHES CACHED CL FILE: "..clfn)
 				if path(binfn):exists() then
-if verbose then
-	print("*** CL CACHE *** 222 *** AND BINARY FILE EXISTS -- USING CACHED BINARY FOR: "..clfn)
-end
+--DEBUG:print("*** CL CACHE *** 222 *** AND BINARY FILE EXISTS -- USING CACHED BINARY FOR: "..clfn)
 					cacheMatches = true
 				else
 					-- we have a cl file but not a bin file ...
 					-- cache doesn't match clearly.
 					-- delete the cl file too?  no need to, why destroy what someone might be working on?
-if verbose then
-	print("*** CL CACHE *** ### *** BUT BINARY FILE DOESN'T EXIST -- REBUILDING BINARY FOR "..clfn)
-end
+--DEBUG:print("*** CL CACHE *** ### *** BUT BINARY FILE DOESN'T EXIST -- REBUILDING BINARY FOR "..clfn)
 				end
 			else
-if verbose then
-	print("*** CL CACHE *** ### *** CL FILE DOES NOT MATCH CACHED CL FILE -- REBUILDING BINARY FOR "..clfn)
-end
+--DEBUG:print("*** CL CACHE *** ### *** CL FILE DOES NOT MATCH CACHED CL FILE -- REBUILDING BINARY FOR "..clfn)
 --[[ want to see the diffs?
 path(tmp_compare_cl_cache):write(code)
 os.execute(('diff %q %q'):format(clfn, 'tmp_compare_cl_cache'))
@@ -427,9 +416,7 @@ path(tmp_compare_cl_cache):remove()
 --]]
 			end
 		else
-if verbose then
-	print("*** CL CACHE *** ### *** WE ARE NOT USING CACHE FOR FILE "..tostring(clfn))
-end
+--DEBUG:print("*** CL CACHE *** ### *** WE ARE NOT USING CACHE FOR FILE "..tostring(clfn))
 		end
 
 		--[[ should we verify that the source file was not modified?
@@ -453,9 +440,7 @@ end
 			-- load cached binary
 			local bindata = assert(path(binfn):read(), "failed to find opencl compiled program "..binfn)
 			local bins = require 'ext.fromlua'(bindata)
-if verbose then
-	print("*** CL CACHE *** 333 *** BUILDING PROGRAM FROM CACHED BINARY: "..binfn)
-end
+--DEBUG:print("*** CL CACHE *** 333 *** BUILDING PROGRAM FROM CACHED BINARY: "..binfn)
 			self.obj = Program{
 				context = self.env.ctx,
 				devices = self.env.devices,
@@ -465,19 +450,15 @@ end
 				showCodeOnError = self.showCodeOnError,
 			}
 		else
-if verbose then
-	print("*** CL CACHE *** ### *** BUILDING PROGRAM FROM CL: "..tostring(clfn))
-end
+--DEBUG:print("*** CL CACHE *** ### *** BUILDING PROGRAM FROM CL: "..tostring(clfn))
 			-- save cached code before compiling
 			-- also delete the cached bin so that the two don't go out of sync
 			if usingCache then
-if verbose then
-	if path(binfn):exists() then
-		print("*** CL CACHE *** ### *** DELETING OLD CL BINARY: "..clfn)
-	else
-		print("*** CL CACHE *** ### *** BUILDING FULLY NEW CL BINARY: "..clfn)
-	end
-end
+--DEBUG:if path(binfn):exists() then
+--DEBUG:	print("*** CL CACHE *** ### *** DELETING OLD CL BINARY: "..clfn)
+--DEBUG:else
+--DEBUG:	print("*** CL CACHE *** ### *** BUILDING FULLY NEW CL BINARY: "..clfn)
+--DEBUG:end
 				path(clfn):write(code)
 				path(binfn):remove()
 			end

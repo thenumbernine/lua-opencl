@@ -9,7 +9,6 @@ local CLEnv = require 'cl.obj.env'
 -- TODO env.size optional?  for no env.base?  but env:kernel needs env.base ...
 local env = CLEnv{
 	precision = cmdline.precision,
-	verbose = cmdline.verbose,
 	useGLSharing = not not cmdline.glsharing,	-- TODO default false?
 	getPlatform = CLEnv.getPlatformFromCmdLine(...),
 	getDevices = CLEnv.getDevicesFromCmdLine(...),

@@ -188,11 +188,9 @@ args passed to CLCommandQueue:
 args passed along to CLDomain:
 	size
 	dim
-	verbose
 --]]
 function CLEnv:init(args)
 	args = args or {}
-	self.verbose = args and args.verbose
 	local precision = args and args.precision or 'any'
 
 	local platforms = require 'cl.platform'.getAll()
@@ -201,9 +199,7 @@ function CLEnv:init(args)
 	assert(getter, "expected either args.getPlatform or getForPrecision to exist")
 	platforms = getter(platforms, precision == 'half' and 'float' or precision)
 	self.platform = assert(platforms[1], "couldn't find any platforms with precision "..tostring(precision))
-	if self.verbose then
-		print(self.platform:getName())
-	end
+--DEBUG:print(self.platform:getName())
 
 	self.devices = self.platform:getDevices{
 		[args.cpu and 'cpu' or (args.deviceType and '' or 'gpu')] = true,
@@ -218,11 +214,9 @@ function CLEnv:init(args)
 		end
 	end
 
-	if self.verbose then
-		for i,device in ipairs(self.devices) do
-			print(i, device:getName())
-		end
-	end
+--DEBUG:for i,device in ipairs(self.devices) do
+--DEBUG:	print(i, device:getName())
+--DEBUG:end
 
 	local fp64 = #self.devices:filter(isFP64) == #self.devices
 	local fp16 = #self.devices:filter(isFP16) == #self.devices
@@ -233,26 +227,19 @@ function CLEnv:init(args)
 			local exts = device:getExtensions()
 			return exts:mapi(string.lower):find(nil, function(ext)
 				local found = ext:match'cl_%w+_gl_sharing'
-				if self.verbose and found then
-					print('device '..device:getName()..' has gl sharing extension: '..ext)
-				end
+--DEBUG:if found then print('device '..device:getName()..' has gl sharing extension: '..ext) end
 				return found
 			end)
 		end)
-		if self.verbose then
-			print(numDevicesWithGLSharing..'/'..#self.devices..' devices have gl sharing (according to device cl extensions)')
-		end
+--DEBUG:print(numDevicesWithGLSharing..'/'..#self.devices..' devices have gl sharing (according to device cl extensions)')
 		self.useGLSharing = numDevicesWithGLSharing == #self.devices
 	end
-	if self.verbose then
-		print('using GL sharing: '..tostring(self.useGLSharing or false))
-	end
+--DEBUG:print('using GL sharing: '..tostring(self.useGLSharing or false))
 
 	self.ctx = require 'cl.context'{
 		platform = self.platform,
 		devices = self.devices,
 		glSharing = self.useGLSharing,
-		verbose = self.verbose,
 	}
 
 	local CommandQueue = require 'cl.commandqueue'
@@ -271,7 +258,6 @@ function CLEnv:init(args)
 		self.base = self:domain{
 			size = args.size,
 			dim = args.dim,
-			verbose = args.verbose,
 
 			-- default domain gets a default device
 			device = self.devices[1],
@@ -285,9 +271,7 @@ function CLEnv:init(args)
 		or (precision == 'half' and fp16 and 'half'
 			or 'float')
 	if precision == 'float' then self.real = 'float' end
-	if self.verbose then
-		print('using '..self.real..' as real')
-	end
+--DEBUG:print('using '..self.real..' as real')
 
 	-- typeCode goes to ffi.cdef and to the CL code header
 	local typeCode = self:getTypeCode()
@@ -375,9 +359,7 @@ readwrite = (optional) default to 'rw'.  options are rw, read, write
 function CLEnv:clalloc(size, name, ctype, readwrite)
 	readwrite = readwrite or 'rw'
 	self.totalGPUMem = self.totalGPUMem + size
-	if self.verbose then
-		print((name and (name..' ') or '')..'allocating '..tostring(size)..' bytes of type '..ctype..' size '..ffi.sizeof(ctype)..', total '..tostring(self.totalGPUMem)..' bytes')
-	end
+--DEBUG:print((name and (name..' ') or '')..'allocating '..tostring(size)..' bytes of type '..ctype..' size '..ffi.sizeof(ctype)..', total '..tostring(self.totalGPUMem)..' bytes')
 	return self.ctx:buffer{readwrite=readwrite, size=size}
 end
 
