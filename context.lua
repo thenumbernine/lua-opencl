@@ -83,6 +83,7 @@ HDC wglGetCurrentDC();
 				}
 			end
 		else	-- linux
+-- [=[ right around sdl3 this just stopped working, glXGet* returns 0's ...
 			ffi.cdef[[
 typedef void Display;
 typedef intptr_t GLXContext;
@@ -96,6 +97,17 @@ Display* glXGetCurrentDisplay();
 				cl.CL_GLX_DISPLAY_KHR,
 				ffi.cast('cl_context_properties', gl.glXGetCurrentDisplay()),
 			}
+--]=]
+--[=[ while I get nonzero values back, this is segfaulting ... looks like some vendors just dont support EGL and OpenCL
+			local sdl = require'sdl'
+			local egl = require 'ffi.req' 'EGL'
+			properties:append{
+				cl.CL_GL_CONTEXT_KHR,
+				ffi.cast('cl_context_properties', sdl.SDL_GL_GetCurrentContext()),	-- https://stackoverflow.com/a/39476759
+				cl.CL_EGL_DISPLAY_KHR,
+				ffi.cast('cl_context_properties', egl.eglGetDisplay(egl.EGL_DEFAULT_DISPLAY)),
+			}
+--]=]
 		end
 	end
 	properties:insert(0)
@@ -103,6 +115,7 @@ Display* glXGetCurrentDisplay();
 	properties = ffi_new_table('cl_context_properties', properties)
 
 	devices = table.mapi(devices, function(device) return device.id end)
+--DEBUG:print('devices: '..require 'ext.tolua'(devices))
 	local deviceIDs = ffi_new_table('cl_device_id', devices)
 
 	--[[
@@ -115,28 +128,33 @@ Display* glXGetCurrentDisplay();
 --DEBUG:	local CLDevice = require 'cl.device'
 --DEBUG:	local classert = require 'cl.assert'
 --DEBUG:	local clGetGLContextInfoKHR = ffi.cast('clGetGLContextInfoKHR_fn', cl.clGetExtensionFunctionAddressForPlatform(platform.id, 'clGetGLContextInfoKHR'))
---DEBUG:	print('clGetGLContextInfoKHR', clGetGLContextInfoKHR)
+--DEBUG:print('clGetGLContextInfoKHR function pointer', clGetGLContextInfoKHR)
+--DEBUG:
+--DEBUG:	local currentGLDeviceID = ffi.new'cl_device_id[1]'
+--DEBUG:	currentGLDeviceID[0] = ffi.cast('cl_device_id', nil)
+--DEBUG:	classert(clGetGLContextInfoKHR(properties, cl.CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id', currentGLDeviceID, nil))
+--DEBUG:print('clGetGLContextInfoKHR CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR', currentGLDeviceID[0])
 --DEBUG:
 --DEBUG:	local numGLDevicesRef = ffi.new'size_t[1]'
 --DEBUG:	classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, 0, nil, numGLDevicesRef))
---DEBUG:	print('numGLDevicesRef', numGLDevicesRef)
+--DEBUG:print('numGLDevicesRef', numGLDevicesRef)
 --DEBUG:	local numGLDevices = tonumber(numGLDevicesRef[0]) / ffi.sizeof'cl_device_id'
---DEBUG:	print('clGetGLContextInfoKHR: '..numGLDevices..' devices that have GL sharing')
+--DEBUG:print('clGetGLContextInfoKHR: '..numGLDevices..' devices that have GL sharing')
 --DEBUG:	local allGLDeviceIDs = ffi.new('cl_device_id[?]', numGLDevices)
 --DEBUG:	classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id' * numGLDevices, allGLDeviceIDs, nil))
---DEBUG:	print'clGetGLContextInfoKHR: all devices with GL sharing:'
+--DEBUG:print'clGetGLContextInfoKHR: all devices with GL sharing:'
 --DEBUG:	local allGLDevices = table()
 --DEBUG:	for i=0,tonumber(numGLDevices)-1 do
 --DEBUG:		local device = CLDevice(allGLDeviceIDs[i])
 --DEBUG:		allGLDevices:insert(device)
---DEBUG:		print('', device:getName())
+--DEBUG:print('', device:getName())
 --DEBUG:	end
 --DEBUG:
 --DEBUG:	local currentGLDeviceIDRef = ffi.new'cl_device_id[1]'
 --DEBUG:	classert(clGetGLContextInfoKHR(properties, cl.CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id', currentGLDeviceIDRef, nil))
 --DEBUG:	local gldeviceid = currentGLDeviceIDRef[0]
 --DEBUG:	local gldevice = CLDevice(gldeviceid)
---DEBUG:	print('clGetGLContextInfoKHR: current GL device:', gldevice:getName())
+--DEBUG:print('clGetGLContextInfoKHR: current GL device:', gldevice:getName())
 --DEBUG:end
 
 	--[[
