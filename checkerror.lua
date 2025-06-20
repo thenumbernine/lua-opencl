@@ -1,3 +1,4 @@
+local op = require 'ext.op'
 local cl = require 'ffi.req' 'OpenCL'
 
 local errors = {
@@ -77,7 +78,8 @@ return function(err, msg)
 	if err == cl.CL_SUCCESS then return end
 	local name
 	for _,v in ipairs(errors) do
-		if err == cl[v] then
+		local checkv = op.safeindex(cl, v)
+		if checkv ~= nil and err == checkv then
 			name = v
 			break
 		end
