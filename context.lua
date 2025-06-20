@@ -115,9 +115,11 @@ Display* glXGetCurrentDisplay();
 --DEBUG:	local CLDevice = require 'cl.device'
 --DEBUG:	local classert = require 'cl.assert'
 --DEBUG:	local clGetGLContextInfoKHR = ffi.cast('clGetGLContextInfoKHR_fn', cl.clGetExtensionFunctionAddressForPlatform(platform.id, 'clGetGLContextInfoKHR'))
+--DEBUG:	print('clGetGLContextInfoKHR', clGetGLContextInfoKHR)
 --DEBUG:
 --DEBUG:	local numGLDevicesRef = ffi.new'size_t[1]'
 --DEBUG:	classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, 0, nil, numGLDevicesRef))
+--DEBUG:	print('numGLDevicesRef', numGLDevicesRef)
 --DEBUG:	local numGLDevices = tonumber(numGLDevicesRef[0]) / ffi.sizeof'cl_device_id'
 --DEBUG:	print('clGetGLContextInfoKHR: '..numGLDevices..' devices that have GL sharing')
 --DEBUG:	local allGLDeviceIDs = ffi.new('cl_device_id[?]', numGLDevices)
