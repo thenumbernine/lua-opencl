@@ -91,6 +91,8 @@ GLXContext glXGetCurrentContext();
 Display* glXGetCurrentDisplay();
 ]]
 			local gl = require 'gl'
+--DEBUG:print('glXGetCurrentContext', gl.glXGetCurrentContext())
+--DEBUG:print('glXGetCurrentDisplay', gl.glXGetCurrentDisplay())
 			properties:append{
 				cl.CL_GL_CONTEXT_KHR,
 				ffi.cast('cl_context_properties', gl.glXGetCurrentContext()),
