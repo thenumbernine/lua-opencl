@@ -1,6 +1,6 @@
 local bit = require 'bit'
 local assert = require 'ext.assert'
-local cl = require 'ffi.req' 'OpenCL'
+local cl = require 'cl.ffi.OpenCL'
 local classertparam = require 'cl.assertparam'
 local Memory = require 'cl.memory'
 local GetInfo = require 'cl.getinfo'

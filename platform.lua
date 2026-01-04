@@ -1,7 +1,7 @@
 local table = require 'ext.table'
 local ffi = require 'ffi'
 local bit = require 'bit'
-local cl = require 'ffi.req' 'OpenCL'
+local cl = require 'cl.ffi.OpenCL'
 local classert = require 'cl.assert'
 local GetInfo = require 'cl.getinfo'
 

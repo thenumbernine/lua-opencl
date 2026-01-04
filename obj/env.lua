@@ -11,7 +11,7 @@ and ffi typedefs to match the OpenCL types
 --]]
 
 local ffi = require 'ffi'
-local cl = require 'ffi.req' 'OpenCL'
+local cl = require 'cl.ffi.OpenCL'
 local class = require 'ext.class'
 local assert = require 'ext.assert'
 local table = require 'ext.table'

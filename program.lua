@@ -1,5 +1,5 @@
 local ffi = require 'ffi'
-local cl = require 'ffi.req' 'OpenCL'
+local cl = require 'cl.ffi.OpenCL'
 local table = require 'ext.table'
 local assert = require 'ext.assert'
 local classert = require 'cl.assert'

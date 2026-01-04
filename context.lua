@@ -1,7 +1,7 @@
 local assert = require 'ext.assert'
 local table = require 'ext.table'
 local ffi = require 'ffi'
-local cl = require 'ffi.req' 'OpenCL'
+local cl = require 'cl.ffi.OpenCL'
 local classertparam = require 'cl.assertparam'
 local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'

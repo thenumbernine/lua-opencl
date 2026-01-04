@@ -1,5 +1,5 @@
 local op = require 'ext.op'
-local cl = require 'ffi.req' 'OpenCL'
+local cl = require 'cl.ffi.OpenCL'
 
 local errors = {
 	'CL_SUCCESS',

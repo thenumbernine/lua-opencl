@@ -39,7 +39,7 @@ if not cmdline.nocl then -- [[ initialize CL first to tell what kind of real we 
 
 	ctx = require 'cl.context'{platform=platform, devices=devices}
 
-	cl = require 'ffi.req' 'OpenCL'
+	cl = require 'cl.ffi.OpenCL'
 	local CommandQueue = require 'cl.commandqueue'
 	cmds = devices:mapi(function(device)
 		return CommandQueue{context=ctx, device=device, properties=cl.CL_QUEUE_PROFILING_ENABLE}
