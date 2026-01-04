@@ -5,7 +5,7 @@ local tolua = require 'ext.tolua'
 local string = require 'ext.string'
 local table = require 'ext.table'
 local ffi = require 'ffi'
-local cl = require 'cl.ffi.OpenCL'
+local cl = require 'cl'
 local classert = require 'cl.assert'
 
 local band = bit.band

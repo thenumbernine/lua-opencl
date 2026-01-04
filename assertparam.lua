@@ -1,4 +1,4 @@
-local cl = require 'cl.ffi.OpenCL'
+local cl = require 'cl'
 local ffi = require 'ffi'
 local table = require 'ext.table'
 local clCheckError = require 'cl.checkerror'

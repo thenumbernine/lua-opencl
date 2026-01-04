@@ -119,10 +119,3 @@ gives
 ```
 
 ...all computed on the GPU
-
-
-## TODO
-
-rename cl.cl to cl.setup (like gl.setup)
-
-and add in cl.cl that just returns cl.ffi.OpenCL (like gl.gl)

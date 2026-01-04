@@ -16,6 +16,7 @@ files = {
 	["imagegl.lua"] = "cl/imagegl.lua",
 	["kernel.lua"] = "cl/kernel.lua",
 	["memory.lua"] = "cl/memory.lua",
+	["ffi/OpenCL.lua"] = "cl/ffi/OpenCL.lua",
 	["obj/buffer.lua"] = "cl/obj/buffer.lua",
 	["obj/domain.lua"] = "cl/obj/domain.lua",
 	["obj/env.lua"] = "cl/obj/env.lua",
@@ -26,6 +27,7 @@ files = {
 	["obj/reduce.lua"] = "cl/obj/reduce.lua",
 	["platform.lua"] = "cl/platform.lua",
 	["program.lua"] = "cl/program.lua",
+	["setup.lua"] = "cl/setup.lua",
 	["tests/cpptest-obj.lua"] = "cl/tests/cpptest-obj.lua",
 	["tests/cpptest-standalone.lua"] = "cl/tests/cpptest-standalone.lua",
 	["tests/cpptest.clcpp"] = "cl/tests/cpptest.clcpp",
@@ -60,7 +62,7 @@ generateBindings = {
 
 			-- ok because I have more than one inc, the second inc points back to the first, and so we do create a self-reference
 			-- so fix it here:
-			--code = safegsub(code, string.patescape"]] require 'cl.ffi.OpenCL' ffi.cdef[[\n", "")
+			--code = safegsub(code, string.patescape"]] require 'cl' ffi.cdef[[\n", "")
 
 			code = code .. [[
 return require 'ffi.load' 'OpenCL'

@@ -1,4 +1,4 @@
-local cl = require 'cl.ffi.OpenCL'
+local cl = require 'cl'
 local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
