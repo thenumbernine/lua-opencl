@@ -50,7 +50,7 @@ deps = {
 	"vec-ffi",
 }
 
-generateBindings = {
+generateBindings = function()return{
 	{
 		inc = '<CL/opencl.h>',
 		out = 'OpenCL.lua',
@@ -70,4 +70,4 @@ return require 'ffi.load' 'OpenCL'
 			return code
 		end,
 	},
-}
+}end
