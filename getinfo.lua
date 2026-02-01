@@ -1,17 +1,23 @@
+local ffi = require 'ffi'
 local assert = require 'ext.assert'
 local class = require 'ext.class'
 local range = require 'ext.range'
 local tolua = require 'ext.tolua'
 local string = require 'ext.string'
 local table = require 'ext.table'
-local ffi = require 'ffi'
 local cl = require 'cl'
 local classert = require 'cl.assert'
 
 local band = bit.band
 
+
+local char_array = ffi.typeof'char[?]'
+local size_t_1 = ffi.typeof'size_t[1]'
+local cl_command_queue_properties = ffi.typeof'cl_command_queue_properties'
+
+
 if not pcall(function()
-	bit.band(ffi.new'cl_command_queue_properties', ffi.new'cl_command_queue_properties')
+	bit.band(cl_command_queue_properties(), cl_command_queue_properties())
 end) then
 	-- luajit 2.0.5, band doesn't work on int64
 	-- luajit 2.1.0 beta, it does
@@ -297,10 +303,10 @@ local function GetInfoBehavior(parent)
 		local nameValue = assert.index(cl, name)
 
 		if var.type == 'char[]' then 	-- convert to Lua string
-			local size = ffi.new('size_t[1]', 0)
+			local size = size_t_1()
 			classert(getter(id, nameValue, 0, nil, size, ...))
 			local n = size[0]
-			local result = ffi.new('char[?]', n)
+			local result = char_array(n)
 			classert(getter(id, nameValue, n, result, nil, ...))
 			-- some strings have an extra null term ...
 			while n > 0 and result[n-1] == 0 do n = n - 1 end
@@ -315,7 +321,7 @@ local function GetInfoBehavior(parent)
 			return result[0] ~= 0
 		elseif var.type:sub(-2) == '[]' then
 			local baseType = var.type:sub(1,-3)
-			local size = ffi.new('size_t[1]', 0)
+			local size = size_t_1()
 			classert(getter(id, nameValue, 0, nil, size, ...))
 			local n = tonumber(size[0] / ffi.sizeof(baseType))
 			local result = ffi.new(baseType..'[?]', n)

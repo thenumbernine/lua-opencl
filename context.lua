@@ -6,13 +6,17 @@ local classertparam = require 'cl.assertparam'
 local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
--- here and commandqueue.lua
-local function ffi_new_table(T, src)
-	return ffi.new(T..'['..#src..']', src)
-end
+
+local size_t_1 = ffi.typeof'size_t[1]'
+local cl_context_properties = ffi.typeof'cl_context_properties'
+local cl_context_properties_array = ffi.typeof'cl_context_properties[?]'
+local cl_device_id = ffi.typeof'cl_device_id'
+local cl_device_id_1 = ffi.typeof'cl_device_id[1]'
+local cl_device_id_array = ffi.typeof'cl_device_id[?]'
+
 
 local Context = GetInfo(GCWrapper{
-	ctype = 'cl_context',
+	ctype = ffi.typeof'cl_context',
 	retain = function(self) return cl.clRetainContext(self.id) end,
 	release = function(self) return cl.clReleaseContext(self.id) end,
 }):subclass()
@@ -30,7 +34,7 @@ function Context:init(args)
 
 	local properties = table{
 		cl.CL_CONTEXT_PLATFORM,
-		ffi.cast('cl_context_properties', platform.id),
+		ffi.cast(cl_context_properties, platform.id),
 	}
 	if args.glSharing then
 
@@ -57,7 +61,7 @@ CGLShareGroupObj CGLGetShareGroup(CGLContextObj ctx);
 			else
 				properties:append{
 					cl.CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
-					ffi.cast('cl_context_properties', kCGLShareGroup),
+					ffi.cast(cl_context_properties, kCGLShareGroup),
 				}
 			end
 		elseif ffi.os == 'Windows' then
@@ -77,9 +81,9 @@ HDC wglGetCurrentDC();
 			else
 				properties:append{
 					cl.CL_GL_CONTEXT_KHR,
-					ffi.cast('cl_context_properties', ctx),
+					ffi.cast(cl_context_properties, ctx),
 					cl.CL_WGL_HDC_KHR,
-					ffi.cast('cl_context_properties', dc),
+					ffi.cast(cl_context_properties, dc),
 				}
 			end
 		else	-- linux
@@ -95,9 +99,9 @@ Display* glXGetCurrentDisplay();
 --DEBUG:print('glXGetCurrentDisplay', gl.glXGetCurrentDisplay())
 			properties:append{
 				cl.CL_GL_CONTEXT_KHR,
-				ffi.cast('cl_context_properties', gl.glXGetCurrentContext()),
+				ffi.cast(cl_context_properties, gl.glXGetCurrentContext()),
 				cl.CL_GLX_DISPLAY_KHR,
-				ffi.cast('cl_context_properties', gl.glXGetCurrentDisplay()),
+				ffi.cast(cl_context_properties, gl.glXGetCurrentDisplay()),
 			}
 --]=]
 --[=[ while I get nonzero values back, this is segfaulting ... looks like some vendors just dont support EGL and OpenCL
@@ -105,20 +109,20 @@ Display* glXGetCurrentDisplay();
 			local egl = require 'ffi.req' 'EGL'
 			properties:append{
 				cl.CL_GL_CONTEXT_KHR,
-				ffi.cast('cl_context_properties', sdl.SDL_GL_GetCurrentContext()),	-- https://stackoverflow.com/a/39476759
+				ffi.cast(cl_context_properties, sdl.SDL_GL_GetCurrentContext()),	-- https://stackoverflow.com/a/39476759
 				cl.CL_EGL_DISPLAY_KHR,
-				ffi.cast('cl_context_properties', egl.eglGetDisplay(egl.EGL_DEFAULT_DISPLAY)),
+				ffi.cast(cl_context_properties, egl.eglGetDisplay(egl.EGL_DEFAULT_DISPLAY)),
 			}
 --]=]
 		end
 	end
 	properties:insert(0)
 --DEBUG:print('properties: '..require 'ext.tolua'(properties))
-	properties = ffi_new_table('cl_context_properties', properties)
+	properties = cl_context_properties_array(#properties, properties)
 
 	devices = table.mapi(devices, function(device) return device.id end)
 --DEBUG:print('devices: '..require 'ext.tolua'(devices))
-	local deviceIDs = ffi_new_table('cl_device_id', devices)
+	local deviceIDs = cl_device_id_array(#devices, devices)
 
 	--[[
 	if you're on AMD and GL sharing won't work ...
@@ -132,18 +136,17 @@ Display* glXGetCurrentDisplay();
 		local clGetGLContextInfoKHR = ffi.cast('clGetGLContextInfoKHR_fn', cl.clGetExtensionFunctionAddressForPlatform(platform.id, 'clGetGLContextInfoKHR'))
 --DEBUG:print('clGetGLContextInfoKHR function pointer', clGetGLContextInfoKHR)
 
-		local currentGLDeviceID = ffi.new'cl_device_id[1]'
-		currentGLDeviceID[0] = ffi.cast('cl_device_id', nil)
-		classert(clGetGLContextInfoKHR(properties, cl.CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id', currentGLDeviceID, nil))
+		local currentGLDeviceID = cl_device_id_1()
+		classert(clGetGLContextInfoKHR(properties, cl.CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, ffi.sizeof(cl_device_id), currentGLDeviceID, nil))
 --DEBUG:print('clGetGLContextInfoKHR CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR', currentGLDeviceID[0])
 
-		local numGLDevicesRef = ffi.new'size_t[1]'
+		local numGLDevicesRef = size_t_1()
 		classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, 0, nil, numGLDevicesRef))
 --DEBUG:print('numGLDevicesRef', numGLDevicesRef)
-		local numGLDevices = tonumber(numGLDevicesRef[0]) / ffi.sizeof'cl_device_id'
+		local numGLDevices = tonumber(numGLDevicesRef[0]) / ffi.sizeof(cl_device_id)
 --DEBUG:print('clGetGLContextInfoKHR: '..numGLDevices..' devices that have GL sharing')
-		local allGLDeviceIDs = ffi.new('cl_device_id[?]', numGLDevices)
-		classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id' * numGLDevices, allGLDeviceIDs, nil))
+		local allGLDeviceIDs = cl_device_id_array(numGLDevices)
+		classert(clGetGLContextInfoKHR(properties, cl.CL_DEVICES_FOR_GL_CONTEXT_KHR, ffi.sizeof(cl_device_id) * numGLDevices, allGLDeviceIDs, nil))
 --DEBUG:print'clGetGLContextInfoKHR: all devices with GL sharing:'
 		local allGLDevices = table()
 		for i=0,tonumber(numGLDevices)-1 do
@@ -152,8 +155,8 @@ Display* glXGetCurrentDisplay();
 --DEBUG:print('', device:getName())
 		end
 
-		local currentGLDeviceIDRef = ffi.new'cl_device_id[1]'
-		classert(clGetGLContextInfoKHR(properties, cl.CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, ffi.sizeof'cl_device_id', currentGLDeviceIDRef, nil))
+		local currentGLDeviceIDRef = cl_device_id_1()
+		classert(clGetGLContextInfoKHR(properties, cl.CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, ffi.sizeof(cl_device_id), currentGLDeviceIDRef, nil))
 		local gldeviceid = currentGLDeviceIDRef[0]
 		local gldevice = CLDevice(gldeviceid)
 --DEBUG:print('clGetGLContextInfoKHR: current GL device:', gldevice:getName())

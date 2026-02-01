@@ -9,8 +9,15 @@ local CLMemory = require 'cl.memory'
 local CLBufferObj = require 'cl.obj.buffer'
 local GetInfo = require 'cl.getinfo'
 
+
+local void_const_ptr = ffi.typeof'void const *'
+local cl_kernel = ffi.typeof'cl_kernel'
+local cl_mem = ffi.typeof'cl_mem'
+local cl_mem_1 = ffi.typeof'cl_mem[1]'
+
+
 local Kernel = GetInfo(GCWrapper{
-	ctype = 'cl_kernel',
+	ctype = cl_kernel,
 	retain = function(self) return cl.clRetainKernel(self.id) end,
 	release = function(self) return cl.clReleaseKernel(self.id) end,
 }):subclass()
@@ -50,10 +57,10 @@ function Kernel:setArg(index, value)
 		end
 		if CLMemory:isa(value) then
 			assert.index(value, 'id')
-			ptr = ffi.new('cl_mem[1]', value.id)
-			size = ffi.sizeof'cl_mem'
+			ptr = cl_mem_1(value.id)
+			size = ffi.sizeof(cl_mem)
 		elseif value.size then
-			ptr = value.ptr or ffi.cast('const void*', 0)
+			ptr = value.ptr or void_const_ptr()
 			size = value.size
 		else
 			error("don't know how to handle value")

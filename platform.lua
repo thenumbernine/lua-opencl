@@ -5,6 +5,12 @@ local cl = require 'cl'
 local classert = require 'cl.assert'
 local GetInfo = require 'cl.getinfo'
 
+
+local cl_uint_1 = ffi.typeof'cl_uint[1]'
+local cl_platform_id_array = ffi.typeof'cl_platform_id[?]'
+local cl_device_id_array = ffi.typeof'cl_device_id[?]'
+
+
 local Platform = GetInfo():subclass()
 
 -- platform has no retain/release, so no need to wrap it
@@ -15,9 +21,9 @@ end
 
 -- static method
 function Platform.getAll()
-	local n = ffi.new('cl_uint[1]',0)
+	local n = cl_uint_1()
 	classert(cl.clGetPlatformIDs(0, nil, n))
-	local ids = ffi.new('cl_platform_id[?]', n[0])
+	local ids = cl_platform_id_array(n[0])
 	classert(cl.clGetPlatformIDs(n[0], ids, nil))
 	local platforms = table()
 	for i=0,n[0]-1 do
@@ -61,10 +67,10 @@ function Platform:getDevices(args)
 		if args.all then deviceType = bit.bor(deviceType or 0, cl.CL_DEVICE_TYPE_ALL) end
 	end
 	deviceType = deviceType or cl.CL_DEVICE_TYPE_ALL
-	local n = ffi.new('cl_uint[1]',0)
+	local n = cl_uint_1()
 --DEBUG:print('getting device type '..('0x%x'):format(deviceType))
 	classert(cl.clGetDeviceIDs(self.id, deviceType, 0, nil, n))
-	local ids = ffi.new('cl_device_id[?]', n[0])
+	local ids = cl_device_id_array(n[0])
 	classert(cl.clGetDeviceIDs(self.id, deviceType, n[0], ids, nil))
 	local devices = table()
 	for i=0,n[0]-1 do

@@ -7,15 +7,15 @@ local classertparam = require 'cl.assertparam'
 local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
+
+local cl_mem_array = ffi.typeof'cl_mem[?]'
+local cl_event_array = ffi.typeof'cl_event[?]'
+
+
 local defaultEvent
 
--- here and commandqueue.lua
-local function ffi_new_table(T, src)
-	return ffi.new(T..'['..#src..']', src)
-end
-
 local CommandQueue = GetInfo(GCWrapper{
-	ctype = 'cl_command_queue',
+	ctype = ffi.typeof'cl_command_queue',
 	retain = function(self) return cl.clRetainCommandQueue(self.id) end,
 	release = function(self) return cl.clReleaseCommandQueue(self.id) end,
 }):subclass()
@@ -223,7 +223,7 @@ function CommandQueue:enqueueNDRangeKernel(args)
 	local numWait = args.wait and #args.wait or 0
 	local wait
 	if numWait > 0 then
-		wait = ffi.new('cl_event[?]', numWait)
+		wait = cl_event_array(numWait)
 		for i=1,numWait do
 			wait[i-1] = args.wait[i].id
 		end
@@ -253,10 +253,11 @@ args:
 function CommandQueue:enqueueAcquireGLObjects(args)
 	defaultEvent = defaultEvent or require 'cl.event'()
 	local objs = assert.index(args, 'objs')
+	local ids = table.mapi(objs, function(obj) return obj.id end)
 	classert(cl.clEnqueueAcquireGLObjects(
 		self.id,
 		#objs,
-		ffi_new_table('cl_mem', table.mapi(objs, function(obj) return obj.id end)),
+		cl_mem_array(#ids, ids),
 		0,
 		nil,
 		args.event and args.event.ptr or defaultEvent.ptr))
@@ -269,10 +270,11 @@ args:
 function CommandQueue:enqueueReleaseGLObjects(args)
 	defaultEvent = defaultEvent or require 'cl.event'()
 	local objs = assert.index(args, 'objs')
+	local ids = table.mapi(objs, function(obj) return obj.id end)
 	classert(cl.clEnqueueReleaseGLObjects(
 		self.id,
 		#objs,
-		ffi_new_table('cl_mem', table.mapi(objs, function(obj) return obj.id end)),
+		cl_mem_array(#ids, ids),
 		0,
 		nil,
 		args.event and args.event.ptr or defaultEvent.ptr))

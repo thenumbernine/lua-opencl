@@ -1,9 +1,10 @@
+local ffi = require 'ffi'
 local cl = require 'cl'
 local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
 local Memory = GetInfo(GCWrapper{
-	ctype = 'cl_mem',
+	ctype = ffi.typeof'cl_mem',
 	retain = function(self) return cl.clRetainMemObject(self.id) end,
 	release = function(self) return cl.clReleaseMemObject(self.id) end,
 }):subclass()

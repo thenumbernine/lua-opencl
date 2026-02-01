@@ -8,8 +8,25 @@ local clCheckError = require 'cl.checkerror'
 local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
+
+local void_const_ptr = ffi.typeof'void const *'
+local size_t_1 = ffi.typeof'size_t[1]'
+local size_t_array = ffi.typeof'size_t[?]'
+local unsigned_char_array = ffi.typeof'unsigned char[?]'
+local char_const_ptr = ffi.typeof'char const *'
+local char_const_ptr_1 = ffi.typeof'char const *[1]'
+local unsigned_char_ptr = ffi.typeof'unsigned char *'
+local unsigned_char_ptr_array = ffi.typeof'unsigned char *[?]'
+local unsigned_char_const_ptr_ptr = ffi.typeof'unsigned char const **'
+local unsigned_char_const_ptr_array = ffi.typeof'unsigned char const *[?]'
+local cl_int_1 = ffi.typeof'cl_int[1]'
+local cl_int_array = ffi.typeof'cl_int[?]'
+local cl_device_id_array = ffi.typeof'cl_device_id[?]'
+local cl_program_array = ffi.typeof'cl_program[?]'
+
+
 local Program = GetInfo(GCWrapper{
-	ctype = 'cl_program',
+	ctype = ffi.typeof'cl_program',
 	retain = function(self) return cl.clRetainProgram(self.id) end,
 	release = function(self) return cl.clReleaseProgram(self.id) end,
 }):subclass()
@@ -37,51 +54,51 @@ function Program:init(args)
 	local programs = args.programs
 	assert(code or binaries or IL or programs, "expected either code, binaries, IL, or programs")
 	if code then
-		local strings = ffi.new('const char*[1]')
-		strings[0] = ffi.cast('const char*',code)
-		local lengths = ffi.new('size_t[1]')
+		local strings = char_const_ptr_1()
+		strings[0] = ffi.cast(char_const_ptr,code)
+		local lengths = size_t_1()
 		lengths[0] = #code
 		self.id = classertparam('clCreateProgramWithSource', context.id, 1, strings, lengths)
 	-- create from binary
 	elseif binaries then
 		local devices = assert.index(args, 'devices', "binaries expects devices")
 		local numDevices = #devices
-		local deviceIDs = ffi.new('cl_device_id[?]', numDevices)
+		local deviceIDs = cl_device_id_array(numDevices)
 		for i=1,numDevices do
 			deviceIDs[i-1] = devices[i].id
 		end
 		local n = #binaries
-		local lengths = ffi.new('size_t[?]', n)
-		local binptrs = ffi.new('unsigned char*[?]', n)
-		local binary_status = ffi.new('cl_int[?]', n)
+		local lengths = size_t_array(n)
+		local binptrs = unsigned_char_const_ptr_array(n)
+		local binary_status = cl_int_array(n)
 		for i,bin in ipairs(binaries) do
 			lengths[i-1] = #bin
-			binptrs[i-1] = ffi.cast('unsigned char*', bin)
+			binptrs[i-1] = ffi.cast(unsigned_char_ptr, bin)
 			binary_status[i-1] = cl.CL_SUCCESS
 		end
-		self.id = classertparam('clCreateProgramWithBinary', context.id, numDevices, deviceIDs, lengths, ffi.cast('const unsigned char**', binptrs), binary_status)
+		self.id = classertparam('clCreateProgramWithBinary', context.id, numDevices, deviceIDs, lengths, ffi.cast(unsigned_char_const_ptr_ptr, binptrs), binary_status)
 		for i=1,n do
 			clCheckError(binary_status[i-1], 'clCreateProgramWithBinary failed on binary #'..i)
 		end
 	elseif IL then
 		assert.type(IL, 'string')
-		self.id = classertparam('clCreateProgramWithIL', context.id, ffi.cast('void const *', IL), #IL)
+		self.id = classertparam('clCreateProgramWithIL', context.id, ffi.cast(void_const_ptr, IL), #IL)
 	elseif programs then
 		assert.gt(#programs, 0, "can't link an empty program")
 		-- cl.hpp doesn't pass devices
 		local devices = assert.index(args, 'devices', "programs expects devices")
-		local deviceIDs = ffi.new('cl_device_id[?]', #devices)
+		local deviceIDs = cl_device_id_array(#devices)
 		for i=1,#devices do
 			deviceIDs[i-1] = devices[i].id
 		end
-		local programIDs = ffi.new('cl_program[?]', #programs)
+		local programIDs = cl_program_array(#programs)
 		for i=1,#programs do
 			local p = programs[i]
 			assert(p, "tried to link a nil program")
 			if type(p) == 'table' and p.obj then p = p.obj end
 			programIDs[i-1] = p.id
 		end
-		local err = ffi.new'cl_int[1]'
+		local err = cl_int_1()
 		self.id = cl.clLinkProgram(context.id, #devices, deviceIDs, args.buildOptions, #programs, programIDs, nil, nil, err)
 		if err[0] ~= cl.CL_SUCCESS then
 			local message = table{'clLinkProgram failed with error '..tostring(err[0])}
@@ -127,7 +144,7 @@ end
 function Program:compile(devices, options)
 	-- notice, cl.hpp doesn't use devices
 	assert(devices, "compile expects devices")
-	local deviceIDs = ffi.new('cl_device_id[?]', #devices)
+	local deviceIDs = cl_device_id_array(#devices)
 	for i=1,#devices do
 		deviceIDs[i-1] = devices[i].id
 	end
@@ -146,7 +163,7 @@ end
 
 -- calls clBuildProgram, which compiles source -> obj and then obj -> exe
 function Program:build(devices, options)
-	local deviceIDs = ffi.new('cl_device_id[?]', #devices)
+	local deviceIDs = cl_device_id_array(#devices)
 	for i=1,#devices do
 		deviceIDs[i-1] = devices[i].id
 	end
@@ -203,9 +220,9 @@ function Program:getSource() return self:getInfo'CL_PROGRAM_SOURCE' end
 -- TODO add to cl/getinfo.lua an entry for char*[], and maybe a field for associated sizes getter variable name
 function Program:getBinaries()
 	local binSizes = self:getInfo'CL_PROGRAM_BINARY_SIZES'
-	local bins = ffi.new('unsigned char*[?]', #binSizes)
+	local bins = unsigned_char_ptr_array(#binSizes)
 	for i,size in ipairs(binSizes) do
-		bins[i-1] = ffi.new('unsigned char[?]', size)
+		bins[i-1] = unsigned_char_array(size)
 	end
 	classert(cl.clGetProgramInfo(self.id, cl.CL_PROGRAM_BINARIES, ffi.sizeof(bins), bins, nil))
 	return binSizes:mapi(function(size,i) return ffi.string(bins[i-1],size) end)

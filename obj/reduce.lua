@@ -3,6 +3,10 @@ local class = require 'ext.class'
 local ffi = require 'ffi'
 local template = require 'template'
 
+
+local int_1 = ffi.typeof'int[1]'
+
+
 local Reduce = class()
 
 local reduceCode = [[
@@ -169,7 +173,7 @@ function Reduce:init(args)
 
 	self.kernel:setArg(0, self.buffer)
 	self.kernel:setArg(1, {ptr=nil, size=self.maxWorkGroupSize * self.ctypeSize})
-	self.kernel:setArg(2, ffi.new('int[1]', self.count))
+	self.kernel:setArg(2, int_1(self.count))
 	self.kernel:setArg(3, self.swapBuffer)
 
 	self.secondPassInCPU = args.secondPassInCPU
@@ -216,7 +220,7 @@ function Reduce:__call(buffer, reduceSize)
 		local globalSize = localSize
 
 		self.kernel:setArg(0, src)
-		self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
+		self.kernel:setArg(2, int_1(reduceSize))
 		self.kernel:setArg(3, dst)
 		self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=globalSize, localSize=localSize}
 		if src == buffer then src = self.buffer end
@@ -278,7 +282,7 @@ function Reduce:__call(buffer, reduceSize)
 			end
 
 			self.kernel:setArg(0, src)
-			self.kernel:setArg(2, ffi.new('int[1]', reduceSize))
+			self.kernel:setArg(2, int_1(reduceSize))
 			self.kernel:setArg(3, dst)
 			self.cmds:enqueueNDRangeKernel{kernel=self.kernel, dim=1, globalSize=globalSize, localSize=localSize}
 

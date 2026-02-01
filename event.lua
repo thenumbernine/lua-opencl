@@ -4,8 +4,14 @@ local classert = require 'cl.assert'
 local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
+
+local cl_event = ffi.typeof'cl_event'
+local cl_event_1 = ffi.typeof'cl_event[1]'
+local cl_event_array = ffi.typeof'cl_event[?]'
+
+
 local Event = GetInfo(GCWrapper{
-	ctype = 'cl_event',
+	ctype = cl_event,
 	retain = function(self) return cl.clRetainEvent(self.id) end,
 	release = function(self) return cl.clReleaseEvent(self.id) end,
 }):subclass()
@@ -13,8 +19,7 @@ local Event = GetInfo(GCWrapper{
 function Event:init(id)
 	Event.super.init(self, id)
 	-- and keep it in an array cuz in commandqueue it is used so often
-	self.ptr = ffi.new(self.ctype..'[1]')
-	self.ptr[0] = id
+	self.ptr = cl_event_1(id)
 end
 
 function Event:wait()
@@ -26,7 +31,7 @@ function Event.waitForEvents(...)
 	local n = select('#', ...)
 	local events
 	if n > 0 then
-		events = ffi.new('cl_event[?]', n)
+		events = cl_event_array(n)
 		for i=1,n do
 			events[i-1] = select(i).id
 		end

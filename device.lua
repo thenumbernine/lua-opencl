@@ -4,7 +4,7 @@ local GCWrapper = require 'cl.gcwrapper'
 local GetInfo = require 'cl.getinfo'
 
 local Device = GetInfo(GCWrapper{
-	ctype = 'cl_device_id',
+	ctype = ffi.typeof'cl_device_id',
 	retain = function(self) return cl.clRetainDevice(self.id) end,
 	release = function(self) return cl.clReleaseDevice(self.id) end,
 }):subclass()
