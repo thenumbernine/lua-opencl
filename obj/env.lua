@@ -25,7 +25,7 @@ require 'cl.obj.half'	-- has typedef for half
 -- or you can just rely on package.loaded and only use require vec-ffi
 
 -- already exist in vec-ffi:
---  my (old) naming convention ... vec<dim><type-letter>_t
+--  my (old) naming convention ... vec<dim><type-letter>
 require 'vec-ffi.vec2f'
 require 'vec-ffi.vec2d'
 require 'vec-ffi.vec2i'
@@ -34,12 +34,12 @@ require 'vec-ffi.vec4d'
 require 'vec-ffi.vec4i'
 -- OpenCL naming convention: <type><dim>
 ffi.cdef[[
-typedef vec2f_t float2;
-typedef vec2d_t double2;
-typedef vec2i_t int2;
-typedef vec4f_t float4;
-typedef vec4d_t double4;
-typedef vec4i_t int4;
+typedef vec2f float2;
+typedef vec2d double2;
+typedef vec2i int2;
+typedef vec4f float4;
+typedef vec4d double4;
+typedef vec4i int4;
 ]]
 
 --  types still needed to be instanciated:
