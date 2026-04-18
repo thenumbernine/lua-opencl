@@ -1,6 +1,5 @@
 local assert = require 'ext.assert'
 local ffi = require 'ffi'
-local bit = require 'bit'
 local cl = require 'cl'
 local classertparam = require 'cl.assertparam'
 

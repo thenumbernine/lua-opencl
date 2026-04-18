@@ -1,6 +1,5 @@
 local table = require 'ext.table'
 local ffi = require 'ffi'
-local bit = require 'bit'
 local cl = require 'cl'
 local classert = require 'cl.assert'
 local GetInfo = require 'cl.getinfo'

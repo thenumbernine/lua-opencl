@@ -4,7 +4,6 @@ I'm thinking maybe I should make a 'cl.util' folder
 since neither of these are really specific to the OOP wrappers to the Lua wrappers of OpenCL C API
 --]]
 
-local bit = require 'bit'
 local ffi = require 'ffi'
 local assert = require 'ext.assert'
 local math = require 'ext.math'

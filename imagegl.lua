@@ -1,4 +1,3 @@
-local bit = require 'bit'
 local assert = require 'ext.assert'
 local cl = require 'cl'
 local classertparam = require 'cl.assertparam'
