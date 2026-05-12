@@ -59,7 +59,7 @@ generateBindings = function()return{
 	{
 		inc = '<CL/opencl.h>',
 		out = 'OpenCL.lua',
-		includedirs = ffi.os == 'OSX' and {
+		includedirs = targetOS == 'OSX' and {
 			'/usr/local/opt/opencl-headers/include',	-- brew instal opencl-headers
 		} or nil,
 		final = function(code)
