@@ -20,13 +20,13 @@ local function get64bit(list)
 end
 
 local platform = get64bit(require 'cl.platform'.getAll())
-local devices = platform:getDevices{gpu=true}:filter(isFP64)
+local devices = platform:getDevices{gpu=true}:filteri(isFP64)
 if #devices == 0 then error("found no devices with fp64") end
 for i,device in ipairs(devices) do
 	print('device '..i..': '..tostring(device:getName()))
 end
 
-local fp64 = #devices:filter(isFP64) == #devices
+local fp64 = #devices:filteri(isFP64) == #devices
 
 local n = 64
 local real = fp64 and 'double' or 'float'

@@ -83,13 +83,13 @@ local function getForPrecision(list, precision)
 	end)
 	-- choose double if we must
 	if precision == 'double' then
-		all = all:filter(function(a) return a.fp64 end)
+		all = all:filteri(function(a) return a.fp64 end)
 		assert.gt(#all, 0, "couldn't find anything with 64 bit precision")
 	-- otherwise prioritize it
 	-- TODO what if the user wants gl sharing too?
 	-- should I prioritize a search for that extension as well?
 	elseif precision == 'half' then
-		all = all:filter(function(a) return a.fp16 end)
+		all = all:filteri(function(a) return a.fp16 end)
 		assert.gt(#all, 0, "couldn't find anything with 16 bit precision")
 	else
 		all:sort(function(a,b)
@@ -218,12 +218,12 @@ function CLEnv:init(args)
 --DEBUG:	print(i, device:getName())
 --DEBUG:end
 
-	local fp64 = #self.devices:filter(isFP64) == #self.devices
-	local fp16 = #self.devices:filter(isFP16) == #self.devices
+	local fp64 = #self.devices:filteri(isFP64) == #self.devices
+	local fp16 = #self.devices:filteri(isFP16) == #self.devices
 
 	-- don't use GL sharing if we're told not to
 	if not args or args.useGLSharing ~= false then
-		local numDevicesWithGLSharing = #self.devices:filter(function(device, deviceIndex)
+		local numDevicesWithGLSharing = #self.devices:filteri(function(device, deviceIndex)
 			local exts = device:getExtensions()
 			return exts:mapi(string.lower):find(nil, function(ext)
 				local found = ext:match'cl_%w+_gl_sharing'

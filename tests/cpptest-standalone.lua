@@ -27,12 +27,12 @@ if not cmdline.nocl then -- [[ initialize CL first to tell what kind of real we 
 	end
 
 	local platform = get64bit(require 'cl.platform'.getAll())
-	devices = platform:getDevices{gpu=true}:filter(isFP64)
+	devices = platform:getDevices{gpu=true}:filteri(isFP64)
 	for i,device in ipairs(devices) do
 		print('device '..i..': '..tostring(device:getName()))
 	end
 
-	fp64 = #devices:filter(isFP64) == #devices
+	fp64 = #devices:filteri(isFP64) == #devices
 
 	real = fp64 and 'double' or 'float'
 	print('using real',real)
